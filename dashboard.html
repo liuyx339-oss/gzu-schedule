@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>放射科智能指挥舱 - 医疗高定版</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/echarts/dist/echarts.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css" />
+    <script src="https://unpkg.com/element-plus"></script>
+
+    <style>
+        /* 核心品牌色变量：和睦家青蓝色 */
+        :root {
+            --ufh-primary: #008eab;
+            /* 主题青蓝 */
+            --ufh-light: #e6f6f9;
+            /* 极浅青色背景 */
+            --ufh-text-main: #333333;
+            /* 主标题深灰 */
+            --ufh-text-sub: #666666;
+            /* 副标题浅灰 */
+            --bg-color: #f5f7fa;
+            /* 整体高级灰背景 */
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--ufh-text-main);
+            font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', sans-serif;
+        }
+
+        /* 顶部导航栏：纯白背景 + 青蓝底边 + 轻柔阴影 */
+        .header {
+            background-color: #ffffff;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 3px solid var(--ufh-primary);
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        .header-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--ufh-primary);
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-time {
+            font-size: 16px;
+            color: var(--ufh-text-sub);
+            font-weight: 500;
+        }
+
+        .header-status {
+            font-size: 14px;
+            color: var(--ufh-text-sub);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .container {
+            padding: 25px;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        /* 数据卡片：纯白，圆角变大，轻质感阴影 */
+        .chart-card {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 20px 25px;
+            margin-bottom: 20px;
+            border: 1px solid #ebeef5;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+            transition: all 0.3s ease;
+        }
+
+        .chart-card:hover {
+            box-shadow: 0 8px 24px rgba(0, 142, 171, 0.08);
+            /* 鼠标悬浮时泛出淡淡的品牌色阴影 */
+        }
+
+        .chart-container {
+            width: 100%;
+            height: 400px;
+        }
+
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            margin: -10px;
+        }
+
+        .col-half {
+            width: 50%;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        .col-full {
+            width: 100%;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        /* 模块标题：使用品牌青蓝色作为左侧装饰条 */
+        h3 {
+            border-left: 5px solid var(--ufh-primary);
+            padding-left: 12px;
+            margin-bottom: 20px;
+            color: var(--ufh-text-main);
+            font-size: 18px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <div class="header">
+            <div class="header-title">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path
+                        d="M20 10H14V4C14 2.89543 13.1046 2 12 2C10.8954 2 10 2.89543 10 4V10H4C2.89543 10 2 10.8954 2 12C2 13.1046 2.89543 14 4 14H10V20C10 21.1046 10.8954 22 12 22C13.1046 22 14 21.1046 14 20V14H20C21.1046 14 22 13.1046 22 12C22 10.8954 21.1046 10 20 10Z"
+                        fill="#008eab" />
+                </svg>
+                放射科智能排班与需求看板
+            </div>
+            <div class="header-status">
+                <el-tag v-if="isUpdating" color="#008eab" effect="dark" style="border:none;"
+                    size="small">同步中...</el-tag>
+                <el-tag v-else type="info" effect="plain" size="small">实时监控中</el-tag>
+                <span>上次更新: {{ lastUpdateTime }}</span>
+            </div>
+            <div class="header-time">{{ currentTime }}</div>
+        </div>
+
+        <div class="container">
+            <el-alert v-if="error" title="数据加载失败" type="error" :description="error" show-icon
+                style="margin-bottom: 20px;"></el-alert>
+
+            <div class="row">
+                <div class="col-full">
+                    <div class="chart-card">
+                        <h3>流量趋势监控：</h3>
+                        <div id="chart-weekly" class="chart-container"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-half">
+                    <div class="chart-card">
+                        <h3>体检人群占比</h3>
+                        <div id="chart-checkup" class="chart-container"></div>
+                    </div>
+                </div>
+                <div class="col-half">
+                    <div class="chart-card">
+                        <h3>放射检查科室耗时分布</h3>
+                        <div id="chart-duration" class="chart-container"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-full">
+                    <div class="chart-card">
+                        <h3>科室内部检查项目构成 (CT / X-Ray 等)</h3>
+                        <div id="chart-dept-type" class="chart-container"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-full">
+                    <div class="chart-card">
+                        <h3>核心影像项目分析：最常做的十大 CT</h3>
+                        <div id="chart-ct-items" class="chart-container"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, onMounted, onUnmounted, ref } = Vue;
+
+        createApp({
+            setup() {
+                const error = ref(null);
+                const currentTime = ref('');
+                const lastUpdateTime = ref('--:--:--');
+                const isUpdating = ref(false);
+
+                // =========================================================================
+                // ！！！未来接入真实数据，只需要修改这里 ！！！ 
+                // =========================================================================
+
+                // 1. 【数据接口地址】
+                // 目前状态：读取我们本地生成的 json 文件进行展示测试
+                // 未来修改：当 IT 部门或后端人员给您一个真实的网址后，请把下面这行里的路径换掉。
+                // 修改示例：const DATA_API_URL = 'http://192.168.1.100:8080/api/getRadiologyData';
+
+                const DATA_API_URL = './echarts_dashboard_data.json'; 
+
+
+                // 2. 【大屏自动刷新频率】
+                // 目前状态：设定为 10000 毫秒（即 10 秒刷新一次，方便您现在看效果）
+                // 未来修改：真实投入使用时，建议改成 60000（1分钟）或 300000（5分钟），避免给医院服务器造成太大压力。
+
+                const REFRESH_INTERVAL_MS = 10000; 
+
+                // =========================================================================
+                // ！！！配置结束，下面是核心图表渲染逻辑，无需修改 ！！！ 
+                // =========================================================================
+                // 图表实例
+                let chartWeekly, chartCheckup, chartDuration, chartDeptType, chartCtItems;
+                let clockTimer, dataTimer;
+
+                // 核心品牌色系（青蓝、天蓝、橙色点缀、薄荷绿等，极度贴合高端私立医院）
+               const ufhColors = ['#008eab', '#4cb1e5', '#f29c38', '#7a68a6', '#2c3e50', '#8ac5d3', '#e67c9c'];
+
+                const startClock = () => {
+                    clockTimer = setInterval(() => {
+                        const now = new Date();
+                        currentTime.value = now.getFullYear() + '年' +
+                            String(now.getMonth() + 1).padStart(2, '0') + '月' +
+                            String(now.getDate()).padStart(2, '0') + '日 ' +
+                            String(now.getHours()).padStart(2, '0') + ':' +
+                            String(now.getMinutes()).padStart(2, '0') + ':' +
+                            String(now.getSeconds()).padStart(2, '0');
+                    }, 1000);
+                };
+
+                // 去除了之前的 'dark' 模式，使用默认亮色配置，并注册统一样式
+                const initEmptyCharts = () => {
+                    chartWeekly = echarts.init(document.getElementById('chart-weekly'));
+                    chartCheckup = echarts.init(document.getElementById('chart-checkup'));
+                    chartDuration = echarts.init(document.getElementById('chart-duration'));
+                    chartDeptType = echarts.init(document.getElementById('chart-dept-type'));
+                    chartCtItems = echarts.init(document.getElementById('chart-ct-items'));
+
+                    window.addEventListener('resize', () => {
+                        chartWeekly.resize(); chartCheckup.resize(); chartDuration.resize();
+                        chartDeptType.resize(); chartCtItems.resize();
+                    });
+                };
+
+                const fetchAndUpdateData = async () => {
+                    isUpdating.value = true;
+                    try {
+                        const fetchUrl = `${DATA_API_URL}?t=${new Date().getTime()}`;
+                        const response = await fetch(fetchUrl);
+                        if (!response.ok) throw new Error(`网络请求失败: ${response.status}`);
+                        const data = await response.json();
+                        error.value = null;
+
+                        // 1. 周流量折线图 (使用青蓝色，带面积阴影渐变)
+                        chartWeekly.setOption({
+                            color: ufhColors,
+                            tooltip: { trigger: 'axis' },
+                            xAxis: { type: 'category', data: data.weekly_traffic.xAxis, axisLine: { lineStyle: { color: '#ccc' } }, axisLabel: { color: '#666' } },
+                            yAxis: { type: 'value', name: '患者单量', nameTextStyle: { color: '#999' }, splitLine: { lineStyle: { type: 'dashed', color: '#eee' } } },
+                            series: [{
+                                data: data.weekly_traffic.seriesData,
+                                type: 'line',
+                                smooth: true,
+                                symbolSize: 8,
+                                itemStyle: { color: '#008eab' },
+                                lineStyle: { width: 4 },
+                                areaStyle: {
+                                    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                        { offset: 0, color: 'rgba(0,142,171,0.3)' },
+                                        { offset: 1, color: 'rgba(0,142,171,0.0)' }
+                                    ])
+                                }
+                            }]
+                        });
+
+                        // 2. 体检占比饼图 (和睦家专属调色盘)
+                        chartCheckup.setOption({
+                            color: ufhColors,
+                            tooltip: { trigger: 'item' },
+                            legend: { top: '0%', left: 'center', textStyle: { color: '#666' } },
+                            series: [{
+                                name: '人群类型', type: 'pie', radius: ['45%', '70%'],
+                                itemStyle: { borderRadius: 8, borderColor: '#fff', borderWidth: 3 },
+                                data: data.checkup_ratio.data
+                            }]
+                        });
+
+                        // 3. 耗时分布饼图
+                        chartDuration.setOption({
+                            color: ufhColors,
+                            tooltip: { trigger: 'item', formatter: '{a} <br/>{b}: {c} 分钟 ({d}%)' },
+                            series: [{
+                                name: '总耗时', type: 'pie', radius: '60%',
+                                data: data.dept_duration_ratio.data,
+                                label: { show: true, formatter: '{b}\n{d}%', color: '#555' }
+                            }]
+                        });
+
+                        // 4. 科室项目堆叠柱状图
+                        chartDeptType.setOption({
+                            color: ufhColors,
+                            tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+                            legend: { top: '0%', type: 'scroll', padding: [10, 20], textStyle: { color: '#666' } },
+                            grid: { top: '20%', left: '3%', right: '4%', bottom: '3%', containLabel: true },
+                            xAxis: { type: 'category', data: data.dept_type_breakdown.xAxis_departments, axisLabel: { interval: 0, rotate: 15, color: '#666' } },
+                            yAxis: { type: 'value', splitLine: { lineStyle: { type: 'dashed', color: '#eee' } } },
+                            series: data.dept_type_breakdown.series
+                        });
+
+                        // 5. CT 项目细分条形图
+                        const ctNames = data.ct_item_breakdown.data.map(i => i.name);
+                        const ctValues = data.ct_item_breakdown.data.map(i => i.value);
+                        chartCtItems.setOption({
+                            color: ufhColors,
+                            tooltip: {
+                                trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: function (params) {
+                                    return `<div style="white-space: normal; word-wrap: break-word; max-width: 400px; color:#333;"><strong>${params[0].name}</strong><br/>单量: ${params[0].value}</div>`;
+                                }
+                            },
+                            grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+                            xAxis: { type: 'value', splitLine: { lineStyle: { type: 'dashed', color: '#eee' } } },
+                            yAxis: { type: 'category', data: ctNames, inverse: true, axisLabel: { color: '#666', formatter: function (value) { return value.length > 18 ? value.substring(0, 18) + '...' : value; } } },
+                            series: [{
+                                name: '单量', type: 'bar', data: ctValues,
+                                itemStyle: { borderRadius: [0, 5, 5, 0] }, // 柱子右侧设为圆角，显得更温和
+                                label: { show: true, position: 'right', color: '#666' }
+                            }]
+                        });
+
+                        const now = new Date();
+                        lastUpdateTime.value = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0') + ':' + String(now.getSeconds()).padStart(2, '0');
+
+                    } catch (e) {
+                        console.error(e);
+                        error.value = "数据拉取失败，请检查数据接口是否正常。报错信息：" + e.message;
+                    } finally {
+                        setTimeout(() => { isUpdating.value = false; }, 500);
+                    }
+                };
+
+                onMounted(() => {
+                    startClock();
+                    initEmptyCharts();
+                    fetchAndUpdateData();
+                    dataTimer = setInterval(fetchAndUpdateData, REFRESH_INTERVAL_MS);
+                });
+
+                onUnmounted(() => {
+                    clearInterval(clockTimer);
+                    clearInterval(dataTimer);
+                });
+
+                return { error, currentTime, lastUpdateTime, isUpdating };
+            }
+        }).use(ElementPlus).mount('#app');
+    </script>
+</body>
+
+</html>

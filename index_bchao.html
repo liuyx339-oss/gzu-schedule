@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <a href="./index.html"
+        style="position: absolute; right: 20px; top: 10px; color: white; z-index: 1000; text-decoration: none; font-size: 14px; background: rgba(0,0,0,0.2); padding: 5px 10px; border-radius: 4px;">切换至放射科</a>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>超声医学科智慧管理中台 - 医疗高定版</title>
+    <script src="https://fastly.jsdelivr.net/npm/vue@3.3.4/dist/vue.global.prod.js"></script>
+    <link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/element-plus@2.3.12/dist/index.css" />
+    <script src="https://fastly.jsdelivr.net/npm/element-plus@2.3.12/dist/index.full.min.js"></script>
+    <script src="https://fastly.jsdelivr.net/npm/@element-plus/icons-vue@2.1.0/dist/index.iife.min.js"></script>
+    <script src="https://fastly.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <script src="https://fastly.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+    <style>
+        [v-cloak] {
+            display: none !important;
+        }
+
+        :root {
+            --ufh-primary: #1A4A76;
+            --ufh-secondary: #008EAB;
+            --ufh-warning: #D4A017;
+            --ufh-danger: #D9534F;
+            --ufh-text-main: #2C3E50;
+            --ufh-text-sub: #7F8C8D;
+            --bg-color: #F4F7F9;
+        }
+
+        body {
+            margin: 0;
+            background-color: var(--bg-color);
+            color: var(--ufh-text-main);
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+        }
+
+        .header {
+            background-color: #ffffff;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 4px solid var(--ufh-primary);
+            box-shadow: 0 2px 15px rgba(26, 74, 118, 0.08);
+        }
+
+        .header-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--ufh-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            letter-spacing: 1px;
+        }
+
+        .header-time {
+            font-size: 15px;
+            color: var(--ufh-text-sub);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-weight: 500;
+        }
+
+        .main-container {
+            padding: 20px 30px;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: #ffffff;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #E4EBF1;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            border-left: 5px solid var(--ufh-primary);
+            padding-left: 12px;
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: var(--ufh-primary);
+            font-size: 18px;
+        }
+
+        .el-tabs__item {
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--ufh-text-sub);
+        }
+
+        .el-tabs__item.is-active {
+            color: var(--ufh-primary);
+        }
+
+        .el-tabs__active-bar {
+            background-color: var(--ufh-primary);
+            height: 3px;
+        }
+
+        .chart-container {
+            width: 100%;
+            height: 380px;
+        }
+
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            margin: -10px;
+        }
+
+        .col-half {
+            width: 50%;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        .col-full {
+            width: 100%;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        .roster-layout {
+            display: flex;
+            gap: 20px;
+        }
+
+        .roster-sidebar {
+            width: 320px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .roster-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .staff-tag {
+            margin: 4px;
+            border-radius: 4px;
+        }
+
+        .log-box {
+            height: 200px;
+            overflow-y: auto;
+            background: #F8FAFC;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #E2E8F0;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .log-time {
+            color: #94A3B8;
+            margin-right: 8px;
+            font-family: monospace;
+        }
+
+        .el-table th {
+            background-color: #F0F4F8 !important;
+            color: var(--ufh-primary) !important;
+            font-weight: bold;
+            border-bottom: 2px solid #D9E2EC !important;
+        }
+
+        .shift-cell {
+            padding: 6px;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 13px;
+        }
+
+        .shift-day {
+            background-color: #E6F3F7;
+            color: var(--ufh-secondary);
+            border: 1px solid #BFE1E9;
+        }
+
+        .shift-cto {
+            background-color: #FDF8ED;
+            color: var(--ufh-warning);
+            border: 1px solid #F6E6C4;
+        }
+
+        .shift-empty {
+            color: #CBD5E1;
+            font-weight: normal;
+        }
+
+        .shift-replaced {
+            border: 1px dashed var(--ufh-danger);
+            background-color: #FEF2F2;
+            color: var(--ufh-danger);
+        }
+
+        .insight-box {
+            background: #fdf6ec;
+            border-left: 4px solid #D4A017;
+            padding: 12px 20px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+
+        .insight-item {
+            font-size: 14px;
+            margin: 5px 0;
+            color: #2C3E50;
+        }
+
+        .insight-highlight {
+            color: #D9534F;
+            font-weight: bold;
+        }
+
+        /* 智能排班表专属样式 (不干扰原版) */
+        .shift-smart-off {
+            color: #BDC3C7;
+            font-size: 12px;
+        }
+
+        .shift-smart-morning {
+            background-color: #E8F4F8;
+            color: #008EAB;
+            padding: 4px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 12px;
+            display: inline-block;
+            line-height: 1.2;
+        }
+
+        .shift-smart-evening {
+            background-color: #FDF6E3;
+            color: #D4A017;
+            padding: 4px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 12px;
+            display: inline-block;
+            line-height: 1.2;
+        }
+
+        .shift-smart-night {
+            background-color: #FCECEB;
+            color: #D9534F;
+            padding: 4px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 12px;
+            display: inline-block;
+            line-height: 1.2;
+        }
+
+        .shift-smart-danger {
+            background-color: #FF4D4F;
+            color: white;
+            padding: 4px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 12px;
+            display: inline-block;
+        }
+
+        .smart-alert-badge {
+            background: linear-gradient(135deg, #FF416C 0%, #FF4B2B 100%);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(255, 75, 43, 0.3);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.02);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app" v-cloak>
+        <div class="header">
+            <div class="header-title">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path
+                        d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22ZM12 18V12H8L12 6V12H16L12 18Z"
+                        fill="#1A4A76" />
+                </svg>
+                超声医学科 (B超) 运营与排班系统
+            </div>
+            <div class="header-time"><el-tag v-if="isUpdating" size="small" type="primary" effect="dark"
+                    style="background-color: #1A4A76; border: none;">数据同步中...</el-tag><el-tag v-else size="small"
+                    type="info" effect="plain" style="color: #7F8C8D; border-color: #D9E2EC;">系统就绪</el-tag><span>{{
+                    currentTime }}</span></div>
+        </div>
+
+        <div class="main-container">
+            <el-tabs v-model="activeTab" @tab-change="handleTabChange">
+                <el-tab-pane label="📊 B超科业务数据看板" name="analytics">
+                    <div style="margin-top: 10px;">
+
+                        <div class="row">
+                            <div class="col-full">
+                                <div class="card">
+                                    <div
+                                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                        <h3 style="margin-bottom:0;">📈 核心检查大类 (Type) 宏观人流量全维趋势比对</h3>
+                                        <el-radio-group v-model="typeTrendDimension" size="small"
+                                            @change="renderTypeTrendChart">
+                                            <el-radio-button label="month">月度趋势</el-radio-button>
+                                            <el-radio-button label="week">周度波动</el-radio-button>
+                                            <el-radio-button label="hour">24小时聚焦</el-radio-button>
+                                            <el-radio-button label="quarter">季度汇总</el-radio-button>
+                                            <el-radio-button label="period">上中下旬</el-radio-button>
+                                        </el-radio-group>
+                                    </div>
+                                    <div id="chart-type-trends" class="chart-container" style="height: 350px;"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-full">
+                                <div class="card">
+                                    <h3>各超声细分室耗时占比</h3>
+                                    <div id="chart-duration" class="chart-container"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-full">
+                                <div class="card"
+                                    style="background-color: #1A4A76; padding: 12px 20px; margin-bottom: 0;">
+                                    <h3 style="margin: 0; color: #ffffff; border-left: none; font-size: 16px;">⏱️ 开单量
+                                        Top6 核心科室：超声设备总耗时排行榜</h3>
+                                </div>
+                            </div>
+                            <div class="col-half" v-for="(items, deptName) in deptTopDurations" :key="'dur-'+deptName">
+                                <div class="card">
+                                    <h3 style="color: #D4A017; border-left-color: #D4A017; font-size: 16px;">🏥 {{
+                                        deptName }}</h3>
+                                    <el-table :data="items" class="dept-dur-table" border stripe size="small"
+                                        style="width: 100%;">
+                                        <el-table-column type="index" label="排名" width="55"
+                                            align="center"></el-table-column>
+                                        <el-table-column prop="name" label="具体超声检查项目"
+                                            show-overflow-tooltip></el-table-column>
+                                        <el-table-column prop="count" label="单量" width="60"
+                                            align="center"></el-table-column>
+                                        <el-table-column prop="duration" label="耗时(分)" width="80" align="center">
+                                            <template #default="scope"><b style="color: #D9534F;">{{ scope.row.duration
+                                                    }}</b></template>
+                                        </el-table-column>
+                                        <el-table-column label="深度画像" width="90" align="center">
+                                            <template #default="scope"><el-button size="small" type="primary" plain
+                                                    @click="openItemInsight(scope.row)">分析</el-button></template>
+                                        </el-table-column>
+                                    </el-table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-half" v-for="(typeData, typeName) in typeBreakdowns" :key="typeName">
+                                <div class="card">
+                                    <h3>🩻 {{ typeName }} 专项超声项目 Top10 排行</h3>
+                                    <div :id="'chart-type-us-' + typeName.replace(/[^a-zA-Z0-9]/g, '')"
+                                        class="chart-container"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </el-tab-pane>
+
+                <el-tab-pane label="🧠 AI智能排班 (V6)" name="smart_roster">
+                    <div style="margin-top: 10px;">
+                        <el-alert v-if="chartError" title="图表数据加载失败" type="error" :description="chartError" show-icon style="margin-bottom: 20px;"></el-alert>
+                        
+                        <div class="row">
+                            <div class="col-full">
+                                <div class="card">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                            <el-radio-group v-model="smartRosterType" size="large">
+                                <el-radio-button label="fixed">⚖️ 原固定排班表</el-radio-button>
+                                <el-radio-button label="predict">✨ 预测班次矩阵 (新)</el-radio-button>
+                            </el-radio-group>
+                            <div style="background: #f0f9eb; padding: 10px 20px; border-radius: 8px; border: 1px solid #e1f3d8; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                                <span style="margin-right: 15px; font-weight: bold; color: #67c23a;">⚙️ 管理员模式</span>
+                                <el-switch v-model="isEditMode" active-text="开启修改" inactive-text="锁定视图"></el-switch>
+                                <el-button v-if="isEditMode" type="primary" size="small" style="margin-left: 20px;" @click="saveEdits">
+                                    💾 确认修改并导出 CSV
+                                </el-button>
+                            </div>
+                        </div>
+                                    
+                                    <el-select v-model="smartSelectedWeek" placeholder="选择时间段" style="width: 150px; margin-left: 20px;">
+                                        <el-option label="一整个月 (全览)" value="all"></el-option>
+                                        <el-option v-for="week in smartWeekOptions" :key="week" :label="week" :value="week"></el-option>
+                                    </el-select>
+                                </div>
+                                
+                                <div v-if="smartShortageCount > 0" class="smart-alert-badge">
+                                    🚨 红色警报：系统测算本月存在 {{ smartShortageCount }} 处严重人力缺口！
+                                </div>
+                                <div v-else style="color: #27AE60; font-weight: bold; font-size: 16px;">
+                                    ✅ 当前人力资源完美匹配未来潮汐
+                                </div>
+                            </div>
+
+                            <el-table v-if="smartRosterType === 'fixed'" :data="smartFixedData" border stripe height="650px">
+                                <el-table-column prop="姓名" label="人员姓名" width="130" fixed>
+                                    <template #default="scope">
+                                        <b :style="{color: scope.row.姓名.includes('🚨') ? '#FF4D4F' : '#2C3E50'}">{{ scope.row.姓名 }}</b>
+                                    </template>
+                                </el-table-column>
+                                <el-table-column prop="人员属性" label="岗位编制属性" width="160"></el-table-column>
+                                <el-table-column prop="本期总工时" label="总工时(H)" width="100" align="center">
+                                    <template #default="scope">
+                                        <el-tag :type="scope.row.本期总工时 > 200 ? 'danger' : 'success'" effect="dark">
+                                            {{ scope.row.本期总工时 || 0 }} H
+                                        </el-tag>
+                                    </template>
+                                </el-table-column>
+                                <el-table-column v-for="date in filteredSmartCols" :key="date" :prop="date" :label="date" width="190" align="center">
+                                    <template #default="scope">
+                                        <div v-if="!isEditMode" :class="getSmartShiftClass(scope.row[date])">
+                                            {{ scope.row[date] }}
+                                        </div>
+                                        <el-select v-else v-model="scope.row[date]" size="small" style="width: 100%;" filterable placeholder="请选择">
+                                            <el-option v-for="opt in shiftOptions" :key="opt" :label="opt" :value="opt"></el-option>
+                                        </el-select>
+                                    </template>
+                                </el-table-column>
+                            </el-table>
+
+                                <el-table v-if="smartRosterType === 'predict'" :data="smartPredictData" border stripe height="650px">
+                                <el-table-column prop="姓名" label="人员姓名" width="130" fixed>
+                                    <template #default="scope">
+                                        <b :style="{color: scope.row.姓名.includes('🚨') ? '#FF4D4F' : '#2C3E50'}">{{ scope.row.姓名 }}</b>
+                                    </template>
+                                </el-table-column>
+                                <el-table-column prop="人员属性" label="岗位编制属性" width="160"></el-table-column>
+                                <el-table-column prop="本期总工时" label="总工时(H)" width="100" align="center">
+                                    <template #default="scope">
+                                        <el-tag :type="scope.row.本期总工时 > 200 ? 'danger' : 'success'" effect="dark">
+                                            {{ scope.row.本期总工时 || 0 }} H
+                                        </el-tag>
+                                    </template>
+                                </el-table-column>
+                                <el-table-column v-for="date in filteredSmartCols" :key="date" :prop="date" :label="date" width="190" align="center">
+                                    <template #default="scope">
+                                        <div v-if="!isEditMode" :class="getSmartShiftClass(scope.row[date])">
+                                            {{ scope.row[date] }}
+                                        </div>
+                                        <el-select v-else v-model="scope.row[date]" size="small" style="width: 100%;" filterable placeholder="请选择">
+                                            <el-option v-for="opt in shiftOptions" :key="opt" :label="opt" :value="opt"></el-option>
+                                        </el-select>
+                                    </template>
+                                </el-table-column>
+                            </el-table>
+
+                            
+                        </div>
+                    </el-tab-pane>
+            </el-tabs>
+        </div>
+
+
+        <el-dialog v-model="detailDialogVisible" :title="currentDetailTitle + ' - 流量详情分布'" width="60%"
+            @opened="renderDetailChart">
+            <div id="chart-period-detail" style="width: 100%; height: 400px;"></div>
+        </el-dialog>
+
+        <el-dialog v-model="insightDialogVisible" :title="'🔍 单项深度画像与排班指导: ' + (activeItemData?.name || '')" width="85%"
+            top="3vh" @opened="renderInsightCharts">
+            <div v-if="activeItemData" style="height: 650px; overflow-y: auto; overflow-x: hidden;">
+
+                <div class="insight-box" style="background: #F4F7F9; border-left: 5px solid #1A4A76; padding: 15px;">
+                    <div style="font-weight: bold; margin-bottom: 12px; color: #1A4A76; font-size: 16px;">💡
+                        时空聚焦与排班模型指令：</div>
+                    <el-row :gutter="20">
+                        <el-col :span="12">
+                            <div class="insight-item">⏱️ <b>24小时聚焦时段：</b> 患者高度集中于每天的 <span class="insight-highlight"
+                                    style="font-size:16px;">{{ activeItemData.analysis.insights.peak_hour_range ||
+                                    '09:00 - 12:00' }}</span>。</div>
+
+                            <div class="insight-item" style="margin-top: 10px;">📊 <b>周期波动规律：</b> 流量最高峰出现在 <span
+                                    class="insight-highlight">{{ activeItemData.analysis.insights.peak_month || '6月'
+                                    }}</span>，最低谷在 <span style="color:#008EAB; font-weight:bold;">{{
+                                    activeItemData.analysis.insights.trough_month || '2月' }}</span>，周内呈现 <span
+                                    class="insight-highlight">{{ activeItemData.analysis.insights.busy_days || '1/3/5/6'
+                                    }}</span> 排班高峰。</div>
+
+                            <div class="insight-item" style="margin-top: 15px;">🎯 <b>业务影响因素 (业务复盘)：</b> <br>
+                                <span style="color:#008EAB; font-weight: bold;">✔️ 【可预测因子】</span> {{
+                                activeItemData.analysis.insights.predictable_factors || '常规导流' }}<br>
+                                <span style="color:#D9534F; font-weight: bold;">❓ 【不可预测因子】</span> {{
+                                activeItemData.analysis.insights.unpredictable_factors || '突发插单' }}
+                            </div>
+                        </el-col>
+                        <el-col :span="12">
+                            <div class="insight-item"
+                                style="background: #ffffff; padding: 15px; border-radius: 6px; border: 1px solid #D9E2EC;">
+                                🛠️ <b>科室排班建议与指导：</b> <br>
+                                <span style="color:#2C3E50; font-weight: 500; line-height: 1.6;">
+                                    {{ activeItemData.analysis.insights.scheduling_advice || '暂无专属排班建议。' }}
+                                </span>
+                            </div>
+                        </el-col>
+                    </el-row>
+                </div>
+
+                <div class="row">
+                    <div class="col-full">
+                        <div class="card"
+                            style="box-shadow: none; border: 1px solid #eee; margin-bottom: 10px; padding: 15px;">
+                            <div style="font-weight:bold; margin-bottom:10px; color:#D4A017; font-size: 16px;">⏱️ 一天内
+                                (0点-24点) 患者抵达时间波峰图</div>
+                            <div id="chart-insight-h" style="width:100%; height: 250px;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-half">
+                        <div class="card" style="box-shadow: none; border: 1px solid #eee;">
+                            <div style="font-weight:bold; margin-bottom:10px;">季度单量与耗时趋势</div>
+                            <div id="chart-insight-q" style="width:100%; height: 220px;"></div>
+                        </div>
+                    </div>
+                    <div class="col-half">
+                        <div class="card" style="box-shadow: none; border: 1px solid #eee;">
+                            <div style="font-weight:bold; margin-bottom:10px;">月度单量与耗时趋势</div>
+                            <div id="chart-insight-m" style="width:100%; height: 220px;"></div>
+                        </div>
+                    </div>
+                    <div class="col-half">
+                        <div class="card" style="box-shadow: none; border: 1px solid #eee;">
+                            <div style="font-weight:bold; margin-bottom:10px;">上/中/下旬流量倾向</div>
+                            <div id="chart-insight-p" style="width:100%; height: 220px;"></div>
+                        </div>
+                    </div>
+                    <div class="col-half">
+                        <div class="card" style="box-shadow: none; border: 1px solid #eee;">
+                            <div style="font-weight:bold; margin-bottom:10px;">周一到周日波峰波动</div>
+                            <div id="chart-insight-w" style="width:100%; height: 220px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </el-dialog>
+
+    </div>
+
+    <script>
+        const { createApp, ref, computed, onMounted, nextTick } = Vue;
+
+        createApp({
+            setup() {
+                const activeTab = ref('analytics');
+                const currentTime = ref('');
+                const isUpdating = ref(false);
+                const CHART_API_URL = './echarts_dashboard_data.json';
+                const ROSTER_CSV_URL = './Generated_Next_Week_Roster_Bchao.csv';
+
+                const chartError = ref(null);
+                let charts = {};
+                const ufhColors = ['#1A4A76', '#008EAB', '#D4A017', '#63B8FF', '#8B9BAF', '#E06236', '#34495E'];
+
+                const typeBreakdowns = ref({});
+                const quarterlyData = ref([]);
+                const periodDetailsData = ref({});
+                const deptTopDurations = ref({});
+                const detailDialogVisible = ref(false);
+                const currentDetailTitle = ref('');
+
+                const insightDialogVisible = ref(false);
+                const activeItemData = ref(null);
+
+                // Type 趋势控制变量
+                const typeTrendDimension = ref('month');
+                const typeTrendsData = ref({});
+
+                const initCharts = () => {
+                    if (!document.getElementById('chart-duration')) return;
+                    charts.duration = echarts.init(document.getElementById('chart-duration'));
+                    window.addEventListener('resize', () => { Object.values(charts).forEach(chart => chart && chart.resize()); });
+                };
+
+                const renderTypeTrendChart = () => {
+                    const dom = document.getElementById('chart-type-trends');
+                    if (!dom) return;
+                    let c = echarts.getInstanceByDom(dom) || echarts.init(dom);
+                    let dim = typeTrendDimension.value;
+                    let series = []; let legendData = []; let xAxisData = [];
+
+                    Object.keys(typeTrendsData.value).forEach((type) => {
+                        let tData = typeTrendsData.value[type][dim];
+                        if (xAxisData.length === 0) xAxisData = tData.xAxis;
+                        legendData.push(type);
+                        series.push({
+                            name: type, type: 'line', smooth: true, data: tData.count,
+                            symbolSize: 8, lineStyle: { width: 3 }
+                        });
+                    });
+
+                    c.setOption({
+                        color: ['#1A4A76', '#008EAB', '#D4A017', '#D9534F', '#8B9BAF', '#63B8FF'],
+                        tooltip: { trigger: 'axis' },
+                        legend: { data: legendData, top: 0, textStyle: { fontSize: 14 } },
+                        grid: { left: '3%', right: '4%', bottom: '5%', top: '15%', containLabel: true },
+                        xAxis: { type: 'category', boundaryGap: false, data: xAxisData, axisLabel: { fontSize: 13, color: '#2C3E50' } },
+                        yAxis: { type: 'value', name: '总检查人次 (单)', nameTextStyle: { color: '#7F8C8D' } },
+                        series: series
+                    }, true);
+                    charts.typeTrends = c;
+                };
+
+                const fetchAndUpdateData = async () => {
+                    try {
+                        const response = await fetch(`${CHART_API_URL}?t=${new Date().getTime()}`);
+                        const allData = await response.json();
+                        const data = allData.us;
+
+                        // 挂载 Type 趋势数据并绘图
+                        typeTrendsData.value = data.type_trends || {};
+                        nextTick(() => { setTimeout(() => renderTypeTrendChart(), 100); });
+
+                        if (!charts.duration) initCharts();;
+
+
+                        charts.duration.setOption({ color: ufhColors, tooltip: { trigger: 'item', formatter: '{a} <br/>{b}: {c} 分 ({d}%)' }, series: [{ name: '耗时', type: 'pie', radius: ['40%', '65%'], itemStyle: { borderRadius: 4, borderColor: '#fff', borderWidth: 2 }, data: data.dept_duration_ratio.data, label: { show: true, formatter: '{b}\\n{d}%', color: '#2C3E50' } }] });
+                        quarterlyData.value = data.quarterly_data;
+                        periodDetailsData.value = data.period_details;
+                        deptTopDurations.value = data.dept_top_durations;
+
+
+                        typeBreakdowns.value = data.type_breakdowns;
+
+                        nextTick(() => {
+                            setTimeout(() => {
+                                Object.keys(data.type_breakdowns).forEach((typeName) => {
+                                    const safeId = 'chart-type-us-' + typeName.replace(/[^a-zA-Z0-9]/g, '');
+                                    const chartDom = document.getElementById(safeId);
+                                    if (chartDom) {
+                                        let chartInstance = echarts.getInstanceByDom(chartDom) || echarts.init(chartDom);
+                                        let tData = data.type_breakdowns[typeName];
+                                        chartInstance.setOption({ color: ['#008EAB'], tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } }, grid: { left: '2%', right: '5%', bottom: '3%', top: '5%', containLabel: true }, xAxis: { type: 'value', splitLine: { lineStyle: { color: '#E4EBF1' } } }, yAxis: { type: 'category', data: tData.names, inverse: true, axisLabel: { color: '#2C3E50', formatter: v => v.length > 15 ? v.substring(0, 15) + '...' : v } }, series: [{ type: 'bar', data: tData.values, barWidth: '50%', itemStyle: { borderRadius: [0, 4, 4, 0] }, label: { show: true, position: 'right', color: '#008EAB', fontWeight: 'bold' } }] });
+                                        charts['dynamic_' + safeId] = chartInstance;
+                                    }
+                                });
+                                Object.values(charts).forEach(chart => chart && chart.resize());
+                            }, 400);
+                        });
+                    } catch (e) { console.error(e); }
+                };
+
+                const renderDetailChart = () => {
+                    const detailDom = document.getElementById('chart-period-detail');
+                    if (detailDom) {
+                        let detailChart = echarts.getInstanceByDom(detailDom) || echarts.init(detailDom);
+                        let mData = periodDetailsData.value[currentDetailTitle.value];
+                        if (mData) {
+                            detailChart.setOption({ color: ufhColors, tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } }, legend: { bottom: '0%', textStyle: { color: '#2C3E50' } }, grid: { top: '10%', bottom: '15%', containLabel: true }, xAxis: { type: 'category', data: mData.xAxis, axisLabel: { color: '#7F8C8D' } }, yAxis: { type: 'value', name: '单量', splitLine: { lineStyle: { color: '#E4EBF1' } } }, series: mData.series });
+                            charts.detailChart = detailChart;
+                        }
+                    }
+                };
+
+                const openItemInsight = (rowData) => { activeItemData.value = rowData; insightDialogVisible.value = true; };
+
+                const renderInsightCharts = () => {
+                    const chartsData = activeItemData.value.analysis.charts;
+                    // 【关键升级】：加入 h (hour) 的 24小时分布图
+                    const ids = ['q', 'm', 'p', 'w', 'h'];
+                    const keys = ['quarter', 'month', 'period', 'week', 'hour'];
+
+                    ids.forEach((id, idx) => {
+                        const dom = document.getElementById('chart-insight-' + id);
+                        if (dom) {
+                            let c = echarts.getInstanceByDom(dom) || echarts.init(dom);
+                            let cData = chartsData[keys[idx]];
+                            c.setOption({
+                                tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
+                                legend: { data: ['单量', '耗时(分)'], top: 0, right: 0, itemWidth: 10, itemHeight: 10, textStyle: { fontSize: 10 } },
+                                grid: { left: '3%', right: '3%', bottom: '5%', top: '20%', containLabel: true },
+                                xAxis: { type: 'category', data: cData.xAxis, axisLabel: { fontSize: 10, interval: 0, rotate: (id === 'w' || id === 'h') ? 30 : 0 } },
+                                yAxis: [{ type: 'value', name: '单量', splitLine: { show: false }, nameTextStyle: { fontSize: 10 }, axisLabel: { fontSize: 10 } }, { type: 'value', name: '耗时', splitLine: { show: false }, nameTextStyle: { fontSize: 10 }, axisLabel: { fontSize: 10 } }],
+                                series: [
+                                    { name: '单量', type: 'bar', yAxisIndex: 0, data: cData.count, itemStyle: { color: id === 'h' ? '#D4A017' : '#008EAB', borderRadius: [2, 2, 0, 0] } },
+                                    { name: '耗时(分)', type: 'line', smooth: true, yAxisIndex: 1, data: cData.duration, itemStyle: { color: '#D9534F' }, lineStyle: { width: 2 } }
+                                ]
+                            });
+                            charts['insight_' + id] = c;
+                        }
+                    });
+                };
+
+                const isCalculating = ref(false);
+                const isLoadingData = ref(true);
+                const days = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+                const staffPool = ref({ doctors: ["Xu Jing", "Liu Xiaoyan", "Lu Liyu", "Zhao Tianchong"] });
+                const rosterData = ref([]);
+                const systemLogs = ref([{ time: getNowTime(), type: 'info', msg: 'B超系统启动...' }]);
+
+                function getNowTime() { const now = new Date(); return now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0') + ':' + now.getSeconds().toString().padStart(2, '0'); }
+                const addLog = (type, msg) => { systemLogs.value.push({ time: getNowTime(), type, msg }); nextTick(() => { const box = document.getElementById('logBox'); if (box) box.scrollTop = box.scrollHeight; }); }
+
+                const getShiftClass = (shift) => { if (!shift) return 'shift-cell shift-empty'; if (shift.includes('C')) return 'shift-cell shift-cto'; if (shift.includes('D')) return 'shift-cell shift-day'; if (shift.includes('H')) return 'shift-cell shift-cto'; return 'shift-cell'; };
+
+                const loadRealRosterData = () => {
+                    fetch(`${ROSTER_CSV_URL}?t=${new Date().getTime()}`).then(res => res.text()).then(csvText => {
+                        Papa.parse(csvText, {
+                            header: true, skipEmptyLines: true, transformHeader: h => h.replace(/[^a-zA-Z0-9\u4e00-\u9fa5()]/g, ''),
+                            complete: (results) => {
+                                const validData = results.data.filter(row => row['角色'] && row['姓名']);
+                                rosterData.value = validData.map(row => ({ role: row['角色'], name: row['姓名'], "周一": row['周一'] || '', "周二": row['周二'] || '', "周三": row['周三'] || '', "周四": row['周四'] || '', "周五": row['周五'] || '', "周六": row['周六'] || '', "周日": row['周日'] || '', hours: parseFloat(row['本周排班工时(H)']) || 0 }));
+                                isLoadingData.value = false; addLog('info', '✅ V5 智能排班表加载完毕。');
+                            }
+                        });
+                    }).catch(err => { isLoadingData.value = false; });
+                };
+
+                const handleTabChange = (tabName) => { if (tabName === 'analytics') { nextTick(() => { Object.values(charts).forEach(chart => chart && chart.resize()); }); } };                // =====================================
+                // 🧠 AI 智能排班系统专用变量 (完全解耦)
+                // =====================================
+                const smartRosterType = ref('fixed');
+            const isEditMode = ref(false);
+            const shiftOptions = [
+                '休', 'Opt_D1(09:00-18:00)', 'Opt_D2(08:30-17:30)', 'Opt_D3(10:00-19:00)',
+                'Opt_H1(09:00-13:00)', 'Opt_H2(14:00-18:00)', 'N(17:30-08:00)', 
+                '兼职夜(18:00-08:00)', 'N(OnCall)(17:30-08:00)', 'H3(专家)(13:30-17:30)',
+                'D1(08:30-17:00)', 'D(08:30-17:30)', 'D2(09:00-17:30)', 'D3(09:30-18:00)', 
+                'D4(09:00-18:00)', 'D5(08:30-18:00)', 'C(07:40-16:10)', 'C1(08:00-16:30)',
+                'H1(07:40-11:40)', 'H2(08:30-12:30)', 'T(08:00-12:00)', 'L/N(08:00-08:00)'
+            ];
+            const saveEdits = () => {
+                const currentData = smartRosterType.value === 'fixed' ? smartFixedDataRaw.value : smartPredictDataRaw.value;
+                const cols = ['姓名', '人员属性', '本期总工时'].concat(filteredSmartCols.value);
+                
+                let csvContent = '\uFEFF' + cols.join(',') + '\n';
+                currentData.forEach(row => {
+                    let rowData = cols.map(c => {
+                        let cell = row[c] || '';
+                        if(String(cell).includes(',')) return `"${cell}"`;
+                        return cell;
+                    });
+                    csvContent += rowData.join(',') + '\n';
+                });
+                
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                let prefix = smartRosterType.value === 'fixed' ? 'Fixed' : 'Predict';
+                link.download = `Modified_${prefix}_Shift_Matrix.csv`;
+                link.click();
+                
+                if (window.ElementPlus) {
+                    window.ElementPlus.ElMessage.success('修改已生效！排班 CSV 文件已自动下载。');
+                } else {
+                    alert('修改已生效！已为您下载 CSV。');
+                }
+                isEditMode.value = false;
+            };const smartSelectedWeek = ref('all');
+                const smartFixedDataRaw = ref([]);
+                const smartPredictDataRaw = ref([]);
+                const smartDynamicDataRaw = ref([]);
+                const smartAllCols = ref([]);
+                const smartWeeksMap = ref({});
+                const smartWeekOptions = ref([]);
+                const smartShortageCount = ref(0);
+
+                // 读取新的专用 JSON
+                const loadSmartRosterData = () => {
+                    fetch('smart_roster_us.json?t=' + new Date().getTime())
+                        .then(res => res.json())
+                        .then(data => {
+                            smartFixedDataRaw.value = data.fixed.data;
+                            if(data.predict) { smartPredictDataRaw.value = data.predict.data; }
+                            smartAllCols.value = data.fixed.columns;
+                            smartDynamicDataRaw.value = data.dynamic;
+                            smartWeeksMap.value = data.weeks;
+                            smartWeekOptions.value = data.week_options;
+
+                            // 统计人力缺口数 (带有 🚨 的行)
+                            let count = 0;
+                            data.fixed.data.forEach(row => {
+                                if (row['姓名'] && row['姓名'].includes('🚨')) count++;
+                            });
+                            smartShortageCount.value = count;
+                            addLog('success', '🧠 AI智能排班数据 (带水位平抑) 加载成功！');
+                        })
+                        .catch(err => {
+                            console.error("智能排班读取失败", err);
+                        });
+                };
+
+                // 动态计算过滤后的列头和数据 (实现周次切换)
+                const filteredSmartCols = computed(() => {
+                    if (smartSelectedWeek.value === 'all') return smartAllCols.value;
+                    return smartWeeksMap.value[smartSelectedWeek.value] || [];
+                });
+
+                const smartFixedData = computed(() => {
+                    // 固定矩阵的数据行不随日期过滤而减少行数，只减少列显示，由表格模板自动处理
+                    return smartFixedDataRaw.value;
+                });
+
+                const smartPredictData = computed(() => {
+                    // 固定矩阵的数据行不随日期过滤而减少行数，只减少列显示，由表格模板自动处理
+                    return smartPredictDataRaw.value;
+                });
+
+                const filteredSmartDynamic = computed(() => {
+                    if (smartSelectedWeek.value === 'all') return smartDynamicDataRaw.value;
+                    const validDates = smartWeeksMap.value[smartSelectedWeek.value] || [];
+                    return smartDynamicDataRaw.value.filter(item => validDates.includes(item['日期']));
+                });
+
+                // 班次颜色高亮函数
+                const getSmartShiftClass = (val) => {
+                    if (!val || val === '休') return 'shift-smart-off';
+                    if (val.includes('早班')) return 'shift-smart-morning';
+                    if (val.includes('晚班')) return 'shift-smart-evening';
+                    if (val.includes('夜班')) return 'shift-smart-night';
+                    if (val.includes('🚨') || val.includes('紧急')) return 'shift-smart-danger';
+                    return '';
+                };
+
+
+                onMounted(() => {
+                    setInterval(() => { const now = new Date(); currentTime.value = now.getFullYear() + '年' + (now.getMonth() + 1) + '月' + now.getDate() + '日 ' + getNowTime(); }, 1000);
+                    initCharts(); fetchAndUpdateData(); loadRealRosterData();
+                    loadSmartRosterData();
+                });
+
+
+                return {
+                    activeTab, currentTime, isUpdating, handleTabChange, chartError, deptTopDurations,
+                    quarterlyData, detailDialogVisible, currentDetailTitle, renderDetailChart, typeBreakdowns,
+                    insightDialogVisible, activeItemData, openItemInsight, renderInsightCharts,
+                    typeTrendDimension, renderTypeTrendChart, // 新增变量
+                    days, staffPool, rosterData, systemLogs, isCalculating, isLoadingData, getShiftClass,
+                    // 加入到您的 return 中：
+                    smartRosterType, isEditMode, shiftOptions, saveEdits, smartSelectedWeek, smartWeekOptions, smartShortageCount,
+                    smartFixedData, smartPredictData, filteredSmartCols, filteredSmartDynamic, getSmartShiftClass,
+                };
+            }
+        }).use(ElementPlus).mount('#app');
+    </script>
+</body>
+
+</html>

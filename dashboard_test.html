@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>放射科智能数据与排班控制台</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; }
+        h1 { text-align: center; color: #2c3e50; margin-bottom: 30px; }
+        .dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 1400px; margin: 0 auto; }
+        .chart-card { background: #fff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); padding: 20px; }
+        .chart { width: 100%; height: 400px; }
+        .full-width { grid-column: span 2; }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <h1>🏥 放射科业务需求可视化大屏</h1>
+    <div v-if="loading" style="text-align: center; color: #666;">正在加载实时数据，请稍候...</div>
+    
+    <div class="dashboard" v-show="!loading">
+        <div class="chart-card full-width">
+            <div id="trafficChart" class="chart"></div>
+        </div>
+
+        <div class="chart-card">
+            <div id="checkupChart" class="chart"></div>
+        </div>
+
+        <div class="chart-card">
+            <div id="durationChart" class="chart"></div>
+        </div>
+
+        <div class="chart-card full-width">
+            <div id="typeBreakdownChart" class="chart"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const { createApp, ref, onMounted } = Vue;
+
+    createApp({
+        setup() {
+            const loading = ref(true);
+
+            // 抓取您刚才用 Python 生成的 JSON 数据
+            const loadData = async () => {
+                try {
+                    // 注意：这里读取的是同目录下的 json 文件
+                    const response = await fetch('./echarts_dashboard_data.json');
+                    const data = await response.json();
+                    renderCharts(data);
+                    loading.value = false;
+                } catch (error) {
+                    alert("❌ 无法读取 JSON 数据。请确保您使用了本地服务器(如 Live Server) 运行此网页！");
+                    console.error(error);
+                }
+            };
+
+            const renderCharts = (data) => {
+                // 1. 流量折线图 (验证 1/3/5/6 规律)
+                const trafficChart = echarts.init(document.getElementById('trafficChart'));
+                trafficChart.setOption({
+                    title: { text: data.weekly_traffic.title },
+                    tooltip: { trigger: 'axis' },
+                    xAxis: { type: 'category', data: data.weekly_traffic.xAxis },
+                    yAxis: { type: 'value', name: '患者数量' },
+                    series: [{
+                        data: data.weekly_traffic.seriesData,
+                        type: 'line', smooth: true,
+                        areaStyle: { color: 'rgba(52, 152, 219, 0.2)' },
+                        itemStyle: { color: '#3498db' },
+                        // 自动标记最大值（帮您指出体检高峰）
+                        markPoint: { data: [{ type: 'max', name: '最大值' }] }
+                    }]
+                });
+
+                // 2. 体检占比饼图
+                const checkupChart = echarts.init(document.getElementById('checkupChart'));
+                checkupChart.setOption({
+                    title: { text: data.checkup_ratio.title, left: 'center' },
+                    tooltip: { trigger: 'item' },
+                    legend: { bottom: '0%' },
+                    series: [{
+                        type: 'pie', radius: '60%',
+                        data: data.checkup_ratio.data,
+                        emphasis: { itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0, 0, 0, 0.5)' } }
+                    }]
+                });
+
+                // 3. 科室耗时环形图
+                const durationChart = echarts.init(document.getElementById('durationChart'));
+                durationChart.setOption({
+                    title: { text: data.dept_duration_ratio.title, left: 'center' },
+                    tooltip: { trigger: 'item' },
+                    series: [{
+                        type: 'pie', radius: ['40%', '70%'],
+                        itemStyle: { borderRadius: 10, borderColor: '#fff', borderWidth: 2 },
+                        data: data.dept_duration_ratio.data
+                    }]
+                });
+
+                // 4. 科室影像类型(CT/X-ray)堆叠柱状图
+                const typeChart = echarts.init(document.getElementById('typeBreakdownChart'));
+                typeChart.setOption({
+                    title: { text: data.dept_type_breakdown.title },
+                    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+                    legend: {},
+                    grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+                    xAxis: { type: 'category', data: data.dept_type_breakdown.xAxis_departments },
+                    yAxis: { type: 'value', name: '检查单量' },
+                    series: data.dept_type_breakdown.series
+                });
+
+                // 响应式调整大小
+                window.addEventListener('resize', () => {
+                    trafficChart.resize(); checkupChart.resize();
+                    durationChart.resize(); typeChart.resize();
+                });
+            };
+
+            onMounted(() => { loadData(); });
+            return { loading };
+        }
+    }).mount('#app');
+</script>
+</body>
+</html>

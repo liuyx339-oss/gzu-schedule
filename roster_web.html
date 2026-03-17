@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>放射科智能排班管理系统 - 医疗高定版</title>
+    <script src="https://cdn.staticfile.net/vue/3.3.4/vue.global.prod.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.staticfile.net/element-plus/2.3.12/index.css" />
+    <script src="https://cdn.staticfile.net/element-plus/2.3.12/index.full.min.js"></script>
+    <script src="https://cdn.staticfile.net/element-plus-icons-vue/2.1.0/global.iife.min.js"></script>
+    <script src="https://cdn.staticfile.net/PapaParse/5.4.1/papaparse.min.js"></script>
+
+    <style>
+        :root {
+            --ufh-primary: #008eab;   
+            --ufh-secondary: #7a68a6; 
+            --ufh-warning: #f29c38;   
+            --ufh-danger: #e67c9c;    
+            --ufh-text-main: #333333; 
+            --ufh-text-sub: #666666;  
+            --bg-color: #f5f7fa;      
+        }
+        body { margin: 0; background-color: var(--bg-color); color: var(--ufh-text-main); font-family: 'Helvetica Neue', sans-serif; }
+        .header { background-color: #ffffff; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid var(--ufh-primary); box-shadow: 0 2px 15px rgba(0,0,0,0.05); }
+        .header-title { font-size: 24px; font-weight: bold; color: var(--ufh-primary); display: flex; align-items: center; gap: 10px; }
+        .header-time { font-size: 16px; color: var(--ufh-text-sub); }
+        .container { padding: 25px; max-width: 1600px; margin: 0 auto; display: flex; gap: 20px; }
+        .sidebar { width: 300px; display: flex; flex-direction: column; gap: 20px; }
+        .main-content { flex: 1; display: flex; flex-direction: column; gap: 20px; }
+        .card { background: #ffffff; border-radius: 12px; padding: 20px; border: 1px solid #ebeef5; box-shadow: 0 4px 16px rgba(0,0,0,0.04); }
+        h3 { border-left: 5px solid var(--ufh-primary); padding-left: 12px; margin-top: 0; margin-bottom: 20px; color: var(--ufh-text-main); font-size: 18px; }
+        .staff-tag { margin: 4px; border-radius: 12px; }
+        .log-box { height: 180px; overflow-y: auto; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 13px; line-height: 1.6;}
+        .log-time { color: #94a3b8; margin-right: 8px; }
+        .el-table { border-radius: 8px; overflow: hidden; }
+        .el-table th { background-color: #f0f7f9 !important; color: var(--ufh-primary) !important; font-weight: bold; }
+        .shift-cell { padding: 6px; border-radius: 6px; text-align: center; font-weight: bold; font-size: 13px; }
+        .shift-day { background-color: #e6f6f9; color: #008eab; } 
+        .shift-night { background-color: #f3f0f9; color: #7a68a6; } 
+        .shift-cto { background-color: #fdf6ec; color: #f29c38; } 
+        .shift-empty { color: #ccc; font-weight: normal; }
+        .shift-replaced { border: 1px dashed var(--ufh-danger); background-color: #fff0f6; }
+        .strike-through { text-decoration: line-through; color: #999; font-size: 11px; display: block;}
+        .new-assignee { color: var(--ufh-danger); }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="header">
+            <div class="header-title">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M20 10H14V4C14 2.89543 13.1046 2 12 2C10.8954 2 10 2.89543 10 4V10H4C2.89543 10 2 10.8954 2 12C2 13.1046 2.89543 14 4 14H10V20C10 21.1046 10.8954 22 12 22C13.1046 22 14 21.1046 14 20V14H20C21.1046 14 22 13.1046 22 12C22 10.8954 21.1046 10 20 10Z" fill="#008eab"/></svg>
+                放射科排班与动态调度中心 (Roster Control)
+            </div>
+            <div class="header-time">{{ currentTime }} | 状态: <el-tag size="small" type="success" effect="dark" style="background-color: #008eab; border: none;">在线同步中</el-tag></div>
+        </div>
+
+        <div class="container">
+            <div class="sidebar">
+                <div class="card">
+                    <h3>👥 本周在岗人员池 (Staff Pool)</h3>
+                    <div style="margin-bottom: 10px; font-size: 13px; color: #666;">医师团队 (Doctors):</div>
+                    <el-tag v-for="doc in staffPool.doctors" :key="doc" class="staff-tag" color="#e6f6f9" style="color:#008eab; border:none;">{{ doc }}</el-tag>
+                    <el-divider border-style="dashed" style="margin: 12px 0;"></el-divider>
+                    <div style="margin-bottom: 10px; font-size: 13px; color: #666;">技师团队 (Technicians):</div>
+                    <el-tag v-for="tech in staffPool.technicians" :key="tech" class="staff-tag" type="info" effect="plain">{{ tech }}</el-tag>
+                </div>
+
+                <div class="card">
+                    <h3>🚑 紧急突发请假 (Emergency Leave)</h3>
+                    <p style="font-size: 12px; color: #999; margin-top:-10px;">当人员突发疾病或事假，系统将自动从休息人员中抓取替补。</p>
+                    <el-form label-position="top" size="small">
+                        <el-form-item label="选择日期">
+                            <el-select v-model="leaveForm.day" placeholder="选择日期">
+                                <el-option v-for="d in days" :key="d" :label="d" :value="d"></el-option>
+                            </el-select>
+                        </el-form-item>
+                        <el-form-item label="请假人员">
+                            <el-select v-model="leaveForm.person" placeholder="选择突发请假人">
+                                <el-option v-for="p in allStaff" :key="p" :label="p" :value="p"></el-option>
+                            </el-select>
+                        </el-form-item>
+                        <el-button type="danger" style="width: 100%; background-color: #e67c9c; border:none;" @click="handleEmergencyLeave" :loading="isCalculating">
+                            确认请假并智能替补
+                        </el-button>
+                    </el-form>
+                </div>
+            </div>
+
+            <div class="main-content">
+                <div class="card">
+                    <h3>📅 未来一周真实排班表 (Data from V3 CSV)</h3>
+                    <el-table :data="rosterData" style="width: 100%" border stripe v-loading="isLoadingData">
+                        <el-table-column prop="role" label="职级" width="100">
+                            <template #default="scope">
+                                <b>{{ scope.row.role === 'Doctor' ? '👨‍⚕️ 医生' : '🧑‍🔧 技师' }}</b>
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="name" label="姓名" width="150"></el-table-column>
+                        
+                        <el-table-column v-for="day in days" :key="day" :label="day" min-width="110" align="center">
+                            <template #default="scope">
+                                <div v-if="scope.row[day]" :class="getShiftClass(scope.row[day])">
+                                    <span v-if="!scope.row[day].includes('替补')">{{ scope.row[day] }}</span>
+                                    <div v-else>
+                                        <span class="strike-through">请假(Sick)</span>
+                                        <span class="new-assignee">{{ scope.row[day].split('|')[1] }}</span>
+                                    </div>
+                                </div>
+                                <div v-else class="shift-cell shift-empty">休息</div>
+                            </template>
+                        </el-table-column>
+                        
+                        <el-table-column prop="hours" label="预计工时" width="90" align="center"></el-table-column>
+                    </el-table>
+                </div>
+
+                <div class="card">
+                    <h3>🔔 系统调度日志 (System Logs)</h3>
+                    <div class="log-box" id="logBox">
+                        <div v-for="(log, index) in systemLogs" :key="index" style="margin-bottom: 6px;">
+                            <span class="log-time">[{{ log.time }}]</span>
+                            <span :style="{ color: log.type === 'error' ? '#e67c9c' : '#008eab' }">{{ log.msg }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, computed, onMounted, nextTick } = Vue;
+
+        createApp({
+            setup() {
+                const currentTime = ref('');
+                const isCalculating = ref(false);
+                const isLoadingData = ref(true); // 新增：表格加载动画
+                const days = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+                
+                // 本地名单池
+                const staffPool = ref({
+                    doctors: ["Dustin Huang", "Li Zhenhuan", "Zhou ChunXiang", "Liang ZhiYing", "Ling Jian", "Liang Ruiyun", "Liu Zengwei", "Chen Yingxi", "Wang Shuai(SZU)"],
+                    technicians: ["Zheng Xiaochun", "Zhang Meng", "Ma Linlin", "Yang Yongjun", "Yi Hong", "Liu Shuting", "ZHONG Minzhi", "LUO Hui", "CHEN Jiajun"]
+                });
+
+                const allStaff = computed(() => [...staffPool.value.doctors, ...staffPool.value.technicians]);
+
+                // 核心改动：不再写死假数据，初始设置为空！
+                const rosterData = ref([]);
+
+                const systemLogs = ref([
+                    { time: getNowTime(), type: 'info', msg: '系统初始化完成...' },
+                    { time: getNowTime(), type: 'info', msg: '正在尝试连接真实排班数据库 (Generated_Next_Week_Roster_V3.csv)...' }
+                ]);
+
+                const leaveForm = ref({ day: '', person: '' });
+
+                function getNowTime() {
+                    const now = new Date();
+                    return now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0') + ':' + now.getSeconds().toString().padStart(2,'0');
+                }
+
+                const addLog = (type, msg) => {
+                    systemLogs.value.push({ time: getNowTime(), type, msg });
+                    nextTick(() => {
+                        const box = document.getElementById('logBox');
+                        if(box) box.scrollTop = box.scrollHeight;
+                    });
+                }
+
+                // 【核心新功能】：读取并解析真实的 CSV 数据
+                const loadRealRosterData = () => {
+                    // 加上时间戳防止浏览器缓存老旧的 CSV
+                    const csvUrl = './Generated_Next_Week_Roster_V3.csv?t=' + new Date().getTime();
+                    
+                    fetch(csvUrl)
+                        .then(response => {
+                            if (!response.ok) throw new Error("无法读取 CSV 文件。请确保运行了 Python 本地服务器。");
+                            return response.text();
+                        })
+                        .then(csvText => {
+                            // 使用 PapaParse 解析 CSV 文本
+                            Papa.parse(csvText, {
+                                header: true,
+                                skipEmptyLines: true,
+                                complete: function(results) {
+                                    // 过滤掉完全空的行
+                                    const validData = results.data.filter(row => row['角色'] && row['姓名']);
+                                    
+                                    // 映射数据到前端表格需要的格式
+                                    rosterData.value = validData.map(row => ({
+                                        role: row['角色'],
+                                        name: row['姓名'],
+                                        "周一": row['周一'] || '',
+                                        "周二": row['周二'] || '',
+                                        "周三": row['周三'] || '',
+                                        "周四": row['周四'] || '',
+                                        "周五": row['周五'] || '',
+                                        "周六": row['周六'] || '',
+                                        "周日": row['周日'] || '',
+                                        hours: parseFloat(row['本周排班工时(H)']) || 0
+                                    }));
+                                    
+                                    isLoadingData.value = false;
+                                    addLog('info', '✅ 成功读取并加载本地真实的 V3 排班预测文件！');
+                                }
+                            });
+                        })
+                        .catch(err => {
+                            isLoadingData.value = false;
+                            addLog('error', '🚨 读取真实排班表失败！请检查文件 Generated_Next_Week_Roster_V3.csv 是否在同目录下，且开启了 python 本地服务器。');
+                            console.error(err);
+                        });
+                };
+
+                const getShiftClass = (shift) => {
+                    if (!shift) return 'shift-cell shift-empty';
+                    if (shift.includes('替补')) return 'shift-cell shift-replaced';
+                    if (shift.includes('D')) return 'shift-cell shift-day';
+                    if (shift.includes('N')) return 'shift-cell shift-night';
+                    if (shift.includes('CTO')) return 'shift-cell shift-cto';
+                    return 'shift-cell';
+                };
+
+                const handleEmergencyLeave = () => {
+                    const { day, person } = leaveForm.value;
+                    if (!day || !person) {
+                        alert("请选择日期和人员！"); return;
+                    }
+
+                    isCalculating.value = true;
+                    addLog('error', `收到紧急请求：${person} 申请在 ${day} 因病请假。`);
+
+                    setTimeout(() => {
+                        const personRow = rosterData.value.find(r => r.name === person);
+                        if (!personRow || !personRow[day] || personRow[day].includes('CTO')) {
+                            addLog('info', `检测结果：${person} 在 ${day} 本来就在休息，无需替补。`);
+                            isCalculating.value = false;
+                            return;
+                        }
+
+                        const originalShift = personRow[day];
+                        const role = personRow.role;
+
+                        addLog('info', `正在寻找同职级的 ${role === 'Doctor'?'医生':'技师'} 进行替补计算...`);
+                        const candidates = rosterData.value.filter(r => r.role === role && r.name !== person && (!r[day] || r[day] === ''));
+                        
+                        if (candidates.length > 0) {
+                            candidates.sort((a, b) => a.hours - b.hours);
+                            const backup = candidates[0];
+
+                            personRow[day] = `请假|${backup.name} 代班`; 
+                            backup[day] = originalShift; 
+                            backup.hours += (originalShift.includes('N') ? 14.5 : (originalShift.includes('H') ? 4 : 8.5)); 
+
+                            addLog('info', `✅ 调度成功！已指派 [${backup.name}] 在 ${day} 顶替 ${person} 上 ${originalShift}。`);
+                        } else {
+                            addLog('error', `🚨 调度失败！${day} 当天所有 ${role} 均有排班，无人可替补，请请求跨科室支援！`);
+                        }
+
+                        isCalculating.value = false;
+                        leaveForm.value = { day: '', person: '' }; 
+                    }, 1000); 
+                };
+
+                onMounted(() => {
+                    setInterval(() => {
+                        const now = new Date();
+                        currentTime.value = now.getFullYear() + '年' + (now.getMonth() + 1) + '月' + now.getDate() + '日 ' + getNowTime();
+                    }, 1000);
+                    
+                    // 【关键触发】：页面加载完后，主动去拉取真实的 CSV 文件
+                    loadRealRosterData();
+                });
+
+                return { currentTime, days, staffPool, allStaff, rosterData, systemLogs, leaveForm, isCalculating, isLoadingData, getShiftClass, handleEmergencyLeave };
+            }
+        }).use(ElementPlus).mount('#app');
+    </script>
+</body>
+</html>
