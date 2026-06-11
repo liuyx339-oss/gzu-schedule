@@ -528,12 +528,16 @@ def _generate_html_report(target_date, a, b):
     ob_times = b.get("time_slots", [])
     for i, ts in enumerate(ob_times):
         parts = ""
+        ob_nums = []
         for cls in OB_CLASSES:
             n = b["counts"].get(cls, [])[i] if i < len(b["counts"].get(cls, [])) else 0
             if n:
-                parts += f'<span style="background:{ob_colors.get(cls,"#999")};color:#fff;padding:1px 6px;border-radius:3px;font-size:11px;font-weight:600;margin:1px">{ob_class_cn[cls]} {n}</span> '
+                parts += '<span style="background:{};color:#fff;padding:1px 6px;border-radius:3px;font-size:11px;font-weight:600;margin:1px">{} {}</span> '.format(
+                    ob_colors.get(cls, "#999"), ob_class_cn[cls], n)
+                ob_nums.append(str(n))
         if parts:
-            ob_rows += f'<tr><td style="font-weight:600;white-space:nowrap">{ts}</td><td style="text-align:center;font-weight:700;font-size:15px;color:#1a73e8">{" ".join(str(b["counts"].get(cls, [])[i]) if i < len(b["counts"].get(cls, [])) else 0 for cls in OB_CLASSES if b["counts"].get(cls, [])[i] if i < len(b["counts"].get(cls, [])) else 0)}</td><td>{parts}</td><td style="font-size:11px;color:#666"></td></tr>'
+            ob_rows += '<tr><td style="font-weight:600;white-space:nowrap">{}</td><td style="text-align:center;font-weight:700;font-size:15px;color:#1a73e8">{}</td><td>{}</td></tr>'.format(
+                ts, " ".join(ob_nums), parts)
 
     ob_has_data = bool(ob_times)
 
