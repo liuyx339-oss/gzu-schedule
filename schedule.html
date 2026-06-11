@@ -7,59 +7,85 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f5f7fa;color:#333}
-.header{background:linear-gradient(135deg,#1a73e8 0%,#0d47a1 100%);color:#fff;padding:20px 24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
-.header h1{font-size:22px}
-.header .nav a{color:#fff;opacity:0.8;text-decoration:none;font-size:14px;margin-left:16px}
+.header{background:linear-gradient(135deg,#1a73e8 0%,#0d47a1 100%);color:#fff;padding:18px 24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.header h1{font-size:20px}
+.header .nav a{color:#fff;opacity:0.8;text-decoration:none;font-size:13px;margin-left:14px}
 .header .nav a:hover{opacity:1}
-.toolbar{display:flex;gap:10px;padding:16px 24px;align-items:center;flex-wrap:wrap}
+
+.toolbar{display:flex;gap:10px;padding:14px 24px;align-items:center;flex-wrap:wrap;background:#fff;border-bottom:1px solid #eee}
 .toolbar select{padding:6px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px}
-.toolbar button{padding:6px 16px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer}
+.toolbar button{padding:6px 14px;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer}
 .btn-edit{background:#fff3e0;color:#e65100;border:1px solid #ffcc80!important}
 .btn-edit.active{background:#e65100;color:#fff}
 .btn-save{background:#1a73e8;color:#fff;display:none}
 .btn-save.show{display:inline-block}
-.btn-token{background:none;color:#666;font-size:12px!important;text-decoration:underline}
-.token-area{display:none;padding:8px 24px}
+.btn-token{background:none;color:#999;font-size:11px!important;text-decoration:underline}
+.token-area{display:none;padding:8px 24px;background:#fff}
 .token-area.show{display:flex;gap:8px;align-items:center}
-.token-area input{padding:6px 10px;border:1px solid #ddd;border-radius:4px;width:320px;font-size:13px}
-.msg{font-size:13px;padding:4px 16px}
+.token-area input{padding:6px 10px;border:1px solid #ddd;border-radius:4px;width:300px;font-size:13px}
+.msg{font-size:12px;padding:2px 14px;background:#fff}
 .msg.ok{color:#2e7d32}
 .msg.err{color:#c62828}
 
-.table-wrap{overflow-x:auto;padding:0 24px 24px}
-.schedule-table{border-collapse:collapse;font-size:12px;min-width:100%}
-.schedule-table th{background:#f0f5ff;color:#1a73e8;font-weight:600;padding:8px 6px;border:1px solid #d4e2f5;position:sticky;top:0;z-index:1;white-space:nowrap;text-align:center}
-.schedule-table td{border:1px solid #eef2f7;padding:4px;text-align:center;min-width:48px;cursor:default;transition:background 0.15s}
+/* Stats summary */
+.stats-bar{display:flex;gap:10px;padding:10px 24px;flex-wrap:wrap;background:#fff}
+.stat-chip{background:#f0f5ff;border-radius:8px;padding:6px 14px;font-size:12px}
+.stat-chip .lbl{color:#888;margin-right:4px}
+.stat-chip .val{font-weight:700;color:#1a73e8}
+.stat-chip.backup{background:#fff3e0}
+.stat-chip.backup .val{color:#e65100}
+
+/* Table */
+.table-wrap{overflow-x:auto;padding:0 24px 20px}
+.schedule-table{border-collapse:collapse;font-size:11px;min-width:100%}
+.schedule-table th{background:#f0f5ff;color:#1a73e8;font-weight:600;padding:5px 4px;border:1px solid #d4e2f5;white-space:nowrap;text-align:center;font-size:10px}
+.schedule-table th.weekend{background:#eee}
+.schedule-table td{border:1px solid #eef2f7;padding:3px 2px;text-align:center;min-width:36px;font-size:10px;cursor:default;transition:background 0.15s}
 .schedule-table td.editable{cursor:pointer}
 .schedule-table td.editable:hover{background:#e8f0fe}
-.schedule-table td.selected{outline:2px solid #1a73e8;outline-offset:-2px}
+.schedule-table td.selected{outline:2px solid #1a73e8;outline-offset:-2px;z-index:5;position:relative}
 .schedule-table td.edited{background:#fff9c4!important}
-.schedule-table .name-col{text-align:left;font-weight:600;position:sticky;left:0;background:#fff;z-index:2;min-width:80px;cursor:default}
-.schedule-table .name-col.backup{color:#999;font-weight:400}
-.schedule-table .weekend{background:#fafafa}
+
+.schedule-table .name-col{text-align:left;font-weight:600;position:sticky;left:0;background:#fff;z-index:2;min-width:70px}
+.schedule-table .stats-col{position:sticky;background:#fff;z-index:2;font-size:10px;min-width:42px}
+.schedule-table .stats-col.hdr{text-align:center}
+.schedule-table tr.backup-row .name-col{color:#e65100;font-weight:700}
+.schedule-table tr.backup-row td{background:#fffbf5}
+.schedule-table .divider-row td{border:none;height:8px;background:#f5f7fa}
+.schedule-table .divider-row th{border:none;height:8px;background:#f5f7fa}
 
 /* Shift colors */
-.shift-D{background:#c8e6c9}.shift-D1{background:#c8e6c9}.shift-D2{background:#c8e6c9}
-.shift-N{background:#90caf9}.shift-N1{background:#90caf9}
-.shift-LN{background:#ffcc80}
-.shift-H{background:#e1bee7}.shift-H1{background:#e1bee7}
-.shift-C{background:#b2dfdb}.shift-C1{background:#b2dfdb}
-.shift-OnCall{background:#f5f5f5;color:#999}
-.shift-Backup{background:#ffecb3}
-.shift-OFF{background:#fafafa;color:#ccc}
+.shift-D1,.shift-D2,.shift-D3,.shift-D4,.shift-D5,.shift-D6,.shift-D,.shift-DH{background:#c8e6c9}
+.shift-C,.shift-C1,.shift-C2{background:#b2dfdb}
+.shift-N1,.shift-N2,.shift-N3,.shift-N{background:#90caf9}
+.shift-L,.shift-L1,.shift-L2{background:#e1bee7}
+.shift-LN,.shift-L\/N{background:#ffcc80}
+.shift-T,.shift-T1,.shift-T2{background:#dcedc8}
+.shift-H1,.shift-H2,.shift-H3,.shift-H{background:#fff9c4}
+.shift-OC,.shift-OnCall,.shift-R{color:#e65100;font-weight:600}
+.shift-OFF{color:#ccc}
+.shift-empty{color:#ddd}
 
-.edit-popup{display:none;position:fixed;background:#fff;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.15);z-index:100;padding:8px;min-width:120px}
+.edit-popup{display:none;position:fixed;background:#fff;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.15);z-index:1000;padding:6px;min-width:110px;max-height:400px;overflow-y:auto}
 .edit-popup.show{display:block}
-.edit-popup button{display:block;width:100%;padding:6px 14px;border:none;background:none;text-align:left;font-size:13px;cursor:pointer;border-radius:4px}
+.edit-popup button{display:block;width:100%;padding:5px 12px;border:none;background:none;text-align:left;font-size:12px;cursor:pointer;border-radius:4px}
 .edit-popup button:hover{background:#e8f0fe}
+.edit-popup hr{margin:3px 0;border:none;border-top:1px solid #eee}
 
-@media(max-width:768px){.schedule-table{font-size:10px}.schedule-table td{min-width:36px}}
+/* Legend */
+.legend{display:flex;gap:8px;flex-wrap:wrap;padding:10px 24px;font-size:11px;color:#666}
+.legend-item{display:flex;align-items:center;gap:3px}
+.legend-swatch{width:14px;height:14px;border-radius:3px;border:1px solid #ddd}
+
+.footer{text-align:center;padding:16px;font-size:11px;color:#999}
+
+@media(max-width:768px){.schedule-table{font-size:9px}.schedule-table td{min-width:30px}}
 </style>
 </head>
 <body>
 
 <div class="header">
-    <h1>月度排班表</h1>
+    <h1>月度排班表 <span id="hdMonth"></span></h1>
     <div class="nav">
         <a href="index.html">首页</a>
         <a href="dashboard.html">需求日报</a>
@@ -68,24 +94,29 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 
 <div class="toolbar">
     <select id="roleSelect"><option>放射医生</option><option>放射技师</option><option>B超医生</option></select>
-    <button class="btn-edit" id="btnEdit" onclick="toggleEdit()">✏️ 编辑模式</button>
-    <button class="btn-save" id="btnSave" onclick="saveChanges()">💾 保存修改</button>
-    <button class="btn-token" onclick="toggleToken()">⚙️ 设置Token</button>
-    <span class="msg" id="msg"></span>
+    <button class="btn-edit" id="btnEdit" onclick="toggleEdit()">编辑模式</button>
+    <button class="btn-save" id="btnSave" onclick="saveChanges()">保存修改</button>
+    <button class="btn-token" onclick="toggleToken()">设置Token</button>
 </div>
 
 <div class="token-area" id="tokenArea">
-    <span style="font-size:12px;color:#666">GitHub Token:</span>
+    <span style="font-size:11px;color:#666">GitHub Token:</span>
     <input type="password" id="tokenInput" placeholder="ghp_xxxxxxxxxxxx">
-    <button onclick="saveToken()" style="padding:6px 12px;font-size:12px">保存</button>
-    <span style="font-size:11px;color:#999">需 repo 权限 | 仅存于浏览器</span>
+    <button onclick="saveToken()" style="padding:5px 10px;font-size:11px">保存（仅存浏览器）</button>
 </div>
+
+<div class="stats-bar" id="statsBar"></div>
+<div class="msg" id="msg"></div>
+
+<div class="legend" id="legendBar"></div>
 
 <div class="table-wrap">
     <table class="schedule-table" id="scheduleTable"></table>
 </div>
 
 <div class="edit-popup" id="editPopup"></div>
+
+<div class="footer">数据来源: schedule.py CP-SAT排班引擎 | 由 GitHub Actions 每月25日自动更新</div>
 
 <script>
 // ============ CONFIG ============
@@ -98,15 +129,24 @@ var DATA_URL = 'schedule_data.json';
 var scheduleData = null;
 var currentRole = '放射医生';
 var editMode = false;
-var edits = {};  // {(staff, date): new_shift}
+var edits = {};
 var selectedCell = null;
 
-// Shift options per role
-var SHIFT_OPTIONS = {
-    '放射医生': ['D1','D2','N','LN','OnCall','Backup','OFF'],
-    '放射技师': ['D1','D2','N','LN','OnCall','Backup','OFF'],
-    'B超医生': ['D1','D2','OnCall','Backup','OFF']
+// Shift legend
+var LEGEND = {
+    'C': {color:'#b2dfdb',label:'C (80%)'}, 'C1':{color:'#b2dfdb',label:'C1 (20%)'},
+    'D': {color:'#c8e6c9',label:'D (80%)'}, 'D1':{color:'#c8e6c9',label:'D1'},
+    'D2':{color:'#c8e6c9',label:'D2'}, 'D3':{color:'#c8e6c9',label:'D3'},
+    'D4':{color:'#c8e6c9',label:'D4'}, 'D5':{color:'#c8e6c9',label:'D5'},
+    'D6':{color:'#c8e6c9',label:'D6'},
+    'N': {color:'#90caf9',label:'N (夜班)'}, 'N1':{color:'#90caf9',label:'N1'},
+    'N2':{color:'#90caf9',label:'N2'}, 'N3':{color:'#90caf9',label:'N3'},
+    'L/N':{color:'#ffcc80',label:'L/N (24H)'}, 'L':{color:'#e1bee7',label:'L'},
+    'T': {color:'#dcedc8',label:'T'}, 'T1':{color:'#dcedc8',label:'T1'},
+    'H': {color:'#fff9c4',label:'H'}, 'H1':{color:'#fff9c4',label:'H1'},
+    'H2':{color:'#fff9c4',label:'H2'}, 'H3':{color:'#fff9c4',label:'H3'},
 };
+var ALLOWED_SHIFTS = ['C','C1','D1','D2','D3','D4','D5','D6','N','N1','N2','N3','L','L/N','T','T1','H','H1','H2','H3','OFF'];
 
 // ============ INIT ============
 async function init() {
@@ -114,37 +154,35 @@ async function init() {
         var resp = await fetch(DATA_URL);
         scheduleData = await resp.json();
     } catch(e) {
-        scheduleData = {"month":"-","updated":"","roles":{"放射医生":{"staff":[],"schedule":{}},"放射技师":{"staff":[],"schedule":{}},"B超医生":{"staff":[],"schedule":{}}}};
-        msg('无法加载排班数据，显示空表', 'err');
+        scheduleData = null;
+        msg('无法加载排班数据', 'err');
     }
-    renderTable();
+    document.getElementById('hdMonth').textContent = scheduleData ? scheduleData.month : '';
     document.getElementById('roleSelect').addEventListener('change', function(){
         currentRole = this.value;
-        renderTable();
+        renderAll();
     });
     document.addEventListener('click', function(e){
         if (!e.target.closest('.edit-popup') && !e.target.closest('td')) {
             document.getElementById('editPopup').classList.remove('show');
         }
     });
+    renderAll();
 }
 
-function getDates(month) {
+function getDates() {
+    var month = scheduleData ? scheduleData.month : '';
     if (!month || month === '-') {
-        var now = new Date();
-        var m = now.getMonth() + 1;
-        var y = now.getFullYear();
+        var now = new Date(); var y = now.getFullYear(); var m = now.getMonth() + 1;
     } else {
-        var parts = month.split('-');
-        var y = parseInt(parts[0]);
-        var m = parseInt(parts[1]);
+        var parts = month.split('-'); var y = parseInt(parts[0]); var m = parseInt(parts[1]);
     }
     var days = new Date(y, m, 0).getDate();
     var dates = [];
     for (var d = 1; d <= days; d++) {
         var dt = new Date(y, m-1, d);
         dates.push({
-            label: m + '/' + d,
+            label: d,
             day: dt.getDay(),
             full: y + '-' + String(m).padStart(2,'0') + '-' + String(d).padStart(2,'0')
         });
@@ -152,52 +190,170 @@ function getDates(month) {
     return dates;
 }
 
-// ============ RENDER ============
+function renderAll() {
+    renderStats();
+    renderLegend();
+    renderTable();
+}
+
+// ============ STATS BAR ============
+function renderStats() {
+    if (!scheduleData) return;
+    var role = scheduleData.roles[currentRole];
+    if (!role) return;
+
+    var html = '';
+    // Summary: total people, total hours
+    var ft = role.fulltime || [];
+    html += '<div class="stat-chip"><span class="lbl">全职</span><span class="val">'+ft.length+'人</span></div>';
+    if (role.backup && role.backup.length > 0) {
+        var bk = role.backup[0];
+        html += '<div class="stat-chip backup"><span class="lbl">'+bk.name+'</span><span class="val">'+bk.stats['备班工时']+'h</span></div>';
+    }
+    document.getElementById('statsBar').innerHTML = html;
+}
+
+// ============ LEGEND ============
+function renderLegend() {
+    var seen = {};
+    var html = '';
+    for (var key in LEGEND) {
+        if (!LEGEND.hasOwnProperty(key)) continue;
+        var l = LEGEND[key];
+        if (!seen[l.label]) {
+            seen[l.label] = true;
+            html += '<div class="legend-item"><div class="legend-swatch" style="background:'+l.color+'"></div>'+l.label+'</div>';
+        }
+    }
+    html += '<div class="legend-item"><div class="legend-swatch" style="background:#fff;border-color:#ddd"></div>休息</div>';
+    html += '<div class="legend-item" style="color:#e65100">📞 OnCall</div>';
+    document.getElementById('legendBar').innerHTML = html;
+}
+
+// ============ TABLE ============
 function renderTable() {
-    var role = scheduleData.roles[currentRole] || {staff:[], schedule:{}};
-    var staff = role.staff || [];
-    var sched = role.schedule || {};
-    var dates = getDates(scheduleData.month);
+    if (!scheduleData) return;
+    var role = scheduleData.roles[currentRole];
+    if (!role) return;
+
+    var dates = getDates();
+    var fulltime = role.fulltime || [];
+    var backup = role.backup || [];
+
+    // Stat column headers
+    var statKeys = [];
+    if (fulltime.length > 0) {
+        statKeys = Object.keys(fulltime[0].stats).filter(function(k){return k !== '人员' && k !== '角色' && k !== '类型'});
+    }
 
     var html = '<thead><tr><th class="name-col">人员</th>';
-    for (var i = 0; i < dates.length; i++) {
-        html += '<th class="' + (dates[i].day === 0 || dates[i].day === 6 ? 'weekend' : '') + '">' + dates[i].label + '</th>';
+    // Stat columns
+    for (var sk = 0; sk < statKeys.length; sk++) {
+        var lbl = statKeys[sk];
+        if (lbl.length > 5) lbl = lbl.substring(0,4);
+        html += '<th class="stats-col hdr">'+lbl+'</th>';
+    }
+    // Date columns
+    for (var d = 0; d < dates.length; d++) {
+        var cls = (dates[d].day === 0 || dates[d].day === 6) ? 'weekend' : '';
+        html += '<th class="'+cls+'">'+dates[d].label+'</th>';
     }
     html += '</tr></thead><tbody>';
 
-    for (var s = 0; s < staff.length; s++) {
+    // Fulltime staff rows
+    for (var s = 0; s < fulltime.length; s++) {
+        var staff = fulltime[s];
         html += '<tr>';
-        html += '<td class="name-col">' + staff[s] + '</td>';
+        html += '<td class="name-col">'+staff.name+'</td>';
+        // Stat cells
+        for (var sk = 0; sk < statKeys.length; sk++) {
+            var val = staff.stats[statKeys[sk]] || '';
+            html += '<td class="stats-col">'+val+'</td>';
+        }
+        // Date cells
         for (var d = 0; d < dates.length; d++) {
             var dateKey = dates[d].full;
-            var shiftKey = staff[s] + '|' + dateKey;
-            var shift = (edits[shiftKey] !== undefined) ? edits[shiftKey] : (sched[staff[s]] || {})[dateKey] || '';
-            var cls = 'shift-' + (shift || 'OFF');
+            var editKey = staff.name + '|' + dateKey;
+            var origShift = (staff.schedule || {})[dateKey] || '';
+            var shift = (edits[editKey] !== undefined) ? edits[editKey] : origShift;
+            var cls = getShiftClass(shift);
             if (dates[d].day === 0 || dates[d].day === 6) cls += ' weekend';
             if (editMode) cls += ' editable';
-            if (edits[shiftKey] !== undefined) cls += ' edited';
-            html += '<td class="' + cls + '" data-staff="' + staff[s] + '" data-date="' + dateKey + '" data-shift="' + shift + '" onclick="cellClick(this)">' + (shift || '-') + '</td>';
+            if (edits[editKey] !== undefined) cls += ' edited';
+            html += '<td class="'+cls+'" data-staff="'+staff.name+'" data-date="'+dateKey+'" data-shift="'+shift+'" onclick="cellClick(this)">'+dispShift(shift)+'</td>';
         }
         html += '</tr>';
     }
+
+    // Backup staff rows
+    if (backup.length > 0) {
+        // divider
+        html += '<tr class="divider-row"><td></td></tr>';
+
+        for (var b = 0; b < backup.length; b++) {
+            var bs = backup[b];
+            html += '<tr class="backup-row">';
+            html += '<td class="name-col">'+bs.name+'</td>';
+            // Stat cells for backup
+            for (var sk = 0; sk < statKeys.length; sk++) {
+                var val = bs.stats[statKeys[sk]] || '';
+                html += '<td class="stats-col">'+val+'</td>';
+            }
+            // Date cells
+            for (var d = 0; d < dates.length; d++) {
+                var dateKey = dates[d].full;
+                var editKey = bs.name + '|' + dateKey;
+                var origShift = (bs.schedule || {})[dateKey] || '';
+                var shift = (edits[editKey] !== undefined) ? edits[editKey] : origShift;
+                var cls = getShiftClass(shift);
+                if (dates[d].day === 0 || dates[d].day === 6) cls += ' weekend';
+                if (editMode) cls += ' editable';
+                if (edits[editKey] !== undefined) cls += ' edited';
+                html += '<td class="'+cls+'" data-staff="'+bs.name+'" data-date="'+dateKey+'" data-shift="'+shift+'" onclick="cellClick(this)">'+dispShift(shift)+'</td>';
+            }
+            html += '</tr>';
+        }
+    }
+
     html += '</tbody>';
     document.getElementById('scheduleTable').innerHTML = html;
+}
+
+function getShiftClass(shift) {
+    if (!shift) return 'shift-empty';
+    // OnCall symbol
+    if (shift === '📞' || shift.indexOf('📞') >= 0) return 'shift-OC';
+    // Match known shifts
+    var base = shift.replace(/\d+$/,'');
+    if (base === 'L/N' || base === 'L\\/N') return 'shift-LN';
+    if (base === 'L') return 'shift-L';
+    if (['C','D','N','T','H'].indexOf(base) >= 0) return 'shift-'+base;
+    return 'shift-empty';
+}
+
+function dispShift(shift) {
+    if (!shift) return '';
+    // For LN with time info, just show L/N
+    if (shift.indexOf('L/N') >= 0 || shift.indexOf('LN') >= 0) return 'L/N';
+    if (shift.indexOf('N2') >= 0 || shift.indexOf('N1') >= 0 || shift.indexOf('N3') >= 0) {
+        // Show compact: "N2+T"
+        var parts = shift.split('\n')[0].replace(/\+/g,'');
+        return parts.substring(0,8);
+    }
+    return shift.split('\n')[0]; // first line only
 }
 
 // ============ EDIT ============
 function toggleEdit() {
     editMode = !editMode;
     var btn = document.getElementById('btnEdit');
-    var btnSave = document.getElementById('btnSave');
     if (editMode) {
-        btn.textContent = '🔒 退出编辑';
-        btn.classList.add('active');
-        btnSave.classList.add('show');
-        msg('编辑模式已开启 — 点击单元格修改班次', 'ok');
+        btn.textContent = '退出编辑'; btn.classList.add('active');
+        document.getElementById('btnSave').classList.add('show');
+        msg('编辑模式 — 点击单元格修改班次', 'ok');
     } else {
-        btn.textContent = '✏️ 编辑模式';
-        btn.classList.remove('active');
-        btnSave.classList.remove('show');
+        btn.textContent = '编辑模式'; btn.classList.remove('active');
+        document.getElementById('btnSave').classList.remove('show');
         document.getElementById('editPopup').classList.remove('show');
         msg('', '');
     }
@@ -206,34 +362,42 @@ function toggleEdit() {
 
 function cellClick(td) {
     if (!editMode) return;
+    document.getElementById('editPopup').classList.remove('show');
+
     var staff = td.dataset.staff;
     var date = td.dataset.date;
-    var currentShift = td.dataset.shift;
-
-    // Deselect previous
+    var cur = td.dataset.shift;
     if (selectedCell) selectedCell.classList.remove('selected');
     td.classList.add('selected');
     selectedCell = td;
 
-    // Show popup
     var popup = document.getElementById('editPopup');
     var rect = td.getBoundingClientRect();
-    var shifts = SHIFT_OPTIONS[currentRole] || ['D1','D2','N','LN','OFF'];
     var html = '';
-    for (var i = 0; i < shifts.length; i++) {
-        var s = shifts[i];
-        html += '<button onclick="applyShift(\'' + staff + '\',\'' + date + '\',\'' + s + '\')" style="' + (s === currentShift ? 'background:#e8f0fe;font-weight:700' : '') + '">' + s + '</button>';
+    for (var i = 0; i < ALLOWED_SHIFTS.length; i++) {
+        var s = ALLOWED_SHIFTS[i];
+        var l = LEGEND[s];
+        var bg = l ? l.color : '#fff';
+        html += '<button onclick="applyShift(\''+staff+'\',\''+date+'\',\''+s+'\')" style="'+(s===cur?'font-weight:700;background:#e8f0fe':'')+'"><span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:'+bg+';margin-right:6px;vertical-align:middle"></span>'+s+'</button>';
     }
-    html += '<hr style="margin:4px 0"><button onclick="applyShift(\'' + staff + '\',\'' + date + '\',\'\')" style="color:#999">清除</button>';
+    html += '<hr><button onclick="applyShift(\''+staff+'\',\''+date+'\',\'\')" style="color:#999">清除</button>';
     popup.innerHTML = html;
-    popup.style.left = Math.min(rect.left, window.innerWidth - 140) + 'px';
-    popup.style.top = Math.min(rect.bottom + 4, window.innerHeight - 300) + 'px';
+    popup.style.left = Math.min(rect.left, window.innerWidth-130)+'px';
+    popup.style.top = Math.min(rect.bottom+2, window.innerHeight-320)+'px';
     popup.classList.add('show');
 }
 
 function applyShift(staff, date, newShift) {
     var key = staff + '|' + date;
-    var orig = ((scheduleData.roles[currentRole].schedule || {})[staff] || {})[date] || '';
+    var role = scheduleData.roles[currentRole];
+    var allStaff = (role.fulltime||[]).concat(role.backup||[]);
+    var orig = '';
+    for (var s = 0; s < allStaff.length; s++) {
+        if (allStaff[s].name === staff) {
+            orig = (allStaff[s].schedule||{})[date] || '';
+            break;
+        }
+    }
     if (newShift === orig || (newShift === '' && orig === '')) {
         delete edits[key];
     } else {
@@ -246,93 +410,53 @@ function applyShift(staff, date, newShift) {
 // ============ SAVE ============
 async function saveChanges() {
     if (Object.keys(edits).length === 0) {
-        msg('没有修改需要保存', 'err');
-        return;
+        msg('没有修改', 'err'); return;
     }
-
-    // Apply edits to data
     var role = scheduleData.roles[currentRole];
-    if (!role.schedule) role.schedule = {};
-    var editCount = 0;
+    var allStaff = (role.fulltime||[]).concat(role.backup||[]);
+    var cnt = 0;
     for (var key in edits) {
         if (!edits.hasOwnProperty(key)) continue;
-        var parts = key.split('|');
-        var staff = parts[0];
-        var date = parts.slice(1).join('|');
-        if (!role.schedule[staff]) role.schedule[staff] = {};
-        role.schedule[staff][date] = edits[key];
-        editCount++;
+        var parts = key.split('|'); var staff = parts[0]; var date = parts.slice(1).join('|');
+        for (var s = 0; s < allStaff.length; s++) {
+            if (allStaff[s].name === staff) {
+                if (!allStaff[s].schedule) allStaff[s].schedule = {};
+                allStaff[s].schedule[date] = edits[key]; cnt++; break;
+            }
+        }
     }
-
     var token = localStorage.getItem('gh_token');
-    if (!token) {
-        msg('请先设置 GitHub Token', 'err');
-        toggleToken();
-        return;
-    }
+    if (!token) { msg('请先设置GitHub Token', 'err'); toggleToken(); return; }
 
     scheduleData.updated = new Date().toISOString();
     var content = JSON.stringify(scheduleData, null, 2);
     var contentB64 = btoa(unescape(encodeURIComponent(content)));
-
     msg('保存中...', 'ok');
-
     try {
-        // Get current file SHA
-        var getUrl = 'https://api.github.com/repos/' + REPO_OWNER + '/' + REPO_NAME + '/contents/' + DATA_PATH;
+        var getUrl = 'https://api.github.com/repos/'+REPO_OWNER+'/'+REPO_NAME+'/contents/'+DATA_PATH;
         var getResp = await fetch(getUrl, {headers:{'Authorization':'token '+token}});
         var getData = await getResp.json();
-
-        var body = {
-            message: 'Update schedule (' + currentRole + ') - ' + new Date().toLocaleString('zh-CN'),
-            content: contentB64,
-            branch: 'gh-pages'
-        };
+        var body = {message:'Update schedule ('+currentRole+')',content:contentB64,branch:'gh-pages'};
         if (getData.sha) body.sha = getData.sha;
-
-        var putUrl = 'https://api.github.com/repos/' + REPO_OWNER + '/' + REPO_NAME + '/contents/' + DATA_PATH;
-        var putResp = await fetch(putUrl, {
-            method: 'PUT',
-            headers: {'Authorization':'token '+token, 'Content-Type':'application/json'},
-            body: JSON.stringify(body)
+        var putResp = await fetch('https://api.github.com/repos/'+REPO_OWNER+'/'+REPO_NAME+'/contents/'+DATA_PATH, {
+            method:'PUT', headers:{'Authorization':'token '+token,'Content-Type':'application/json'}, body:JSON.stringify(body)
         });
         var putData = await putResp.json();
-
-        if (putData.content) {
-            edits = {};
-            msg('保存成功！(' + editCount + ' 处修改)', 'ok');
-            renderTable();
-            document.getElementById('btnSave').classList.remove('show');
-        } else {
-            msg('保存失败: ' + (putData.message || '未知错误'), 'err');
-        }
-    } catch(e) {
-        msg('网络错误: ' + e.message, 'err');
-    }
+        if (putData.content) { edits={}; msg('已保存（'+cnt+'处）','ok'); renderTable(); document.getElementById('btnSave').classList.remove('show'); }
+        else { msg('失败: '+(putData.message||'?'), 'err'); }
+    } catch(e) { msg('网络错误: '+e.message, 'err'); }
 }
 
-// ============ TOKEN ============
 function toggleToken() {
-    var area = document.getElementById('tokenArea');
-    area.classList.toggle('show');
+    var area = document.getElementById('tokenArea'); area.classList.toggle('show');
     var saved = localStorage.getItem('gh_token');
-    if (saved) document.getElementById('tokenInput').value = saved.substring(0,8) + '...';
+    if (saved) document.getElementById('tokenInput').value = saved.substring(0,8)+'...';
 }
-
 function saveToken() {
     var val = document.getElementById('tokenInput').value.trim();
-    if (val && !val.startsWith('...')) {
-        localStorage.setItem('gh_token', val);
-        msg('Token 已保存（仅存于本浏览器）', 'ok');
-        document.getElementById('tokenArea').classList.remove('show');
-    }
+    if (val && !val.startsWith('...')) { localStorage.setItem('gh_token',val); msg('Token已保存','ok'); document.getElementById('tokenArea').classList.remove('show'); }
 }
-
-function msg(text, cls) {
-    var el = document.getElementById('msg');
-    el.textContent = text;
-    el.className = 'msg ' + (cls || '');
-}
+function msg(text, cls) { var el = document.getElementById('msg'); el.textContent = text; el.className = 'msg '+(cls||''); }
 
 window.addEventListener('DOMContentLoaded', init);
 </script>
