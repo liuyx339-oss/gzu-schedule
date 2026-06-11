@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GZU 排班系统</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f5f7fa;color:#333;min-height:100vh}
+.header{background:linear-gradient(135deg,#1a73e8 0%,#0d47a1 100%);color:#fff;padding:32px 24px;text-align:center}
+.header h1{font-size:28px;margin-bottom:8px}
+.header p{font-size:14px;opacity:0.85}
+.cards{display:flex;gap:24px;padding:40px 24px;max-width:900px;margin:0 auto;flex-wrap:wrap;justify-content:center}
+.card{background:#fff;border-radius:14px;padding:28px 24px;width:360px;box-shadow:0 2px 12px rgba(0,0,0,0.06);text-decoration:none;color:inherit;transition:transform 0.2s,box-shadow 0.2s;display:block}
+.card:hover{transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,0.1)}
+.card .icon{font-size:32px;margin-bottom:12px}
+.card h2{font-size:20px;margin-bottom:8px;color:#1a73e8}
+.card p{font-size:13px;color:#666;line-height:1.6}
+.card .badge{display:inline-block;margin-top:12px;padding:4px 10px;border-radius:4px;font-size:11px;font-weight:600}
+.badge-daily{background:#e8f0fe;color:#1a73e8}
+.badge-monthly{background:#fff3e0;color:#e65100}
+.badge-edit{background:#e8f5e9;color:#2e7d32}
+.footer{text-align:center;padding:24px;font-size:12px;color:#999}
+@media(max-width:800px){.card{width:100%}}
+</style>
+</head>
+<body>
+
+<div class="header">
+    <h1>GZU 放射/超声 排班系统</h1>
+    <p>广州某医院放射科 · 超声科 | 需求预测 + 智能排班</p>
+</div>
+
+<div class="cards">
+    <a class="card" href="dashboard.html">
+        <div class="icon">📋</div>
+        <h2>明日需求日报</h2>
+        <p>体检人群 + OB超声 的真实预约统计，含时间段明细和预估工时</p>
+        <span class="badge badge-daily">每日 8:00 更新</span>
+    </a>
+
+    <a class="card" href="schedule.html">
+        <div class="icon">📅</div>
+        <h2>月度排班表</h2>
+        <p>放射医生 · 放射技师 · B超医生 的智能排班表，支持在线微调</p>
+        <span class="badge badge-monthly">每月 25 日更新</span>
+        <span class="badge badge-edit">可在线编辑</span>
+    </a>
+</div>
+
+<div class="footer">
+    由 GitHub Actions 自动运行 &nbsp;|&nbsp; 数据来源: 飞书 Bitable
+</div>
+
+</body>
+</html>

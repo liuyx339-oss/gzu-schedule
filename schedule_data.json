@@ -1,0 +1,18 @@
+{
+  "month": "2026-06",
+  "updated": "",
+  "roles": {
+    "放射医生": {
+      "staff": ["Li Zhenhuan", "Dustin Huang"],
+      "schedule": {}
+    },
+    "放射技师": {
+      "staff": [],
+      "schedule": {}
+    },
+    "B超医生": {
+      "staff": ["Xu Jing", "Liu Xiaoyan", "Lu Liyu"],
+      "schedule": {}
+    }
+  }
+}
