@@ -40,7 +40,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .schedule-table{border-collapse:collapse;font-size:11px;min-width:100%}
 .schedule-table th{background:#f0f5ff;color:#1a73e8;font-weight:600;padding:5px 4px;border:1px solid #d4e2f5;white-space:nowrap;text-align:center;font-size:10px}
 .schedule-table th.weekend{background:#eee}
-.schedule-table td{border:1px solid #eef2f7;padding:3px 2px;text-align:center;min-width:36px;font-size:10px;cursor:default;transition:background 0.15s}
+.schedule-table td{border:1px solid #d0d7e2;padding:3px 2px;text-align:center;min-width:36px;font-size:10px;cursor:default;transition:background 0.15s;font-weight:600}
 .schedule-table td.editable{cursor:pointer}
 .schedule-table td.editable:hover{background:#e8f0fe}
 .schedule-table td.selected{outline:2px solid #1a73e8;outline-offset:-2px;z-index:5;position:relative}
@@ -54,17 +54,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .schedule-table .divider-row td{border:none;height:8px;background:#f5f7fa}
 .schedule-table .divider-row th{border:none;height:8px;background:#f5f7fa}
 
-/* Shift colors */
-.shift-D1,.shift-D2,.shift-D3,.shift-D4,.shift-D5,.shift-D6,.shift-D,.shift-DH{background:#c8e6c9}
-.shift-C,.shift-C1,.shift-C2{background:#b2dfdb}
-.shift-N1,.shift-N2,.shift-N3,.shift-N{background:#90caf9}
-.shift-L,.shift-L1,.shift-L2{background:#e1bee7}
-.shift-LN,.shift-L\/N{background:#ffcc80}
-.shift-T,.shift-T1,.shift-T2{background:#dcedc8}
-.shift-H1,.shift-H2,.shift-H3,.shift-H{background:#fff9c4}
-.shift-OC,.shift-OnCall,.shift-R{color:#e65100;font-weight:600}
-.shift-OFF{color:#ccc}
-.shift-empty{color:#ddd}
+/* Shift colors — bold & readable */
+.shift-D,.shift-D1,.shift-D2,.shift-D3,.shift-D4,.shift-D5,.shift-D6,.shift-DH{background:#2E7D32;color:#fff}
+.shift-C,.shift-C1,.shift-C2{background:#00897B;color:#fff}
+.shift-N,.shift-N1,.shift-N2,.shift-N3{background:#1565C0;color:#fff}
+.shift-L,.shift-L1,.shift-L2{background:#7B1FA2;color:#fff}
+.shift-T,.shift-T1,.shift-T2{background:#558B2F;color:#fff}
+.shift-H,.shift-H1,.shift-H2,.shift-H3{background:#F9A825;color:#333}
+.shift-LN,.shift-L\/N{background:#E65100;color:#fff}
+.shift-OC,.shift-OnCall,.shift-R{background:#FFF3E0;color:#E65100;font-weight:800}
+.shift-OFF{background:#F5F5F5;color:#bbb}
+.shift-empty{background:#fff;color:#ddd}
 
 .edit-popup{display:none;position:fixed;background:#fff;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.15);z-index:1000;padding:6px;min-width:110px;max-height:400px;overflow-y:auto}
 .edit-popup.show{display:block}
@@ -134,17 +134,14 @@ var selectedCell = null;
 
 // Shift legend
 var LEGEND = {
-    'C': {color:'#b2dfdb',label:'C (80%)'}, 'C1':{color:'#b2dfdb',label:'C1 (20%)'},
-    'D': {color:'#c8e6c9',label:'D (80%)'}, 'D1':{color:'#c8e6c9',label:'D1'},
-    'D2':{color:'#c8e6c9',label:'D2'}, 'D3':{color:'#c8e6c9',label:'D3'},
-    'D4':{color:'#c8e6c9',label:'D4'}, 'D5':{color:'#c8e6c9',label:'D5'},
-    'D6':{color:'#c8e6c9',label:'D6'},
-    'N': {color:'#90caf9',label:'N (夜班)'}, 'N1':{color:'#90caf9',label:'N1'},
-    'N2':{color:'#90caf9',label:'N2'}, 'N3':{color:'#90caf9',label:'N3'},
-    'L/N':{color:'#ffcc80',label:'L/N (24H)'}, 'L':{color:'#e1bee7',label:'L'},
-    'T': {color:'#dcedc8',label:'T'}, 'T1':{color:'#dcedc8',label:'T1'},
-    'H': {color:'#fff9c4',label:'H'}, 'H1':{color:'#fff9c4',label:'H1'},
-    'H2':{color:'#fff9c4',label:'H2'}, 'H3':{color:'#fff9c4',label:'H3'},
+    'C':{color:'#00897B',label:'C (80%班)'},'C1':{color:'#00897B',label:'C1 (20%班)'},
+    'D':{color:'#2E7D32',label:'D (白班)'},'D1':{color:'#2E7D32',label:'D1'},'D2':{color:'#2E7D32',label:'D2'},
+    'D3':{color:'#2E7D32',label:'D3'},'D4':{color:'#2E7D32',label:'D4'},'D5':{color:'#2E7D32',label:'D5'},'D6':{color:'#2E7D32',label:'D6'},
+    'N':{color:'#1565C0',label:'N (夜班)'},'N1':{color:'#1565C0',label:'N1'},'N2':{color:'#1565C0',label:'N2'},'N3':{color:'#1565C0',label:'N3'},
+    'L/N':{color:'#E65100',label:'L/N (24H)'},
+    'L':{color:'#7B1FA2',label:'L'},'L1':{color:'#7B1FA2',label:'L1'},
+    'T':{color:'#558B2F',label:'T'},'T1':{color:'#558B2F',label:'T1'},
+    'H':{color:'#F9A825',label:'H'},'H1':{color:'#F9A825',label:'H1'},'H2':{color:'#F9A825',label:'H2'},'H3':{color:'#F9A825',label:'H3'},
 };
 var ALLOWED_SHIFTS = ['C','C1','D1','D2','D3','D4','D5','D6','N','N1','N2','N3','L','L/N','T','T1','H','H1','H2','H3','OFF'];
 
@@ -217,16 +214,16 @@ function renderStats() {
 function renderLegend() {
     var seen = {};
     var html = '';
-    for (var key in LEGEND) {
-        if (!LEGEND.hasOwnProperty(key)) continue;
-        var l = LEGEND[key];
-        if (!seen[l.label]) {
+    var keys = ['C','D','T','N','L','H','L/N'];
+    for (var i = 0; i < keys.length; i++) {
+        var l = LEGEND[keys[i]];
+        if (l && !seen[l.label]) {
             seen[l.label] = true;
             html += '<div class="legend-item"><div class="legend-swatch" style="background:'+l.color+'"></div>'+l.label+'</div>';
         }
     }
-    html += '<div class="legend-item"><div class="legend-swatch" style="background:#fff;border-color:#ddd"></div>休息</div>';
-    html += '<div class="legend-item" style="color:#e65100">📞 OnCall</div>';
+    html += '<div class="legend-item"><div class="legend-swatch" style="background:#f5f5f5;border:1px solid #ccc"></div>休息</div>';
+    html += '<div class="legend-item"><div class="legend-swatch" style="background:#FFF3E0;border:1px solid #E65100"></div>OnCall</div>';
     document.getElementById('legendBar').innerHTML = html;
 }
 
@@ -321,13 +318,16 @@ function renderTable() {
 
 function getShiftClass(shift) {
     if (!shift) return 'shift-empty';
-    // OnCall symbol
-    if (shift === '📞' || shift.indexOf('📞') >= 0) return 'shift-OC';
-    // Match known shifts
-    var base = shift.replace(/\d+$/,'');
-    if (base === 'L/N' || base === 'L\\/N') return 'shift-LN';
-    if (base === 'L') return 'shift-L';
-    if (['C','D','N','T','H'].indexOf(base) >= 0) return 'shift-'+base;
+    if (shift.indexOf('📞') >= 0) return 'shift-OC';
+    // Extract base shift type (first token before space or +)
+    var base = shift.split(/[\s\n\+]/)[0];
+    if (base === 'L/N' || base === 'LN') return 'shift-LN';
+    if (['C','C1','C2'].indexOf(base) >= 0) return 'shift-C';
+    if (['D','D1','D2','D3','D4','D5','D6','DH'].indexOf(base) >= 0) return 'shift-D';
+    if (['N','N1','N2','N3'].indexOf(base) >= 0) return 'shift-N';
+    if (['L','L1','L2'].indexOf(base) >= 0) return 'shift-L';
+    if (['T','T1','T2'].indexOf(base) >= 0) return 'shift-T';
+    if (['H','H1','H2','H3'].indexOf(base) >= 0) return 'shift-H';
     return 'shift-empty';
 }
 
