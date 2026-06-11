@@ -1,12 +1,12 @@
-name: Daily Report + Deploy
+name: Monthly Schedule
 
 on:
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '0 0 25 * *'
   workflow_dispatch:
 
 jobs:
-  daily:
+  monthly:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -18,12 +18,11 @@ jobs:
 
       - run: pip install pandas numpy requests openpyxl
 
-      - name: Send Feishu bot messages
+      - name: Fetch real reservations
         env:
           FEISHU_APP_ID: ${{ secrets.FEISHU_APP_ID }}
           FEISHU_APP_SECRET: ${{ secrets.FEISHU_APP_SECRET }}
-          FEISHU_CHAT_ID: ${{ secrets.FEISHU_CHAT_ID }}
-        run: python feishu_bot.py
+        run: python feishu_bot.py --dry-run
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4

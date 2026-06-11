@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>月度排班表 - GZU</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f5f7fa;color:#333}
+.header{background:linear-gradient(135deg,#1a73e8 0%,#0d47a1 100%);color:#fff;padding:20px 24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+.header h1{font-size:22px}
+.header .nav a{color:#fff;opacity:0.8;text-decoration:none;font-size:14px;margin-left:16px}
+.header .nav a:hover{opacity:1}
+.toolbar{display:flex;gap:10px;padding:16px 24px;align-items:center;flex-wrap:wrap}
+.toolbar select{padding:6px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px}
+.toolbar button{padding:6px 16px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer}
+.btn-edit{background:#fff3e0;color:#e65100;border:1px solid #ffcc80!important}
+.btn-edit.active{background:#e65100;color:#fff}
+.btn-save{background:#1a73e8;color:#fff;display:none}
+.btn-save.show{display:inline-block}
+.btn-token{background:none;color:#666;font-size:12px!important;text-decoration:underline}
+.token-area{display:none;padding:8px 24px}
+.token-area.show{display:flex;gap:8px;align-items:center}
+.token-area input{padding:6px 10px;border:1px solid #ddd;border-radius:4px;width:320px;font-size:13px}
+.msg{font-size:13px;padding:4px 16px}
+.msg.ok{color:#2e7d32}
+.msg.err{color:#c62828}
+
+.table-wrap{overflow-x:auto;padding:0 24px 24px}
+.schedule-table{border-collapse:collapse;font-size:12px;min-width:100%}
+.schedule-table th{background:#f0f5ff;color:#1a73e8;font-weight:600;padding:8px 6px;border:1px solid #d4e2f5;position:sticky;top:0;z-index:1;white-space:nowrap;text-align:center}
+.schedule-table td{border:1px solid #eef2f7;padding:4px;text-align:center;min-width:48px;cursor:default;transition:background 0.15s}
+.schedule-table td.editable{cursor:pointer}
+.schedule-table td.editable:hover{background:#e8f0fe}
+.schedule-table td.selected{outline:2px solid #1a73e8;outline-offset:-2px}
+.schedule-table td.edited{background:#fff9c4!important}
+.schedule-table .name-col{text-align:left;font-weight:600;position:sticky;left:0;background:#fff;z-index:2;min-width:80px;cursor:default}
+.schedule-table .name-col.backup{color:#999;font-weight:400}
+.schedule-table .weekend{background:#fafafa}
+
+/* Shift colors */
+.shift-D{background:#c8e6c9}.shift-D1{background:#c8e6c9}.shift-D2{background:#c8e6c9}
+.shift-N{background:#90caf9}.shift-N1{background:#90caf9}
+.shift-LN{background:#ffcc80}
+.shift-H{background:#e1bee7}.shift-H1{background:#e1bee7}
+.shift-C{background:#b2dfdb}.shift-C1{background:#b2dfdb}
+.shift-OnCall{background:#f5f5f5;color:#999}
+.shift-Backup{background:#ffecb3}
+.shift-OFF{background:#fafafa;color:#ccc}
+
+.edit-popup{display:none;position:fixed;background:#fff;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.15);z-index:100;padding:8px;min-width:120px}
+.edit-popup.show{display:block}
+.edit-popup button{display:block;width:100%;padding:6px 14px;border:none;background:none;text-align:left;font-size:13px;cursor:pointer;border-radius:4px}
+.edit-popup button:hover{background:#e8f0fe}
+
+@media(max-width:768px){.schedule-table{font-size:10px}.schedule-table td{min-width:36px}}
+</style>
+</head>
+<body>
+
+<div class="header">
+    <h1>月度排班表</h1>
+    <div class="nav">
+        <a href="index.html">首页</a>
+        <a href="dashboard.html">需求日报</a>
+    </div>
+</div>
+
+<div class="toolbar">
+    <select id="roleSelect"><option>放射医生</option><option>放射技师</option><option>B超医生</option></select>
+    <button class="btn-edit" id="btnEdit" onclick="toggleEdit()">✏️ 编辑模式</button>
+    <button class="btn-save" id="btnSave" onclick="saveChanges()">💾 保存修改</button>
+    <button class="btn-token" onclick="toggleToken()">⚙️ 设置Token</button>
+    <span class="msg" id="msg"></span>
+</div>
+
+<div class="token-area" id="tokenArea">
+    <span style="font-size:12px;color:#666">GitHub Token:</span>
+    <input type="password" id="tokenInput" placeholder="ghp_xxxxxxxxxxxx">
+    <button onclick="saveToken()" style="padding:6px 12px;font-size:12px">保存</button>
+    <span style="font-size:11px;color:#999">需 repo 权限 | 仅存于浏览器</span>
+</div>
+
+<div class="table-wrap">
+    <table class="schedule-table" id="scheduleTable"></table>
+</div>
+
+<div class="edit-popup" id="editPopup"></div>
+
+<script>
+// ============ CONFIG ============
+var REPO_OWNER = 'liuyx339-oss';
+var REPO_NAME = 'gzu-schedule';
+var DATA_PATH = 'publish/schedule_data.json';
+var DATA_URL = 'schedule_data.json';
+
+// ============ STATE ============
+var scheduleData = null;
+var currentRole = '放射医生';
+var editMode = false;
+var edits = {};  // {(staff, date): new_shift}
+var selectedCell = null;
+
+// Shift options per role
+var SHIFT_OPTIONS = {
+    '放射医生': ['D1','D2','N','LN','OnCall','Backup','OFF'],
+    '放射技师': ['D1','D2','N','LN','OnCall','Backup','OFF'],
+    'B超医生': ['D1','D2','OnCall','Backup','OFF']
+};
+
+// ============ INIT ============
+async function init() {
+    try {
+        var resp = await fetch(DATA_URL);
+        scheduleData = await resp.json();
+    } catch(e) {
+        scheduleData = {"month":"-","updated":"","roles":{"放射医生":{"staff":[],"schedule":{}},"放射技师":{"staff":[],"schedule":{}},"B超医生":{"staff":[],"schedule":{}}}};
+        msg('无法加载排班数据，显示空表', 'err');
+    }
+    renderTable();
+    document.getElementById('roleSelect').addEventListener('change', function(){
+        currentRole = this.value;
+        renderTable();
+    });
+    document.addEventListener('click', function(e){
+        if (!e.target.closest('.edit-popup') && !e.target.closest('td')) {
+            document.getElementById('editPopup').classList.remove('show');
+        }
+    });
+}
+
+function getDates(month) {
+    if (!month || month === '-') {
+        var now = new Date();
+        var m = now.getMonth() + 1;
+        var y = now.getFullYear();
+    } else {
+        var parts = month.split('-');
+        var y = parseInt(parts[0]);
+        var m = parseInt(parts[1]);
+    }
+    var days = new Date(y, m, 0).getDate();
+    var dates = [];
+    for (var d = 1; d <= days; d++) {
+        var dt = new Date(y, m-1, d);
+        dates.push({
+            label: m + '/' + d,
+            day: dt.getDay(),
+            full: y + '-' + String(m).padStart(2,'0') + '-' + String(d).padStart(2,'0')
+        });
+    }
+    return dates;
+}
+
+// ============ RENDER ============
+function renderTable() {
+    var role = scheduleData.roles[currentRole] || {staff:[], schedule:{}};
+    var staff = role.staff || [];
+    var sched = role.schedule || {};
+    var dates = getDates(scheduleData.month);
+
+    var html = '<thead><tr><th class="name-col">人员</th>';
+    for (var i = 0; i < dates.length; i++) {
+        html += '<th class="' + (dates[i].day === 0 || dates[i].day === 6 ? 'weekend' : '') + '">' + dates[i].label + '</th>';
+    }
+    html += '</tr></thead><tbody>';
+
+    for (var s = 0; s < staff.length; s++) {
+        html += '<tr>';
+        html += '<td class="name-col">' + staff[s] + '</td>';
+        for (var d = 0; d < dates.length; d++) {
+            var dateKey = dates[d].full;
+            var shiftKey = staff[s] + '|' + dateKey;
+            var shift = (edits[shiftKey] !== undefined) ? edits[shiftKey] : (sched[staff[s]] || {})[dateKey] || '';
+            var cls = 'shift-' + (shift || 'OFF');
+            if (dates[d].day === 0 || dates[d].day === 6) cls += ' weekend';
+            if (editMode) cls += ' editable';
+            if (edits[shiftKey] !== undefined) cls += ' edited';
+            html += '<td class="' + cls + '" data-staff="' + staff[s] + '" data-date="' + dateKey + '" data-shift="' + shift + '" onclick="cellClick(this)">' + (shift || '-') + '</td>';
+        }
+        html += '</tr>';
+    }
+    html += '</tbody>';
+    document.getElementById('scheduleTable').innerHTML = html;
+}
+
+// ============ EDIT ============
+function toggleEdit() {
+    editMode = !editMode;
+    var btn = document.getElementById('btnEdit');
+    var btnSave = document.getElementById('btnSave');
+    if (editMode) {
+        btn.textContent = '🔒 退出编辑';
+        btn.classList.add('active');
+        btnSave.classList.add('show');
+        msg('编辑模式已开启 — 点击单元格修改班次', 'ok');
+    } else {
+        btn.textContent = '✏️ 编辑模式';
+        btn.classList.remove('active');
+        btnSave.classList.remove('show');
+        document.getElementById('editPopup').classList.remove('show');
+        msg('', '');
+    }
+    renderTable();
+}
+
+function cellClick(td) {
+    if (!editMode) return;
+    var staff = td.dataset.staff;
+    var date = td.dataset.date;
+    var currentShift = td.dataset.shift;
+
+    // Deselect previous
+    if (selectedCell) selectedCell.classList.remove('selected');
+    td.classList.add('selected');
+    selectedCell = td;
+
+    // Show popup
+    var popup = document.getElementById('editPopup');
+    var rect = td.getBoundingClientRect();
+    var shifts = SHIFT_OPTIONS[currentRole] || ['D1','D2','N','LN','OFF'];
+    var html = '';
+    for (var i = 0; i < shifts.length; i++) {
+        var s = shifts[i];
+        html += '<button onclick="applyShift(\'' + staff + '\',\'' + date + '\',\'' + s + '\')" style="' + (s === currentShift ? 'background:#e8f0fe;font-weight:700' : '') + '">' + s + '</button>';
+    }
+    html += '<hr style="margin:4px 0"><button onclick="applyShift(\'' + staff + '\',\'' + date + '\',\'\')" style="color:#999">清除</button>';
+    popup.innerHTML = html;
+    popup.style.left = Math.min(rect.left, window.innerWidth - 140) + 'px';
+    popup.style.top = Math.min(rect.bottom + 4, window.innerHeight - 300) + 'px';
+    popup.classList.add('show');
+}
+
+function applyShift(staff, date, newShift) {
+    var key = staff + '|' + date;
+    var orig = ((scheduleData.roles[currentRole].schedule || {})[staff] || {})[date] || '';
+    if (newShift === orig || (newShift === '' && orig === '')) {
+        delete edits[key];
+    } else {
+        edits[key] = newShift;
+    }
+    document.getElementById('editPopup').classList.remove('show');
+    renderTable();
+}
+
+// ============ SAVE ============
+async function saveChanges() {
+    if (Object.keys(edits).length === 0) {
+        msg('没有修改需要保存', 'err');
+        return;
+    }
+
+    // Apply edits to data
+    var role = scheduleData.roles[currentRole];
+    if (!role.schedule) role.schedule = {};
+    var editCount = 0;
+    for (var key in edits) {
+        if (!edits.hasOwnProperty(key)) continue;
+        var parts = key.split('|');
+        var staff = parts[0];
+        var date = parts.slice(1).join('|');
+        if (!role.schedule[staff]) role.schedule[staff] = {};
+        role.schedule[staff][date] = edits[key];
+        editCount++;
+    }
+
+    var token = localStorage.getItem('gh_token');
+    if (!token) {
+        msg('请先设置 GitHub Token', 'err');
+        toggleToken();
+        return;
+    }
+
+    scheduleData.updated = new Date().toISOString();
+    var content = JSON.stringify(scheduleData, null, 2);
+    var contentB64 = btoa(unescape(encodeURIComponent(content)));
+
+    msg('保存中...', 'ok');
+
+    try {
+        // Get current file SHA
+        var getUrl = 'https://api.github.com/repos/' + REPO_OWNER + '/' + REPO_NAME + '/contents/' + DATA_PATH;
+        var getResp = await fetch(getUrl, {headers:{'Authorization':'token '+token}});
+        var getData = await getResp.json();
+
+        var body = {
+            message: 'Update schedule (' + currentRole + ') - ' + new Date().toLocaleString('zh-CN'),
+            content: contentB64,
+            branch: 'gh-pages'
+        };
+        if (getData.sha) body.sha = getData.sha;
+
+        var putUrl = 'https://api.github.com/repos/' + REPO_OWNER + '/' + REPO_NAME + '/contents/' + DATA_PATH;
+        var putResp = await fetch(putUrl, {
+            method: 'PUT',
+            headers: {'Authorization':'token '+token, 'Content-Type':'application/json'},
+            body: JSON.stringify(body)
+        });
+        var putData = await putResp.json();
+
+        if (putData.content) {
+            edits = {};
+            msg('保存成功！(' + editCount + ' 处修改)', 'ok');
+            renderTable();
+            document.getElementById('btnSave').classList.remove('show');
+        } else {
+            msg('保存失败: ' + (putData.message || '未知错误'), 'err');
+        }
+    } catch(e) {
+        msg('网络错误: ' + e.message, 'err');
+    }
+}
+
+// ============ TOKEN ============
+function toggleToken() {
+    var area = document.getElementById('tokenArea');
+    area.classList.toggle('show');
+    var saved = localStorage.getItem('gh_token');
+    if (saved) document.getElementById('tokenInput').value = saved.substring(0,8) + '...';
+}
+
+function saveToken() {
+    var val = document.getElementById('tokenInput').value.trim();
+    if (val && !val.startsWith('...')) {
+        localStorage.setItem('gh_token', val);
+        msg('Token 已保存（仅存于本浏览器）', 'ok');
+        document.getElementById('tokenArea').classList.remove('show');
+    }
+}
+
+function msg(text, cls) {
+    var el = document.getElementById('msg');
+    el.textContent = text;
+    el.className = 'msg ' + (cls || '');
+}
+
+window.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
