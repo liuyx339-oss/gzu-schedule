@@ -476,6 +476,151 @@ def send_text_message(token, chat_id, text):
 
 
 # =====================================================
+# HTML DASHBOARD GENERATION
+# =====================================================
+
+
+def _generate_html_report(target_date, a, b):
+    """Generate a self-contained HTML dashboard from reservation data."""
+    wday_cn = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]
+    w = wday_cn[target_date.weekday()]
+
+    # --- Checkup section ---
+    total_p = a.get("total_persons", 0)
+    badges = ""
+    cn = {"CT": "CT", "X-ray": "X-ray", "B-ultrasound": "B超", "Echo": "心彩",
+          "Mammo": "钼靶", "BoneDensity": "骨密度", "MRI": "MRI"}
+    colors_mod = {"CT": "#9C27B0", "X-ray": "#2196F3", "B-ultrasound": "#4CAF50",
+                  "Echo": "#00BCD4", "Mammo": "#FF9800", "BoneDensity": "#795548", "MRI": "#E91E63"}
+    for lbl in ["CT", "X-ray", "B-ultrasound", "Echo", "Mammo", "BoneDensity", "MRI"]:
+        n = a.get("total_counts", {}).get(lbl, 0)
+        if n:
+            badges += f'<span style="background:{colors_mod.get(lbl,"#999")};color:#fff;padding:4px 10px;border-radius:4px;font-size:13px;font-weight:600;margin:2px">{cn[lbl]} {n}</span> '
+
+    tech_m = a.get("total_tech_minutes", 0)
+    doc_m = a.get("total_doc_minutes", 0)
+
+    # Checkup table rows
+    checkup_rows = ""
+    times = a.get("time_slots", [])
+    persons = a.get("person_count", [])
+    max_p = max(persons) if persons else 1
+    for i, ts in enumerate(times):
+        p = persons[i] if i < len(persons) else 0
+        pct = round(p / max_p * 100)
+        tags = ""
+        for lbl in ["CT", "X-ray", "B-ultrasound", "Echo", "Mammo", "BoneDensity", "MRI"]:
+            n = a["counts"].get(lbl, [])[i] if i < len(a["counts"].get(lbl, [])) else 0
+            if n:
+                tags += f'<span style="background:{colors_mod.get(lbl,"#999")};color:#fff;padding:1px 6px;border-radius:3px;font-size:11px;font-weight:600;margin:1px">{cn[lbl]} {n}</span> '
+        checkup_rows += f'<tr><td style="font-weight:600;white-space:nowrap">{ts}</td><td style="text-align:center;font-weight:700;font-size:16px;color:#1a73e8">{p}</td><td><div style="background:#eef2f7;border-radius:4px;height:16px;min-width:50px"><div style="background:linear-gradient(90deg,#1a73e8,#4a9af5);height:100%;border-radius:4px;width:{pct}%"></div></div></td><td>{tags}</td></tr>'
+
+    # OB section
+    ob_badges = ""
+    ob_class_cn = {"OB": "OB超声", "NT": "NT", "Anatomy": "大排畸"}
+    ob_colors = {"OB": "#4CAF50", "NT": "#FF9800", "Anatomy": "#E91E63"}
+    for cls in OB_CLASSES:
+        n = b.get("total_counts", {}).get(cls, 0)
+        if n:
+            ob_badges += f'<span style="background:{ob_colors.get(cls,"#999")};color:#fff;padding:4px 10px;border-radius:4px;font-size:13px;font-weight:600;margin:2px">{ob_class_cn[cls]} {n}</span> '
+
+    ob_rows = ""
+    ob_times = b.get("time_slots", [])
+    for i, ts in enumerate(ob_times):
+        parts = ""
+        for cls in OB_CLASSES:
+            n = b["counts"].get(cls, [])[i] if i < len(b["counts"].get(cls, [])) else 0
+            if n:
+                parts += f'<span style="background:{ob_colors.get(cls,"#999")};color:#fff;padding:1px 6px;border-radius:3px;font-size:11px;font-weight:600;margin:1px">{ob_class_cn[cls]} {n}</span> '
+        if parts:
+            ob_rows += f'<tr><td style="font-weight:600;white-space:nowrap">{ts}</td><td style="text-align:center;font-weight:700;font-size:15px;color:#1a73e8">{" ".join(str(b["counts"].get(cls, [])[i]) if i < len(b["counts"].get(cls, [])) else 0 for cls in OB_CLASSES if b["counts"].get(cls, [])[i] if i < len(b["counts"].get(cls, [])) else 0)}</td><td>{parts}</td><td style="font-size:11px;color:#666"></td></tr>'
+
+    ob_has_data = bool(ob_times)
+
+    html = f'''<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>需求日报 - {target_date}</title>
+<style>
+*{{margin:0;padding:0;box-sizing:border-box}}
+body{{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f5f7fa;color:#333}}
+.header{{background:linear-gradient(135deg,#1a73e8 0%,#0d47a1 100%);color:#fff;padding:20px 24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}}
+.header h1{{font-size:22px}}
+.header .nav a{{color:#fff;opacity:0.8;text-decoration:none;font-size:14px;margin-left:14px}}
+.header .nav a:hover{{opacity:1}}
+.section{{margin:20px 24px}}
+.section-title{{font-size:16px;font-weight:700;color:#1a73e8;padding:10px 14px;background:#e8f0fe;border-radius:8px;margin-bottom:12px;border-left:4px solid #1a73e8}}
+.badges{{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}}
+.badge-white{{background:#fff;border:1px solid #ddd;border-radius:8px;padding:8px 16px;display:inline-flex;align-items:center;gap:6px}}
+.badge-white .lbl{{font-size:12px;color:#888}}
+.badge-white .val{{font-size:22px;font-weight:700;color:#1a73e8}}
+.badge-white.highlight{{border-color:#1a73e8;background:#e8f0fe}}
+.time-badge{{background:#fff;border:1px solid #ddd;border-radius:6px;padding:5px 12px;font-size:12px}}
+.time-badge .lbl{{color:#888}}
+.time-badge .val{{font-weight:700;color:#e65100}}
+.table-wrap{{overflow-x:auto;background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,0.06)}}
+.rpt-table{{width:100%;border-collapse:collapse;font-size:13px}}
+.rpt-table th{{background:#f0f5ff;color:#1a73e8;font-weight:600;padding:8px 10px;text-align:left;border-bottom:2px solid #c5d9f5;white-space:nowrap}}
+.rpt-table td{{padding:8px 10px;border-bottom:1px solid #eef2f7;vertical-align:middle}}
+.rpt-table tr:hover td{{background:#f8fafe}}
+.footer{{text-align:center;padding:20px;font-size:12px;color:#999}}
+.empty{{text-align:center;padding:40px;color:#999;font-size:14px}}
+@media(max-width:768px){{.header h1{{font-size:18px}}.section{{margin:10px 12px}}}}
+</style>
+</head>
+<body>
+
+<div class="header">
+    <h1>明日需求日报 — {target_date} ({w})</h1>
+    <div class="nav">
+        <a href="index.html">首页</a>
+        <a href="schedule.html">排班表</a>
+    </div>
+</div>
+
+<!-- REAL RESERVATIONS -->
+<div class="section">
+    <div class="section-title">真实预约</div>
+
+    <!-- Checkup -->
+    <div style="margin-bottom:20px">
+        <h3 style="font-size:15px;margin-bottom:8px;color:#333">体检人群</h3>
+        <div class="badges">
+            <span class="badge-white highlight"><span class="lbl">总人数</span><span class="val">{total_p}</span></span>
+            {badges}
+        </div>
+        <div class="badges" style="margin-bottom:12px">
+            <span class="time-badge"><span class="lbl">预估操作</span> <span class="val">{tech_m}min ({tech_m/60:.1f}h)</span></span>
+            <span class="time-badge"><span class="lbl">预估报告</span> <span class="val">{doc_m}min ({doc_m/60:.1f}h)</span></span>
+        </div>
+        <div class="table-wrap">
+            <table class="rpt-table">
+                <thead><tr><th>时间</th><th style="text-align:center">人数</th><th>负荷</th><th>检查项</th></tr></thead>
+                <tbody>{checkup_rows}</tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- OB -->
+    <div>
+        <h3 style="font-size:15px;margin-bottom:8px;color:#333">OB超声</h3>
+        <div class="badges">{ob_badges if ob_badges else '<span style="color:#999;font-size:14px">暂无预约数据</span>'}</div>
+        {f'''<div class="table-wrap"><table class="rpt-table"><thead><tr><th>时间</th><th style="text-align:center">人数</th><th>检查项</th></tr></thead><tbody>{ob_rows}</tbody></table></div>''' if ob_has_data else '<div class="empty">明天暂无OB超声预约</div>'}
+    </div>
+</div>
+
+<div class="footer">
+    数据来源: 飞书 Bitable &nbsp;|&nbsp; 自动更新于 GitHub Actions &nbsp;|&nbsp; {target_date}
+</div>
+
+</body>
+</html>'''
+    return html
+
+
+# =====================================================
 # MAIN
 # =====================================================
 
@@ -486,6 +631,8 @@ def main():
     parser.add_argument("--chat-id", type=str, default=None)
     parser.add_argument("--target", type=str, default=None)
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--output-html", type=str, default=None,
+                        help="Write dashboard HTML to this path (e.g. publish/dashboard.html)")
     args = parser.parse_args()
 
     target_date = date.fromisoformat(args.target) if args.target else (date.today() + timedelta(days=1))
@@ -518,6 +665,13 @@ def main():
     print(summary)
     print("--- DETAIL ---")
     print(detail)
+
+    if args.output_html:
+        html = _generate_html_report(target_date, result_a, result_b)
+        os.makedirs(os.path.dirname(args.output_html) or ".", exist_ok=True)
+        with open(args.output_html, "w", encoding="utf-8") as f:
+            f.write(html)
+        print(f"[OK] Dashboard HTML written to {args.output_html}")
 
     if args.dry_run:
         print("[DRY RUN] Not sent.")

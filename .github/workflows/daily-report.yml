@@ -18,14 +18,15 @@ jobs:
         with:
           python-version: '3.12'
 
-      - run: pip install pandas numpy requests openpyxl
+      - run: pip install pandas numpy requests
 
-      - name: Send Feishu bot messages
+      - name: Send Feishu bot messages + Generate dashboard HTML
         env:
           FEISHU_APP_ID: ${{ secrets.FEISHU_APP_ID }}
           FEISHU_APP_SECRET: ${{ secrets.FEISHU_APP_SECRET }}
           FEISHU_CHAT_ID: ${{ secrets.FEISHU_CHAT_ID }}
-        run: python feishu_bot.py
+        run: |
+          python feishu_bot.py --output-html publish/dashboard.html
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
