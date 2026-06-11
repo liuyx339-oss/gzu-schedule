@@ -20,13 +20,13 @@ jobs:
 
       - run: pip install pandas numpy requests
 
-      - name: Send Feishu bot messages + Generate dashboard HTML
+      - name: Send Feishu bot messages
         env:
           FEISHU_APP_ID: ${{ secrets.FEISHU_APP_ID }}
           FEISHU_APP_SECRET: ${{ secrets.FEISHU_APP_SECRET }}
           FEISHU_CHAT_ID: ${{ secrets.FEISHU_CHAT_ID }}
         run: |
-          python feishu_bot.py --output-html publish/dashboard.html
+          python feishu_bot.py
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
