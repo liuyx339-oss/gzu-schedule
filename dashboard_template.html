@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>明日需求日报</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background:#f5f7fa; color:#333; }
+
+/* Header */
+.header { background:linear-gradient(135deg,#1a73e8 0%,#0d47a1 100%); color:#fff; padding:24px 32px; }
+.header h1 { font-size:24px; margin-bottom:6px; }
+.header .subtitle { font-size:14px; opacity:0.85; }
+
+/* Section blocks */
+.section-block { margin:20px 32px; }
+.section-title { font-size:18px; font-weight:700; color:#1a73e8; padding:12px 16px; background:#e8f0fe; border-radius:8px; margin-bottom:12px; border-left:4px solid #1a73e8; }
+
+/* Sub-section */
+.sub-section { background:#fff; border-radius:10px; padding:16px 20px; margin-bottom:16px; box-shadow:0 1px 4px rgba(0,0,0,0.06); }
+.sub-section h3 { font-size:16px; color:#333; margin-bottom:12px; border-bottom:1px solid #eee; padding-bottom:8px; }
+
+/* Modality badges */
+.modality-badges { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+.modality-badge { background:#f0f5ff; border:1px solid #c5d9f5; border-radius:6px; padding:6px 14px; font-size:13px; white-space:nowrap; }
+.modality-badge .label { color:#666; margin-right:4px; }
+.modality-badge .count { font-weight:700; color:#1a73e8; }
+
+/* Stats */
+.stats-row { display:flex; gap:16px; flex-wrap:wrap; margin-bottom:16px; }
+.stat-card { background:#fff; border-radius:10px; padding:16px 24px; min-width:140px; box-shadow:0 1px 4px rgba(0,0,0,0.08); }
+.stat-card .value { font-size:28px; font-weight:700; color:#1a73e8; }
+.stat-card .label { font-size:12px; color:#888; margin-top:4px; }
+.stat-card.orange .value { color:#FF9800; }
+.stat-card.red .value { color:#F44336; }
+
+/* Tabs */
+.tabs { display:flex; gap:4px; margin-bottom:16px; }
+.tab { padding:8px 20px; border-radius:8px 8px 0 0; background:#e8ecf1; cursor:pointer; font-size:14px; font-weight:500; border:none; }
+.tab.active { background:#1a73e8; color:#fff; }
+
+/* Content */
+.content { }
+.chart-row { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px; }
+.chart-row.single { grid-template-columns:1fr; }
+.chart-box { background:#fff; border-radius:12px; padding:16px; box-shadow:0 1px 4px rgba(0,0,0,0.06); }
+.chart-box h3 { font-size:15px; margin-bottom:10px; color:#444; }
+.chart-box .chart { width:100%; height:400px; }
+.chart-box .chart.short { height:320px; }
+
+/* Date picker */
+.date-picker { display:flex; gap:8px; align-items:center; padding-bottom:12px; flex-wrap:wrap; }
+.date-picker select { padding:6px 12px; border:1px solid #ddd; border-radius:6px; font-size:14px; }
+.date-picker label { font-size:14px; color:#666; font-weight:500; }
+
+/* Details / service breakdown */
+.service-detail { font-size:12px; color:#666; margin-top:8px; line-height:1.6; }
+.service-detail summary { cursor:pointer; color:#1a73e8; font-weight:500; }
+
+/* Section inner padding for forecast */
+.section-inner { padding:0; }
+
+/* Hide section if no data */
+.section-hidden { display:none; }
+
+/* Checkup table */
+.checkup-table-wrap { overflow-x:auto; margin-top:4px; }
+.checkup-table { width:100%; border-collapse:collapse; font-size:13px; }
+.checkup-table th { background:#f0f5ff; color:#1a73e8; font-weight:600; padding:8px 10px; text-align:left; border-bottom:2px solid #c5d9f5; white-space:nowrap; }
+.checkup-table td { padding:8px 10px; border-bottom:1px solid #eef2f7; vertical-align:top; }
+.checkup-table tr:hover td { background:#f8fafe; }
+.checkup-table .time-col { font-weight:600; color:#333; white-space:nowrap; min-width:55px; }
+.checkup-table .count-col { text-align:center; font-weight:700; font-size:16px; color:#1a73e8; min-width:40px; }
+.checkup-table .bar-col { min-width:100px; }
+.checkup-table .bar-track { background:#eef2f7; border-radius:4px; height:18px; overflow:hidden; min-width:60px; }
+.checkup-table .bar-fill { height:100%; border-radius:4px; background:linear-gradient(90deg,#1a73e8,#4a9af5); transition:width 0.3s; }
+.checkup-table .tag-cell { white-space:nowrap; }
+.checkup-table .tag { display:inline-block; padding:2px 7px; border-radius:4px; font-size:11px; font-weight:600; margin:1px 2px; color:#fff; }
+.checkup-table .tag-ct { background:#9C27B0; } .checkup-table .tag-xray { background:#2196F3; }
+.checkup-table .tag-bus { background:#4CAF50; } .checkup-table .tag-echo { background:#00BCD4; }
+.checkup-table .tag-mammo { background:#FF9800; } .checkup-table .tag-bone { background:#795548; }
+.checkup-table .svc-col { font-size:11px; color:#666; line-height:1.5; max-width:250px; }
+.checkup-table .svc-item { display:inline-block; background:#f5f5f5; padding:1px 5px; border-radius:3px; margin:1px 2px; white-space:nowrap; }
+.checkup-table .svc-item .svc-name { color:#444; }
+.checkup-table .svc-item .svc-n { color:#1a73e8; font-weight:600; }
+
+@media (max-width:900px) { .chart-row { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+
+<div class="header">
+    <h1>明日需求日报</h1>
+    <div class="subtitle" id="headerDate">加载中...</div>
+</div>
+
+<!-- ==================== BLOCK 1: 真实预约 ==================== -->
+<div class="section-block" id="realSection">
+    <div class="section-title">真实预约</div>
+
+    <!-- Checkup sub-section -->
+    <div class="sub-section" id="checkupPanel">
+        <h3>体检人群</h3>
+        <div class="modality-badges" id="badgesCheckup"></div>
+        <div class="modality-badges" id="badgesCheckupTime"></div>
+        <div class="checkup-table-wrap">
+            <table class="checkup-table" id="checkupTable"></table>
+        </div>
+    </div>
+
+    <!-- OB sub-section -->
+    <div class="sub-section" id="obPanel">
+        <h3>OB超声</h3>
+        <div class="modality-badges" id="badgesOB"></div>
+        <div class="chart-box" style="box-shadow:none;padding:0;">
+            <div class="chart" id="chartOB" style="height:300px;"></div>
+        </div>
+        <details class="service-detail" id="detailOBWrapper">
+            <summary>时间段服务明细</summary>
+            <div id="detailOB"></div>
+        </details>
+    </div>
+</div>
+
+<!-- ==================== BLOCK 2: 需求预测 ==================== -->
+<div class="section-block">
+    <div class="section-title">需求预测</div>
+
+    <div class="stats-row" id="statsRow"></div>
+    <div class="tabs" id="tabs"></div>
+
+    <div class="date-picker">
+        <label>选择日期查看小时明细:</label>
+        <select id="dateSelect" onchange="drawHourly()"></select>
+    </div>
+
+    <div class="content">
+        <div class="chart-row" id="chartsTop"></div>
+        <div class="chart-row single" id="chartHourly"></div>
+    </div>
+</div>
+
+<script>
+var DATA = __DATA_PLACEHOLDER__;
+var currentCat = '超声';
+
+// ---- 科室色板 ----
+var COLORS = { 超声: { tech:'#1a73e8', doc:'#4CAF50' }, 放射: { tech:'#FF9800', doc:'#F44336' } };
+
+// Modality colors for checkup chart
+var MODALITY_COLORS = {
+    'MRI': '#E91E63', 'CT': '#9C27B0', 'X-ray': '#2196F3',
+    'Mammo': '#FF9800', 'BoneDensity': '#795548',
+    'B-ultrasound': '#4CAF50', 'Echo': '#00BCD4'
+};
+var MODALITY_LABELS_CN = {
+    'MRI': 'MRI', 'CT': 'CT', 'X-ray': 'X-ray',
+    'Mammo': '钼靶', 'BoneDensity': '骨密度',
+    'B-ultrasound': 'B超', 'Echo': '心彩'
+};
+
+function init() {
+    document.getElementById('headerDate').textContent =
+        '目标日期: ' + DATA.tomorrow_date + ' | 数据范围: ' + (DATA.all_dates[0]||'') + ' ~ ' + (DATA.all_dates.slice(-1)[0]||'');
+    renderRealReservations();
+    renderStats();
+    renderTabs();
+    renderCharts();
+}
+
+// ==================== REAL RESERVATIONS ====================
+
+function renderRealReservations() {
+    var rr = DATA.real_reservations || {};
+    var hasCheckup = rr.checkup && rr.checkup.time_slot && rr.checkup.time_slot.length > 0;
+    var hasOB = rr.ob && rr.ob.time_slot && rr.ob.time_slot.length > 0;
+
+    if (!hasCheckup && !hasOB) {
+        document.getElementById('realSection').classList.add('section-hidden');
+        return;
+    }
+    document.getElementById('realSection').classList.remove('section-hidden');
+
+    // Checkup
+    if (hasCheckup) {
+        renderCheckupPanel(rr.checkup);
+    } else {
+        document.getElementById('checkupPanel').classList.add('section-hidden');
+    }
+
+    // OB
+    if (hasOB) {
+        renderOBPanel(rr.ob);
+    } else {
+        document.getElementById('obPanel').classList.add('section-hidden');
+    }
+}
+
+function renderCheckupPanel(d) {
+    var times = d.time_slot || [];
+    var persons = d.persons || [];
+    var modalityKeys = ['CT','X-ray','B-ultrasound','Echo','Mammo','BoneDensity','MRI'];
+    var estMap = { 'MRI':[30,20], 'CT':[15,10], 'X-ray':[10,5], 'Mammo':[10,5], 'BoneDensity':[10,5], 'B-ultrasound':[20,10], 'Echo':[20,10] };
+
+    // Total person count
+    var totalPersons = 0;
+    for (var i = 0; i < persons.length; i++) totalPersons += (persons[i] || 0);
+
+    // Badges: total counts + person count
+    var badgeHtml = '<div class="modality-badge" style="background:#e8f0fe;border-color:#1a73e8;"><span class="label">总人数</span><span class="count">' + totalPersons + '</span></div>';
+    var totalTech = 0, totalDoc = 0;
+    for (var i = 0; i < modalityKeys.length; i++) {
+        var k = modalityKeys[i];
+        var counts = d[k] || [];
+        var total = 0;
+        for (var j = 0; j < counts.length; j++) total += (counts[j] || 0);
+        if (total > 0) {
+            badgeHtml += '<div class="modality-badge"><span class="label">' + (MODALITY_LABELS_CN[k] || k) + '</span><span class="count">' + total + '</span></div>';
+            totalTech += total * (estMap[k] ? estMap[k][0] : 0);
+            totalDoc += total * (estMap[k] ? estMap[k][1] : 0);
+        }
+    }
+    document.getElementById('badgesCheckup').innerHTML = badgeHtml;
+    var timeHtml = '<div class="modality-badge" style="background:#fff3e0;border-color:#ffcc80;"><span class="label">预估操作</span><span class="count">' + totalTech + 'min (' + (totalTech/60).toFixed(1) + 'h)</span></div>';
+    timeHtml += '<div class="modality-badge" style="background:#fce4ec;border-color:#f48fb1;"><span class="label">预估报告</span><span class="count">' + totalDoc + 'min (' + (totalDoc/60).toFixed(1) + 'h)</span></div>';
+    document.getElementById('badgesCheckupTime').innerHTML = timeHtml;
+
+    // Table: time slots with load bars and project details
+    var maxP = 1;
+    for (var i = 0; i < persons.length; i++) { if (persons[i] > maxP) maxP = persons[i]; }
+    var svcDetailRaw = d.service_detail || [];
+
+    var html = '<thead><tr>' +
+        '<th>时间</th><th>人数</th><th></th><th>检查项</th><th>套餐明细</th>' +
+        '</tr></thead><tbody>';
+
+    for (var t = 0; t < times.length; t++) {
+        var ts = times[t];
+        var p = persons[t] || 0;
+        var pct = Math.round(p / maxP * 100);
+
+        // Build tag pills for this slot
+        var tagsHtml = '';
+        for (var i = 0; i < modalityKeys.length; i++) {
+            var k = modalityKeys[i];
+            var counts = d[k] || [];
+            var n = counts[t] || 0;
+            if (n > 0) {
+                var tagCls = 'tag-' + k.toLowerCase().replace('-','');
+                if (k === 'B-ultrasound') tagCls = 'tag-bus';
+                if (k === 'X-ray') tagCls = 'tag-xray';
+                if (k === 'CT') tagCls = 'tag-ct';
+                if (k === 'Echo') tagCls = 'tag-echo';
+                if (k === 'Mammo') tagCls = 'tag-mammo';
+                if (k === 'BoneDensity') tagCls = 'tag-bone';
+                tagsHtml += '<span class="tag ' + tagCls + '">' + (MODALITY_LABELS_CN[k]||k) + ' ' + n + '</span>';
+            }
+        }
+
+        // Build service description items
+        var svcHtml = '';
+        var raw = (svcDetailRaw[t] !== undefined) ? svcDetailRaw[t] : '{}';
+        var obj = {};
+        try { obj = JSON.parse(raw); } catch(e) { obj = {}; }
+        for (var key in obj) {
+            if (obj.hasOwnProperty(key)) {
+                var short = key.length > 30 ? key.substring(0,28) + '..' : key;
+                svcHtml += '<span class="svc-item"><span class="svc-name">' + short + '</span> <span class="svc-n">x' + obj[key] + '</span></span> ';
+            }
+        }
+
+        html += '<tr>' +
+            '<td class="time-col">' + ts + '</td>' +
+            '<td class="count-col">' + p + '</td>' +
+            '<td class="bar-col"><div class="bar-track"><div class="bar-fill" style="width:' + pct + '%"></div></div></td>' +
+            '<td class="tag-cell">' + tagsHtml + '</td>' +
+            '<td class="svc-col">' + (svcHtml || '-') + '</td>' +
+            '</tr>';
+    }
+    html += '</tbody>';
+    document.getElementById('checkupTable').innerHTML = html;
+}
+
+function renderOBPanel(d) {
+    var times = d.time_slot || [];
+    var classes = ['OB', 'NT', 'Anatomy'];
+    var classCN = { 'OB': 'OB超声', 'NT': 'NT', 'Anatomy': '大排畸' };
+    var classColors = { 'OB': '#4CAF50', 'NT': '#FF9800', 'Anatomy': '#E91E63' };
+
+    // Badges
+    var badgeHtml = '';
+    for (var i = 0; i < classes.length; i++) {
+        var k = classes[i];
+        var counts = d[k] || [];
+        var total = 0;
+        for (var j = 0; j < counts.length; j++) total += (counts[j] || 0);
+        if (total > 0 || true) { // always show even if 0
+            badgeHtml += '<div class="modality-badge"><span class="label">' + (classCN[k] || k) + '</span><span class="count">' + total + '</span></div>';
+        }
+    }
+    document.getElementById('badgesOB').innerHTML = badgeHtml;
+
+    // Grouped bar chart
+    var chartDom = document.getElementById('chartOB');
+    if (chartDom) {
+        var chart = echarts.init(chartDom);
+        var series = [];
+        for (var i = 0; i < classes.length; i++) {
+            var k = classes[i];
+            var vals = d[k] || [];
+            series.push({
+                name: classCN[k] || k,
+                type: 'bar',
+                data: vals,
+                itemStyle: { color: classColors[k] || '#999' }
+            });
+        }
+        chart.setOption({
+            tooltip: { trigger:'axis', axisPointer:{type:'shadow'} },
+            legend: { top:5, textStyle:{fontSize:11} },
+            xAxis: { type:'category', data:times, axisLabel:{rotate:30,fontSize:10} },
+            yAxis: { type:'value', name:'人数' },
+            series: series,
+            grid: { left:50, right:20, top:50, bottom:60 }
+        });
+    }
+
+    // Service detail
+    var detailHtml = '';
+    var svcDetail = d.service_detail || [];
+    for (var t = 0; t < times.length; t++) {
+        var ts = times[t];
+        var raw = (svcDetail[t] !== undefined) ? svcDetail[t] : '{}';
+        var obj = {};
+        try { obj = JSON.parse(raw); } catch(e) { obj = {}; }
+        var items = [];
+        for (var key in obj) {
+            if (obj.hasOwnProperty(key)) items.push(key + ' x' + obj[key]);
+        }
+        if (items.length > 0) {
+            detailHtml += '<div style="margin-bottom:4px;"><b>' + ts + '</b>: ' + items.join(', ') + '</div>';
+        }
+    }
+    document.getElementById('detailOB').innerHTML = detailHtml || '(无明细数据)';
+    if (!detailHtml) document.getElementById('detailOBWrapper').style.display = 'none';
+}
+
+// ==================== FORECAST (existing) ====================
+
+function renderStats() {
+    var r = DATA.real_data || {};
+    var f = DATA.forecast_data || {};
+    var cards = [
+        { v: r.total_patients || r.mri_patients || '-', l: '实际总患者' },
+        { v: f.total_tech_minutes ? Math.round(f.total_tech_minutes/60) + 'h' : '-', l: '预测技师工时', cls:'orange' },
+        { v: f.total_doc_minutes ? Math.round(f.total_doc_minutes/60) + 'h' : '-', l: '预测医生工时', cls:'red' },
+    ];
+    var html = '';
+    for (var i = 0; i < cards.length; i++) {
+        html += '<div class="stat-card' + (cards[i].cls ? ' ' + cards[i].cls : '') + '">' +
+            '<div class="value">' + cards[i].v + '</div><div class="label">' + cards[i].l + '</div></div>';
+    }
+    document.getElementById('statsRow').innerHTML = html;
+}
+
+function renderTabs() {
+    var cats = ['超声', '放射'];
+    var html = '';
+    for (var i = 0; i < cats.length; i++) {
+        html += '<button class="tab' + (cats[i] === currentCat ? ' active' : '') + '" onclick="switchCat(\'' + cats[i] + '\')">' + cats[i] + '</button>';
+    }
+    document.getElementById('tabs').innerHTML = html;
+}
+
+function switchCat(cat) {
+    currentCat = cat;
+    renderTabs();
+    renderCharts();
+}
+
+function renderCharts() {
+    document.getElementById('chartsTop').innerHTML = '';
+    document.getElementById('chartHourly').innerHTML = '';
+
+    var trendDiv = document.createElement('div'); trendDiv.className = 'chart-box';
+    trendDiv.innerHTML = '<h3>日度工作量趋势 — ' + currentCat + '</h3><div class="chart" id="chartTrend"></div>';
+    document.getElementById('chartsTop').appendChild(trendDiv);
+
+    var heatDiv = document.createElement('div'); heatDiv.className = 'chart-box';
+    heatDiv.innerHTML = '<h3>小时热力图 — ' + currentCat + '</h3><div class="chart" id="chartHeat"></div>';
+    document.getElementById('chartsTop').appendChild(heatDiv);
+
+    var hourDiv = document.createElement('div'); hourDiv.className = 'chart-box';
+    hourDiv.innerHTML = '<h3>逐小时明细 (' + currentCat + ')</h3><div class="chart short" id="chartHour"></div>';
+    document.getElementById('chartHourly').appendChild(hourDiv);
+
+    setTimeout(function() { drawTrend(); drawHeat(); drawHourly(); }, 100);
+}
+
+function drawTrend() {
+    var dt = DATA.daily_trend[currentCat];
+    if (!dt) return;
+    var chart = echarts.init(document.getElementById('chartTrend'));
+    chart.setOption({
+        tooltip: { trigger:'axis' },
+        legend: { data:['技师(分钟)','医生(分钟)'], top:5 },
+        xAxis: { type:'category', data:dt.dates, axisLabel:{rotate:30,fontSize:10} },
+        yAxis: { type:'value', name:'分钟' },
+        series: [
+            { name:'技师(分钟)', type:'line', data:dt.tech_minutes, smooth:true, lineStyle:{color:COLORS[currentCat].tech}, itemStyle:{color:COLORS[currentCat].tech} },
+            { name:'医生(分钟)', type:'line', data:dt.doc_minutes, smooth:true, lineStyle:{color:COLORS[currentCat].doc}, itemStyle:{color:COLORS[currentCat].doc} },
+        ],
+        grid: { left:50, right:20, top:40, bottom:60 }
+    });
+}
+
+function drawHeat() {
+    var hd = DATA.heatmap_data[currentCat];
+    if (!hd || !hd.tech_minutes) return;
+    var hm = hd.tech_minutes;
+    var chart = echarts.init(document.getElementById('chartHeat'));
+    var merged = [];
+    for (var h = 0; h < hm.matrix.length; h++) {
+        for (var d = 0; d < hm.dates.length; d++) {
+            var techVal = hm.matrix[h][d];
+            var docVal = (hd.doc_minutes && hd.doc_minutes.matrix[h]) ? hd.doc_minutes.matrix[h][d] : 0;
+            merged.push([d, h, parseFloat((techVal + docVal).toFixed(1))]);
+        }
+    }
+    var maxVal = 0;
+    for (var i = 0; i < merged.length; i++) { if (merged[i][2] > maxVal) maxVal = merged[i][2]; }
+    chart.setOption({
+        tooltip: { position:'top' },
+        xAxis: { type:'category', data:hm.dates, axisLabel:{rotate:45,fontSize:9}, splitArea:{show:true} },
+        yAxis: { type:'category', data:hm.hours.map(function(h){return h+':00';}), inverse:true, splitArea:{show:true} },
+        visualMap: { min:0, max:Math.max(maxVal,1), calculable:true, orient:'horizontal', left:'center', bottom:0,
+            inRange:{color:['#f0f5ff','#1a73e8','#0d47a1']} },
+        series: [{ type:'heatmap', data:merged, label:{show:true,fontSize:8}, emphasis:{itemStyle:{shadowBlur:10,shadowColor:'rgba(0,0,0,0.25)'}} }],
+        grid: { left:50, right:30, top:10, bottom:80 }
+    });
+}
+
+function drawHourly() {
+    var hl = DATA.hourly_line[currentCat];
+    if (!hl) return;
+    var sel = document.getElementById('dateSelect');
+    var dates = DATA.all_dates;
+    if (sel.options.length === 0) {
+        for (var i = 0; i < dates.length; i++) {
+            var opt = document.createElement('option');
+            opt.value = dates[i]; opt.textContent = dates[i];
+            if (i === dates.length - 1) opt.selected = true;
+            sel.appendChild(opt);
+        }
+    }
+    var d = sel.value || dates[dates.length-1];
+    var dayData = hl[d] || { tech_minutes:[], doc_minutes:[] };
+    var chart = echarts.init(document.getElementById('chartHour'));
+    var hours = [];
+    for (var h = 0; h < 24; h++) hours.push(h + ':00');
+    chart.setOption({
+        tooltip: { trigger:'axis' },
+        legend: { data:['技师(分钟)','医生(分钟)'], top:5 },
+        xAxis: { type:'category', data:hours, axisLabel:{rotate:30,fontSize:10} },
+        yAxis: { type:'value', name:'分钟' },
+        series: [
+            { name:'技师(分钟)', type:'bar', data:dayData.tech_minutes, itemStyle:{color:COLORS[currentCat].tech}, barGap:'10%' },
+            { name:'医生(分钟)', type:'bar', data:dayData.doc_minutes, itemStyle:{color:COLORS[currentCat].doc} },
+        ],
+        grid: { left:50, right:20, top:40, bottom:50 }
+    });
+}
+
+window.addEventListener('resize', function() {
+    var ids = ['chartTrend','chartHeat','chartHour','chartOB'];
+    for (var i = 0; i < ids.length; i++) {
+        var el = document.getElementById(ids[i]);
+        if (el) { var inst = echarts.getInstanceByDom(el); if (inst) inst.resize(); }
+    }
+});
+
+if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', init); }
+else { init(); }
+</script>
+</body>
+</html>

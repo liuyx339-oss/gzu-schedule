@@ -1,0 +1,41 @@
+name: Daily Reservation Report
+
+on:
+  schedule:
+    # UTC 0:00 = Beijing 8:00 AM, every day
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+    inputs:
+      target_date:
+        description: 'Target date (YYYY-MM-DD, blank = tomorrow)'
+        required: false
+        default: ''
+
+jobs:
+  send-report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install -r requirements_bot.txt
+
+      - name: Run bot
+        env:
+          FEISHU_APP_ID: ${{ secrets.FEISHU_APP_ID }}
+          FEISHU_APP_SECRET: ${{ secrets.FEISHU_APP_SECRET }}
+          FEISHU_CHAT_ID: ${{ secrets.FEISHU_CHAT_ID }}
+        run: |
+          if [ -n "${{ github.event.inputs.target_date }}" ]; then
+            python feishu_bot.py --target "${{ github.event.inputs.target_date }}"
+          else
+            python feishu_bot.py
+          fi
