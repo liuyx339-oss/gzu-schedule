@@ -150,10 +150,15 @@ function renderForecast(fd){
     var activeCat=cats[0];
     html+='<div style="display:flex;gap:4px;margin-bottom:12px">';
     for(var c=0;c<cats.length;c++)html+='<button class="ftab'+(cats[c]===activeCat?' active':'')+'" data-cat="'+cats[c]+'" onclick="switchFCat(this)">'+cats[c]+'</button>';
-    html+='</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px"><div class="table-wrap" style="padding:12px"><div id="fcTrend" style="height:320px"></div></div><div class="table-wrap" style="padding:12px"><div id="fcHeat" style="height:320px"></div></div></div><div class="table-wrap" style="padding:12px;margin-bottom:12px"><div id="fcHourly" style="height:280px"></div></div>';
+    html+='</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px"><div class="table-wrap" style="padding:12px"><div id="fcTrend" style="height:320px"></div></div><div class="table-wrap" style="padding:12px"><div id="fcHeat" style="height:320px"></div></div></div>';
+    // Date picker for hourly chart
+    var allDates=fd.hourly_line[cats[0]]?Object.keys(fd.hourly_line[cats[0]]).sort():[];
+    html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><span style="font-size:13px;color:#666;font-weight:500">选择日期查看小时明细:</span><select id="fcDateSelect" onchange="redrawHourly()" style="padding:5px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px">';
+    for(var d=0;d<allDates.length;d++)html+='<option value="'+allDates[d]+'"'+(d===allDates.length-1?' selected':'')+'>'+allDates[d]+'</option>';
+    html+='</select></div>';
+    html+='<div class="table-wrap" style="padding:12px;margin-bottom:12px"><div id="fcHourly" style="height:280px"></div></div>';
     document.getElementById('forecastContent').innerHTML=html;
-    window._fcData=fd;window._fcColors=colors;
-    loadECharts(function(){drawFC(fd,activeCat);});
+    window._fcData=fd;window._fcColors=colors;window._fcCat=activeCat;
 }
 
 var _echartsLoaded=false,_echartsQueue=[];
@@ -186,13 +191,26 @@ function drawOBChart(ob){
         });
     }catch(e){}
 }
-function switchFCat(btn){var btns=document.querySelectorAll('.ftab');for(var i=0;i<btns.length;i++)btns[i].classList.remove('active');btn.classList.add('active');drawFC(window._fcData,btn.dataset.cat);}
+function switchFCat(btn){var btns=document.querySelectorAll('.ftab');for(var i=0;i<btns.length;i++)btns[i].classList.remove('active');btn.classList.add('active');window._fcCat=btn.dataset.cat;
+    // Update date picker options
+    var allDates=window._fcData.hourly_line[btn.dataset.cat]?Object.keys(window._fcData.hourly_line[btn.dataset.cat]).sort():[];
+    var sel=document.getElementById('fcDateSelect');if(sel){sel.innerHTML='';for(var d=0;d<allDates.length;d++)sel.innerHTML+='<option value=\"'+allDates[d]+'\"'+(d===allDates.length-1?' selected':'')+'>'+allDates[d]+'</option>';}
+    drawFC(window._fcData,btn.dataset.cat);}
 function drawFC(fd,cat){
     var dt=fd.daily_trend[cat],hd=fd.heatmap_data[cat],hl=fd.hourly_line[cat],colors=window._fcColors;if(!dt)return;
+    // Trend + Heatmap
     try{var tDom=document.getElementById('fcTrend');if(tDom){var tc=echarts.getInstanceByDom(tDom)||echarts.init(tDom);tc.setOption({tooltip:{trigger:'axis'},legend:{data:['技师','医生'],top:5},xAxis:{type:'category',data:dt.dates,axisLabel:{rotate:30,fontSize:9}},yAxis:{type:'value',name:'分钟'},series:[{name:'技师',type:'line',data:dt.tech_minutes,smooth:true,lineStyle:{color:colors[cat].tech},itemStyle:{color:colors[cat].tech}},{name:'医生',type:'line',data:dt.doc_minutes,smooth:true,lineStyle:{color:colors[cat].doc},itemStyle:{color:colors[cat].doc}}],grid:{left:50,right:15,top:40,bottom:50}});}}catch(e){}
     try{var hDom=document.getElementById('fcHeat');if(hDom&&hd&&hd.tech_minutes){var hc=echarts.getInstanceByDom(hDom)||echarts.init(hDom);var merged=[];for(var h=0;h<hd.tech_minutes.matrix.length;h++)for(var d=0;d<hd.tech_minutes.dates.length;d++){var tv=hd.tech_minutes.matrix[h][d],dv=(hd.doc_minutes&&hd.doc_minutes.matrix[h])?hd.doc_minutes.matrix[h][d]:0;merged.push([d,h,parseFloat((tv+dv).toFixed(1))]);}hc.setOption({tooltip:{position:'top'},xAxis:{type:'category',data:hd.tech_minutes.dates,axisLabel:{rotate:45,fontSize:8}},yAxis:{type:'category',data:hd.tech_minutes.hours.map(function(h){return h+':00'}),inverse:true},visualMap:{min:0,max:60,calculable:true,orient:'horizontal',left:'center',bottom:0,inRange:{color:['#f0f5ff','#1a73e8','#0d47a1']}},series:[{type:'heatmap',data:merged,label:{show:true,fontSize:7}}],grid:{left:45,right:20,top:5,bottom:70}});}}catch(e){}
-    try{var lDom=document.getElementById('fcHourly');if(lDom&&hl){var dates=Object.keys(hl).sort(),lastD=dates[dates.length-1],dayData=hl[lastD]||{tech_minutes:[],doc_minutes:[]},lc=echarts.getInstanceByDom(lDom)||echarts.init(lDom),hours=[];for(var h=0;h<24;h++)hours.push(h+':00');lc.setOption({tooltip:{trigger:'axis'},legend:{data:['技师','医生'],top:5},xAxis:{type:'category',data:hours,axisLabel:{rotate:30,fontSize:9}},yAxis:{type:'value',name:'分钟'},series:[{name:'技师',type:'bar',data:dayData.tech_minutes,itemStyle:{color:colors[cat].tech},barGap:'10%'},{name:'医生',type:'bar',data:dayData.doc_minutes,itemStyle:{color:colors[cat].doc}}],grid:{left:50,right:15,top:40,bottom:50}});}}catch(e){}
-    window.addEventListener('resize',function(){['fcTrend','fcHeat','fcHourly'].forEach(function(id){var el=document.getElementById(id);if(el){var inst=echarts.getInstanceByDom(el);if(inst)inst.resize();}});});
+    // Hourly
+    drawHourlyForDate(fd,cat);
+}
+function redrawHourly(){drawHourlyForDate(window._fcData,window._fcCat);}
+function drawHourlyForDate(fd,cat){
+    var hl=fd.hourly_line[cat],colors=window._fcColors;if(!hl)return;
+    var sel=document.getElementById('fcDateSelect');
+    var selDate=sel?sel.value:Object.keys(hl).sort().pop();
+    var dayData=hl[selDate]||{tech_minutes:[],doc_minutes:[]};
+    try{var lDom=document.getElementById('fcHourly');if(lDom){var lc=echarts.getInstanceByDom(lDom)||echarts.init(lDom);var hours=[];for(var h=0;h<24;h++)hours.push(h+':00');lc.setOption({tooltip:{trigger:'axis'},legend:{data:['技师','医生'],top:5},xAxis:{type:'category',data:hours,axisLabel:{rotate:30,fontSize:9}},yAxis:{type:'value',name:'分钟'},series:[{name:'技师',type:'bar',data:dayData.tech_minutes,itemStyle:{color:colors[cat].tech},barGap:'10%'},{name:'医生',type:'bar',data:dayData.doc_minutes,itemStyle:{color:colors[cat].doc}}],grid:{left:50,right:15,top:40,bottom:50}});}}catch(e){}
 }
 
 window.addEventListener('DOMContentLoaded',init);
