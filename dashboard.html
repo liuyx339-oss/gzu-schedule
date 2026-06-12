@@ -36,6 +36,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .tag-ob{background:#4CAF50}.tag-nt{background:#FF9800}.tag-anatomy{background:#E91E63}
 .footer{text-align:center;padding:16px;font-size:11px;color:#999}
 .empty{text-align:center;padding:40px;color:#999;font-size:14px}
+.ftab{padding:7px 18px;border-radius:6px 6px 0 0;background:#e8ecf1;border:none;cursor:pointer;font-size:13px;font-weight:500}
+.ftab.active{background:#1a73e8;color:#fff}
 @media(max-width:768px){.section{margin:10px 12px}.header h1{font-size:17px}}
 </style>
 </head>
@@ -120,28 +122,212 @@ function render(data){
     }else{html+='<div class="empty">暂无体检预约数据</div>';}
     html+='</div>';
 
-    // OB
+    // OB - compact timeline
     var ob=data.ob||{};
     html+='<div class="section"><div class="section-title">真实预约 &mdash; OB超声</div>';
-    var obBadges='',obTotal=0;
-    for(var i=0;i<OB_KEYS.length;i++){
-        var k=OB_KEYS[i],n=(ob.total_counts||{})[k]||0;
-        if(n>0){obBadges+='<div class="badge badge-mod" style="background:'+OB_COLORS[k]+'">'+(OB_CN[k]||k)+' '+n+'</div>';obTotal+=n;}
-    }
-    if(obTotal>0){html+='<div class="badges">'+obBadges+'</div>';}
-    else{html+='<div class="badges"><span style="color:#999;font-size:13px">暂无OB超声预约</span></div>';}
-
-    var obTimes=ob.time_slots||[];
-    if(obTimes.length>0){
-        html+='<div class="table-wrap"><table class="rpt-table"><thead><tr><th>时间</th><th style="text-align:center">OB超声</th><th style="text-align:center">NT</th><th style="text-align:center">大排畸</th></tr></thead><tbody>';
-        for(var t=0;t<obTimes.length;t++){
-            var ts=obTimes[t],obN=((ob.counts||{}).OB||[])[t]||0,ntN=((ob.counts||{}).NT||[])[t]||0,anN=((ob.counts||{}).Anatomy||[])[t]||0;
-            html+='<tr><td class="time-col">'+ts+'</td><td class="count-col">'+(obN||'-')+'</td><td class="count-col" style="color:#FF9800">'+(ntN||'-')+'</td><td class="count-col" style="color:#E91E63">'+(anN||'-')+'</td></tr>';
+    var obTotal=0;
+    for(var i=0;i<OB_KEYS.length;i++){obTotal+=(ob.total_counts||{})[OB_KEYS[i]]||0;}
+    if(obTotal>0){
+        var obBadges='<div class="badge badge-persons"><span class="lbl">总人次</span><span class="val">'+obTotal+'</span></div>';
+        for(var i=0;i<OB_KEYS.length;i++){
+            var k=OB_KEYS[i],n=(ob.total_counts||{})[k]||0;
+            if(n>0)obBadges+='<div class="badge badge-mod" style="background:'+OB_COLORS[k]+'">'+(OB_CN[k]||k)+' '+n+'</div>';
         }
-        html+='</tbody></table></div>';
+        html+='<div class="badges">'+obBadges+'</div>';
+
+        // Compact timeline bars — only show slots with data
+        var obTimes=ob.time_slots||[];
+        var obMax=0,hasAny=false;
+        for(var t=0;t<obTimes.length;t++){
+            var sum=0;
+            for(var i=0;i<OB_KEYS.length;i++)sum+=((ob.counts||{})[OB_KEYS[i]]||[])[t]||0;
+            if(sum>obMax)obMax=sum;if(sum>0)hasAny=true;
+        }
+        if(hasAny){
+            html+='<div class="table-wrap"><table class="rpt-table"><thead><tr><th>时间</th><th style="text-align:center;width:50px">人次</th><th>分布</th></tr></thead><tbody>';
+            for(var t=0;t<obTimes.length;t++){
+                var ts=obTimes[t],total=0;
+                var segs=[];
+                for(var i=0;i<OB_KEYS.length;i++){
+                    var n=((ob.counts||{})[OB_KEYS[i]]||[])[t]||0;
+                    total+=n;
+                    if(n>0)segs.push({k:OB_KEYS[i],n:n,c:OB_COLORS[OB_KEYS[i]],cn:OB_CN[OB_KEYS[i]]});
+                }
+                if(total>0){
+                    // Build stacked bar segments
+                    var barHtml='<div style="display:flex;height:20px;border-radius:4px;overflow:hidden;min-width:60px">';
+                    for(var s=0;s<segs.length;s++){
+                        var w=Math.max(Math.round(segs[s].n/obMax*100),8);
+                        barHtml+='<div style="width:'+w+'%;background:'+segs[s].c+';display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;font-weight:700" title="'+segs[s].cn+' '+segs[s].n+'">'+segs[s].n+'</div>';
+                    }
+                    barHtml+='</div>';
+                    // Tag pills
+                    var tagHtml='';
+                    for(var s=0;s<segs.length;s++){
+                        tagHtml+='<span class="tag" style="background:'+segs[s].c+'">'+segs[s].cn+' '+segs[s].n+'</span>';
+                    }
+                    html+='<tr><td class="time-col">'+ts+'</td><td class="count-col">'+total+'</td><td>'+barHtml+'</td></tr>';
+                }
+            }
+            html+='</tbody></table></div>';
+        }
+    }else{
+        html+='<div class="badges"><span style="color:#999;font-size:13px">暂无OB超声预约</span></div>';
+    }
+    html+='</div>';  // end OB section
+
+    // ============ FORECAST SECTION ============
+    html+='<div class="section"><div class="section-title">需求预测</div>';
+    html+='<div id="forecastContent"><div class="empty">预测数据加载中...</div></div>';
+    html+='</div>';
+
+    document.getElementById('content').innerHTML=html;
+
+    // Load forecast separately (may fail gracefully)
+    fetchForecast();
+}
+
+function fetchForecast(){
+    fetch('forecast_data.json?'+Date.now()).then(function(r){
+        if(r.ok)return r.json();else throw new Error('no data');
+    }).then(function(fd){
+        renderForecast(fd);
+    }).catch(function(e){
+        document.getElementById('forecastContent').innerHTML='<div class="empty">预测数据暂未生成<br><small>请运行完整流水线生成当月预测</small></div>';
+    });
+}
+
+function renderForecast(fd){
+    var html='';
+    var cats=['超声','放射'];
+    var colors={超声:{tech:'#1a73e8',doc:'#4CAF50'},放射:{tech:'#FF9800',doc:'#F44336'}};
+
+    // Stats
+    html+='<div class="badges">';
+    var tm=0,dm=0;
+    for(var c=0;c<cats.length;c++){
+        var dt=fd.daily_trend[cats[c]];
+        if(dt){
+            for(var i=0;i<dt.tech_minutes.length;i++){tm+=dt.tech_minutes[i]||0;dm+=dt.doc_minutes[i]||0;}
+        }
+    }
+    html+='<div class="badge badge-time"><span class="lbl">预测技师</span><span class="val">'+(tm/60).toFixed(0)+'h</span></div>';
+    html+='<div class="badge badge-time"><span class="lbl">预测医生</span><span class="val">'+(dm/60).toFixed(0)+'h</span></div>';
+    html+='</div>';
+
+    // Tabs
+    var activeCat=cats[0];
+    html+='<div style="display:flex;gap:4px;margin-bottom:12px">';
+    for(var c=0;c<cats.length;c++){
+        html+='<button class="ftab'+(cats[c]===activeCat?' active':'')+'" data-cat="'+cats[c]+'" onclick="switchFCat(this)">'+cats[c]+'</button>';
     }
     html+='</div>';
-    document.getElementById('content').innerHTML=html;
+
+    // Chart containers
+    html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">';
+    html+='<div class="table-wrap" style="padding:12px"><div id="fcTrend" style="height:320px"></div></div>';
+    html+='<div class="table-wrap" style="padding:12px"><div id="fcHeat" style="height:320px"></div></div>';
+    html+='</div>';
+    html+='<div class="table-wrap" style="padding:12px;margin-bottom:12px"><div id="fcHourly" style="height:280px"></div></div>';
+
+    document.getElementById('forecastContent').innerHTML=html;
+
+    // Load ECharts dynamically
+    var script=document.createElement('script');
+    script.src='https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js';
+    script.onload=function(){drawFC(fd,activeCat);};
+    document.head.appendChild(script);
+
+    // Store for tab switching
+    window._fcData=fd;
+    window._fcColors=colors;
+}
+
+function switchFCat(btn){
+    var btns=document.querySelectorAll('.ftab');
+    for(var i=0;i<btns.length;i++)btns[i].classList.remove('active');
+    btn.classList.add('active');
+    drawFC(window._fcData,btn.dataset.cat);
+}
+
+function drawFC(fd,cat){
+    var dt=fd.daily_trend[cat];
+    var hd=fd.heatmap_data[cat];
+    var hl=fd.hourly_line[cat];
+    var colors=window._fcColors;
+    if(!dt)return;
+
+    // Trend
+    try{
+        var tDom=document.getElementById('fcTrend');
+        if(tDom){
+            var tc=echarts.getInstanceByDom(tDom)||echarts.init(tDom);
+            tc.setOption({
+                tooltip:{trigger:'axis'},legend:{data:['技师','医生'],top:5},
+                xAxis:{type:'category',data:dt.dates,axisLabel:{rotate:30,fontSize:9}},
+                yAxis:{type:'value',name:'分钟'},
+                series:[
+                    {name:'技师',type:'line',data:dt.tech_minutes,smooth:true,lineStyle:{color:colors[cat].tech},itemStyle:{color:colors[cat].tech}},
+                    {name:'医生',type:'line',data:dt.doc_minutes,smooth:true,lineStyle:{color:colors[cat].doc},itemStyle:{color:colors[cat].doc}}
+                ],
+                grid:{left:50,right:15,top:40,bottom:50}
+            });
+        }
+    }catch(e){}
+
+    // Heatmap
+    try{
+        var hDom=document.getElementById('fcHeat');
+        if(hDom&&hd&&hd.tech_minutes){
+            var hc=echarts.getInstanceByDom(hDom)||echarts.init(hDom);
+            var merged=[];
+            for(var h=0;h<hd.tech_minutes.matrix.length;h++){
+                for(var d=0;d<hd.tech_minutes.dates.length;d++){
+                    var tv=hd.tech_minutes.matrix[h][d];
+                    var dv=(hd.doc_minutes&&hd.doc_minutes.matrix[h])?hd.doc_minutes.matrix[h][d]:0;
+                    merged.push([d,h,parseFloat((tv+dv).toFixed(1))]);
+                }
+            }
+            hc.setOption({
+                tooltip:{position:'top'},
+                xAxis:{type:'category',data:hd.tech_minutes.dates,axisLabel:{rotate:45,fontSize:8}},
+                yAxis:{type:'category',data:hd.tech_minutes.hours.map(function(h){return h+':00'}),inverse:true},
+                visualMap:{min:0,max:60,calculable:true,orient:'horizontal',left:'center',bottom:0,inRange:{color:['#f0f5ff','#1a73e8','#0d47a1']}},
+                series:[{type:'heatmap',data:merged,label:{show:true,fontSize:7}}],
+                grid:{left:45,right:20,top:5,bottom:70}
+            });
+        }
+    }catch(e){}
+
+    // Hourly
+    try{
+        var lDom=document.getElementById('fcHourly');
+        if(lDom&&hl){
+            var dates=Object.keys(hl).sort();
+            var lastD=dates[dates.length-1];
+            var dayData=hl[lastD]||{tech_minutes:[],doc_minutes:[]};
+            var lc=echarts.getInstanceByDom(lDom)||echarts.init(lDom);
+            var hours=[];
+            for(var h=0;h<24;h++)hours.push(h+':00');
+            lc.setOption({
+                tooltip:{trigger:'axis'},legend:{data:['技师','医生'],top:5},
+                xAxis:{type:'category',data:hours,axisLabel:{rotate:30,fontSize:9}},
+                yAxis:{type:'value',name:'分钟'},
+                series:[
+                    {name:'技师',type:'bar',data:dayData.tech_minutes,itemStyle:{color:colors[cat].tech},barGap:'10%'},
+                    {name:'医生',type:'bar',data:dayData.doc_minutes,itemStyle:{color:colors[cat].doc}}
+                ],
+                grid:{left:50,right:15,top:40,bottom:50}
+            });
+        }
+    }catch(e){}
+
+    window.addEventListener('resize',function(){
+        ['fcTrend','fcHeat','fcHourly'].forEach(function(id){
+            var el=document.getElementById(id);
+            if(el){var inst=echarts.getInstanceByDom(el);if(inst)inst.resize();}
+        });
+    });
 }
 
 window.addEventListener('DOMContentLoaded',init);
