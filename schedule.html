@@ -79,6 +79,38 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 
 .footer{text-align:center;padding:16px;font-size:11px;color:#999}
 
+/* Shift Reference Cards */
+.shift-ref{margin:20px 24px}
+.shift-ref .section-title{font-size:15px;font-weight:700;color:#1a73e8;padding:10px 14px;background:#e8f0fe;border-radius:8px;margin-bottom:12px;border-left:4px solid #1a73e8}
+.shift-cat{margin-bottom:16px}
+.shift-cat h4{font-size:13px;color:#555;margin-bottom:8px;padding-left:4px}
+.shift-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
+.shift-card{background:#fff;border-radius:10px;padding:10px 14px;box-shadow:0 1px 3px rgba(0,0,0,0.06);display:flex;align-items:center;gap:10px}
+.shift-card .swatch{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex-shrink:0}
+.shift-card .info{line-height:1.4}
+.shift-card .info .code{font-weight:700;font-size:14px}
+.shift-card .info .time{font-size:11px;color:#888}
+.shift-card .info .hrs{font-size:10px;color:#aaa}
+
+/* Notes Section */
+.notes-section{margin:20px 24px}
+.notes-toolbar{display:flex;gap:8px;margin-bottom:8px}
+.notes-toolbar button{padding:5px 14px;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer}
+.btn-add-note{background:#1a73e8;color:#fff}
+.btn-del-note{background:#fff;color:#c62828;border:1px solid #ef9a9a!important;font-size:10px!important;padding:2px 8px!important}
+.notes-list{display:flex;flex-direction:column;gap:8px}
+.note-card{background:#fff;border-radius:10px;padding:14px 16px;box-shadow:0 1px 3px rgba(0,0,0,0.06);position:relative}
+.note-card .note-meta{font-size:10px;color:#999;margin-bottom:6px}
+.note-card .note-text{font-size:13px;color:#333;line-height:1.6;white-space:pre-wrap}
+.note-card .note-actions{position:absolute;top:10px;right:12px;display:flex;gap:4px}
+.note-card .note-actions button{font-size:10px;padding:2px 8px;border:1px solid #ddd;border-radius:4px;background:#fff;cursor:pointer}
+.note-card .note-actions button:hover{background:#f5f5f5}
+.note-editor{display:none;background:#fff;border-radius:10px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,0.1);margin-bottom:8px}
+.note-editor.show{display:block}
+.note-editor textarea{width:100%;min-height:80px;border:1px solid #ddd;border-radius:6px;padding:10px;font-size:13px;font-family:inherit;resize:vertical}
+.note-editor .editor-actions{display:flex;gap:6px;margin-top:8px;justify-content:flex-end}
+.note-editor .editor-actions button{padding:5px 14px;border:none;border-radius:6px;font-size:12px;cursor:pointer}
+
 @media(max-width:768px){.schedule-table{font-size:9px}.schedule-table td{min-width:30px}}
 </style>
 </head>
@@ -115,6 +147,28 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 </div>
 
 <div class="edit-popup" id="editPopup"></div>
+
+<!-- ====== SHIFT REFERENCE ====== -->
+<div class="shift-ref">
+    <div class="section-title">班型参考</div>
+    <div id="shiftRefContent"></div>
+</div>
+
+<!-- ====== DEPLOYMENT NOTES ====== -->
+<div class="notes-section">
+    <div class="section-title">部署使用说明</div>
+    <div class="notes-toolbar">
+        <button class="btn-add-note" onclick="addNote()">+ 新增说明</button>
+    </div>
+    <div class="note-editor" id="noteEditor">
+        <textarea id="noteText" placeholder="输入说明内容..."></textarea>
+        <div class="editor-actions">
+            <button onclick="cancelNote()" style="background:#eee;color:#666">取消</button>
+            <button onclick="saveNote()" style="background:#1a73e8;color:#fff">保存</button>
+        </div>
+    </div>
+    <div class="notes-list" id="notesList"></div>
+</div>
 
 <div class="footer">数据来源: schedule.py CP-SAT排班引擎 | 由 GitHub Actions 每月25日自动更新</div>
 
@@ -165,6 +219,8 @@ async function init() {
         }
     });
     renderAll();
+    renderShiftRef();
+    loadNotes();
 }
 
 function getDates() {
@@ -457,6 +513,127 @@ function saveToken() {
     if (val && !val.startsWith('...')) { localStorage.setItem('gh_token',val); msg('Token已保存','ok'); document.getElementById('tokenArea').classList.remove('show'); }
 }
 function msg(text, cls) { var el = document.getElementById('msg'); el.textContent = text; el.className = 'msg '+(cls||''); }
+
+// ============ SHIFT REFERENCE ============
+var SHIFT_REF_DATA = [
+    {cat:'白班', color:'#2E7D32', items:[
+        {time:'07:40-16:10', hrs:'8.0h'},{time:'08:00-16:30', hrs:'8.0h'},
+        {time:'08:30-17:30', hrs:'8.5h'},{time:'08:30-17:00', hrs:'8.0h'},
+        {time:'09:00-17:30', hrs:'8.0h'},{time:'09:30-18:00', hrs:'8.0h'},
+        {time:'09:00-18:00', hrs:'8.5h'},{time:'08:30-18:00', hrs:'9.0h'},
+        {time:'07:30-15:30', hrs:'8.0h'},{time:'08:00-20:00', hrs:'12.0h'}
+    ]},
+    {cat:'半天班', color:'#F9A825', items:[
+        {time:'08:00-12:00', hrs:'4.0h'},{time:'07:40-11:40', hrs:'4.0h'},
+        {time:'08:30-12:30', hrs:'4.0h'},{time:'13:30-17:30', hrs:'4.0h'}
+    ]},
+    {cat:'夜班', color:'#1565C0', items:[
+        {time:'17:30-08:00', hrs:'14.5h'},{time:'17:30-07:30', hrs:'14.0h'},
+        {time:'18:00-08:00', hrs:'14.0h'}
+    ]},
+    {cat:'24小时班', color:'#E65100', items:[
+        {time:'08:00-08:00', hrs:'24.0h'}
+    ]},
+    {cat:'OnCall', color:'#FFF3E0', items:[
+        {time:'备呼值班', hrs:'待命'}
+    ]}
+];
+function renderShiftRef(){
+    var html='';
+    for(var i=0;i<SHIFT_REF_DATA.length;i++){
+        var cat=SHIFT_REF_DATA[i];
+        html+='<div class="shift-cat"><h4 style="color:'+cat.color+'">'+cat.cat+'</h4><div class="shift-grid">';
+        for(var j=0;j<cat.items.length;j++){
+            var it=cat.items[j];
+            html+='<div class="shift-card"><div class="swatch" style="background:'+cat.color+'">'+it.hrs.replace('h','')+'</div><div class="info"><div class="code">'+it.time+'</div><div class="hrs">'+it.hrs+'</div></div></div>';
+        }
+        html+='</div></div>';
+    }
+    document.getElementById('shiftRefContent').innerHTML=html;
+}
+
+// ============ NOTES CRUD ============
+var NOTES_PATH='publish/notes.json';
+var notesData=[];
+var editingNoteId=null;
+
+async function loadNotes(){
+    try{
+        var resp=await fetch('notes.json?'+Date.now());
+        if(resp.ok) notesData=await resp.json();
+        else notesData=[];
+    }catch(e){notesData=[];}
+    renderNotes();
+}
+function renderNotes(){
+    var html='';
+    if(!notesData.length){html='<div style="color:#999;font-size:13px;text-align:center;padding:20px">暂无使用说明，点击"+ 新增说明"添加</div>';}
+    for(var i=0;i<notesData.length;i++){
+        var n=notesData[i];
+        html+='<div class="note-card"><div class="note-meta">'+n.time+' | 修改记录 #'+(notesData.length-i)+'</div><div class="note-text">'+n.text+'</div><div class="note-actions"><button onclick="editNote('+i+')">编辑</button><button onclick="delNote('+i+')">删除</button></div></div>';
+    }
+    document.getElementById('notesList').innerHTML=html;
+}
+function addNote(){
+    editingNoteId=null;
+    document.getElementById('noteText').value='';
+    document.getElementById('noteEditor').classList.add('show');
+}
+function editNote(idx){
+    editingNoteId=idx;
+    document.getElementById('noteText').value=notesData[idx].text;
+    document.getElementById('noteEditor').classList.add('show');
+}
+function cancelNote(){
+    document.getElementById('noteEditor').classList.remove('show');
+}
+async function saveNote(){
+    var text=document.getElementById('noteText').value.trim();
+    if(!text){msg('内容不能为空','err');return;}
+    var token=localStorage.getItem('gh_token');
+    if(!token){msg('请先设置GitHub Token','err');toggleToken();return;}
+
+    var now=new Date().toLocaleString('zh-CN');
+    if(editingNoteId!==null){
+        notesData[editingNoteId].text=text;
+        notesData[editingNoteId].time=now;
+    }else{
+        notesData.push({text:text,time:now});
+    }
+    notesData.sort(function(a,b){return b.time.localeCompare(a.time);});
+
+    var content=JSON.stringify(notesData,null,2);
+    var b64=btoa(unescape(encodeURIComponent(content)));
+    msg('保存中...','ok');
+    try{
+        var getUrl='https://api.github.com/repos/liuyx339-oss/gzu-schedule/contents/'+NOTES_PATH;
+        var getResp=await fetch(getUrl,{headers:{'Authorization':'token '+token}});
+        var getData=await getResp.json();
+        var body={message:'Update notes',content:b64,branch:'gh-pages'};
+        if(getData.sha)body.sha=getData.sha;
+        var putResp=await fetch(getUrl,{method:'PUT',headers:{'Authorization':'token '+token,'Content-Type':'application/json'},body:JSON.stringify(body)});
+        var putData=await putResp.json();
+        if(putData.content){msg('已保存','ok');renderNotes();cancelNote();}
+        else{msg('保存失败: '+(putData.message||'?'),'err');}
+    }catch(e){msg('网络错误: '+e.message,'err');}
+}
+async function delNote(idx){
+    if(!confirm('确定删除这条说明？'))return;
+    notesData.splice(idx,1);
+    var token=localStorage.getItem('gh_token');
+    if(!token){msg('请先设置GitHub Token','err');return;}
+    var content=JSON.stringify(notesData,null,2);
+    var b64=btoa(unescape(encodeURIComponent(content)));
+    try{
+        var getUrl='https://api.github.com/repos/liuyx339-oss/gzu-schedule/contents/'+NOTES_PATH;
+        var getResp=await fetch(getUrl,{headers:{'Authorization':'token '+token}});
+        var getData=await getResp.json();
+        var body={message:'Delete note',content:b64,branch:'gh-pages'};
+        if(getData.sha)body.sha=getData.sha;
+        await fetch(getUrl,{method:'PUT',headers:{'Authorization':'token '+token,'Content-Type':'application/json'},body:JSON.stringify(body)});
+        msg('已删除','ok');renderNotes();
+    }catch(e){msg('网络错误: '+e.message,'err');}
+}
 
 window.addEventListener('DOMContentLoaded', init);
 </script>
