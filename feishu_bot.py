@@ -455,8 +455,87 @@ def _format_detail(target_date, a, b):
 
 
 # =====================================================
-# SENDING
+# INTERACTIVE CARD
 # =====================================================
+
+
+def _build_interactive_card(target_date, a, b):
+    """Build a Feishu interactive card with beautiful formatting."""
+    wday_cn = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]
+    w = wday_cn[target_date.weekday()]
+    cn = {"CT": "CT", "X-ray": "X-ray", "B-ultrasound": "B超",
+          "Echo": "心彩", "Mammo": "钼靶", "BoneDensity": "骨密度", "MRI": "MRI"}
+    mc = {"CT": "<font color='#9C27B0'>CT</font>",
+          "X-ray": "<font color='#2196F3'>X</font>",
+          "B-ultrasound": "<font color='#4CAF50'>B超</font>",
+          "Echo": "<font color='#00BCD4'>心彩</font>",
+          "Mammo": "<font color='#FF9800'>钼靶</font>",
+          "BoneDensity": "<font color='#795548'>骨密度</font>",
+          "MRI": "<font color='#E91E63'>MRI</font>"}
+    ob_cn = {"OB": "OB超声", "NT": "NT", "Anatomy": "大排畸"}
+
+    total_p = a.get("total_persons", 0)
+    tm = a.get("total_tech_minutes", 0)
+    dm = a.get("total_doc_minutes", 0)
+
+    # Build colored modality tags
+    mod_lines = []
+    for lbl in ["CT", "X-ray", "B-ultrasound", "Echo", "Mammo", "BoneDensity", "MRI"]:
+        n = a.get("total_counts", {}).get(lbl, 0)
+        if n:
+            mod_lines.append(f"{mc[lbl]} **{n}**")
+    mod_str = "  ".join(mod_lines) if mod_lines else "暂无"
+
+    # OB
+    ob_parts = []
+    ob_total = 0
+    for c in OB_CLASSES:
+        n = b.get("total_counts", {}).get(c, 0)
+        ob_total += n
+        if n:
+            ob_parts.append(f"**{ob_cn[c]}** {n}")
+    ob_str = "  ".join(ob_parts) if ob_parts else "暂无预约"
+
+    md = (
+        f"**📅 {target_date} {w}**\n\n"
+        f"---\n\n"
+        f"🏥 **体检人群** 共 **{total_p}** 人\n\n"
+        f"{mod_str}\n\n"
+        f"🔧 操作 **{tm}**min（{tm/60:.1f}h） 📝 报告 **{dm}**min（{dm/60:.1f}h）\n\n"
+        f"---\n\n"
+        f"🩺 **OB超声** {ob_str}\n\n"
+        f"---\n\n"
+        f"🔗 [完整看板](https://liuyx339-oss.github.io/gzu-schedule/)"
+    )
+
+    card = {
+        "config": {"wide_screen_mode": True},
+        "header": {
+            "title": {"tag": "plain_text", "content": "明日需求日报"},
+            "template": "blue"
+        },
+        "elements": [{"tag": "markdown", "content": md}],
+    }
+
+    return card
+
+
+def _send_card(token, chat_id, card):
+    """Send an interactive card message."""
+    url = f"{FEISHU_API}/im/v1/messages?receive_id_type=chat_id"
+    body = {"receive_id": chat_id, "msg_type": "interactive",
+            "content": json.dumps(card, ensure_ascii=False)}
+    resp = _get_session().post(url, json=body, headers={
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json; charset=utf-8",
+    }, timeout=30)
+    data = resp.json()
+    if data.get("code") == 0:
+        msg_id = data.get("data", {}).get("message_id", "?")
+        print(f"  [OK] Sent. message_id={msg_id}")
+        return True
+    print(f"  [FAIL] code={data.get('code')} msg={data.get('msg')}")
+    return False
 
 
 def _send_post_message(token, chat_id, title, content_blocks):
@@ -817,14 +896,7 @@ def main():
         print(f"[WARN] OB failed: {e}")
         result_b = _empty_ob_result()
 
-    # Build rich post message content
-    rich_title = f"明日需求日报 — {target_date} {['周一','周二','周三','周四','周五','周六','周日'][target_date.weekday()]}"
-    rich_blocks = _build_rich_summary(target_date, result_a, result_b)
-    detail_title = f"时间段明细 — {target_date}"
-    detail_blocks = _build_rich_detail(target_date, result_a, result_b)
-
-    print(f"--- SUMMARY: {rich_title} ---")
-    print(f"--- DETAIL: {detail_title} ---")
+    print(f"--- Building interactive card for {target_date} ---")
 
     if args.output_html:
         html = _generate_html_report(target_date, result_a, result_b)
@@ -849,9 +921,10 @@ def main():
         return
 
     print(f"Sending to {chat_id}...")
-    ok1 = _send_post_message(token, chat_id, rich_title, rich_blocks)
-    ok2 = _send_post_message(token, chat_id, detail_title, detail_blocks)
-    print("[DONE]" if (ok1 and ok2) else "[WARN] Some messages failed")
+    # Build interactive card
+    card = _build_interactive_card(target_date, result_a, result_b)
+    ok1 = _send_card(token, chat_id, card)
+    print("[DONE]" if ok1 else "[WARN] Message send failed")
 
 
 if __name__ == "__main__":
