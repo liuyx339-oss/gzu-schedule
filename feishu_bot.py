@@ -625,6 +625,42 @@ body{{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
 
 
 # =====================================================
+# DAILY DATA JSON
+# =====================================================
+
+
+def _build_daily_data(target_date, a, b):
+    """Build a JSON-serializable dict for the dynamic dashboard."""
+    wday_cn = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+
+    # Checkup section
+    checkup = {
+        "total_persons": a.get("total_persons", 0),
+        "total_tech_minutes": a.get("total_tech_minutes", 0),
+        "total_doc_minutes": a.get("total_doc_minutes", 0),
+        "time_slots": a.get("time_slots", []),
+        "person_count": a.get("person_count", []),
+        "counts": a.get("counts", {}),
+        "total_counts": a.get("total_counts", {}),
+        "service_breakdown": a.get("service_breakdown", {}),
+    }
+
+    # OB section
+    ob = {
+        "time_slots": b.get("time_slots", []),
+        "counts": b.get("counts", {}),
+        "total_counts": b.get("total_counts", {}),
+    }
+
+    return {
+        "target_date": str(target_date),
+        "weekday": wday_cn[target_date.weekday()],
+        "checkup": checkup,
+        "ob": ob,
+    }
+
+
+# =====================================================
 # MAIN
 # =====================================================
 
@@ -637,6 +673,8 @@ def main():
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--output-html", type=str, default=None,
                         help="Write dashboard HTML to this path (e.g. publish/dashboard.html)")
+    parser.add_argument("--output-data", type=str, default=None,
+                        help="Write daily JSON data to this path (e.g. publish/daily_data.json)")
     args = parser.parse_args()
 
     target_date = date.fromisoformat(args.target) if args.target else (date.today() + timedelta(days=1))
@@ -676,6 +714,13 @@ def main():
         with open(args.output_html, "w", encoding="utf-8") as f:
             f.write(html)
         print(f"[OK] Dashboard HTML written to {args.output_html}")
+
+    if args.output_data:
+        data = _build_daily_data(target_date, result_a, result_b)
+        os.makedirs(os.path.dirname(args.output_data) or ".", exist_ok=True)
+        with open(args.output_data, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        print(f"[OK] Daily data JSON written to {args.output_data}")
 
     if args.dry_run:
         print("[DRY RUN] Not sent.")
