@@ -91,7 +91,10 @@ function render(data){
     html+='<div class="section"><div class="section-title">真实预约 &mdash; OB超声</div>';
     if(obTotal>0){
         html+=renderBadges(obTotal,ob.total_counts||{},OB_CLASSES,OB_CN,OB_COLORS);
-        html+=renderTimeTable(ob.time_slots||[],null,ob.counts||{},OB_CLASSES,OB_CN,OB_COLORS,'#4CAF50','#81C784');
+        html+='<div class="table-wrap" style="padding:12px"><div id="chartOB" style="height:350px"></div></div>';
+        // Store OB data for chart rendering
+        window._obData = ob;
+        loadECharts(function(){drawOBChart(ob);});
     }else{html+='<div class="badges"><span style="color:#999;font-size:13px">暂无OB超声预约</span></div>';}
     html+='</div>';
 
@@ -149,8 +152,39 @@ function renderForecast(fd){
     for(var c=0;c<cats.length;c++)html+='<button class="ftab'+(cats[c]===activeCat?' active':'')+'" data-cat="'+cats[c]+'" onclick="switchFCat(this)">'+cats[c]+'</button>';
     html+='</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px"><div class="table-wrap" style="padding:12px"><div id="fcTrend" style="height:320px"></div></div><div class="table-wrap" style="padding:12px"><div id="fcHeat" style="height:320px"></div></div></div><div class="table-wrap" style="padding:12px;margin-bottom:12px"><div id="fcHourly" style="height:280px"></div></div>';
     document.getElementById('forecastContent').innerHTML=html;
-    var script=document.createElement('script');script.src='https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js';script.onload=function(){drawFC(fd,activeCat);};document.head.appendChild(script);
     window._fcData=fd;window._fcColors=colors;
+    loadECharts(function(){drawFC(fd,activeCat);});
+}
+
+var _echartsLoaded=false,_echartsQueue=[];
+function loadECharts(cb){
+    if(window.echarts){cb();return;}
+    _echartsQueue.push(cb);
+    if(_echartsLoaded)return;_echartsLoaded=true;
+    var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js';
+    s.onload=function(){for(var i=0;i<_echartsQueue.length;i++)_echartsQueue[i]();_echartsQueue=[];};
+    document.head.appendChild(s);
+}
+function drawOBChart(ob){
+    try{
+        var dom=document.getElementById('chartOB');if(!dom)return;
+        var chart=echarts.getInstanceByDom(dom)||echarts.init(dom);
+        var times=ob.time_slots||[],series=[];
+        for(var i=0;i<OB_CLASSES.length;i++){
+            var k=OB_CLASSES[i],vals=[],has=false;
+            for(var t=0;t<times.length;t++){var n=((ob.counts||{})[k]||[])[t]||0;vals.push(n);if(n>0)has=true;}
+            if(has)series.push({name:OB_CN[k],type:'bar',data:vals,itemStyle:{color:OB_COLORS[k]},barMaxWidth:28});
+        }
+        if(series.length===0)return;
+        chart.setOption({
+            tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},
+            legend:{top:0,textStyle:{fontSize:11}},
+            xAxis:{type:'category',data:times,axisLabel:{rotate:45,fontSize:9}},
+            yAxis:{type:'value',name:'人次',minInterval:1},
+            series:series,
+            grid:{left:40,right:15,top:36,bottom:60}
+        });
+    }catch(e){}
 }
 function switchFCat(btn){var btns=document.querySelectorAll('.ftab');for(var i=0;i<btns.length;i++)btns[i].classList.remove('active');btn.classList.add('active');drawFC(window._fcData,btn.dataset.cat);}
 function drawFC(fd,cat){
