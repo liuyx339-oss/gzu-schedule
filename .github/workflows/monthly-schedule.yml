@@ -2,7 +2,7 @@ name: Monthly Schedule
 
 on:
   schedule:
-    - cron: '0 0 25 * *'
+    - cron: '30 8 25 * *'
   workflow_dispatch:
 
 jobs:
@@ -25,6 +25,10 @@ jobs:
           FEISHU_APP_ID: ${{ secrets.FEISHU_APP_ID }}
           FEISHU_APP_SECRET: ${{ secrets.FEISHU_APP_SECRET }}
         run: python feishu_bot.py --dry-run
+
+      - name: Inject GitHub Token into schedule editor
+        run: |
+          sed -i "s/__GH_TOKEN__/${{ secrets.GH_PAT }}/g" publish/schedule.html
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
