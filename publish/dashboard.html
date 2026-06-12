@@ -87,14 +87,14 @@ function render(data){
     html+='</div>';
 
     // ====== OB ======
-    var obTotal=0;for(var i=0;i<OB_CLASSES.length;i++)obTotal+=(ob.total_counts||{})[OB_CLASSES[i]]||0;
+    var obTotal=0,obHasData=false;
+    for(var i=0;i<OB_CLASSES.length;i++)obTotal+=(ob.total_counts||{})[OB_CLASSES[i]]||0;
+    obHasData=obTotal>0;
     html+='<div class="section"><div class="section-title">真实预约 &mdash; OB超声</div>';
-    if(obTotal>0){
+    if(obHasData){
         html+=renderBadges(obTotal,ob.total_counts||{},OB_CLASSES,OB_CN,OB_COLORS);
         html+='<div class="table-wrap" style="padding:12px"><div id="chartOB" style="height:350px"></div></div>';
-        // Store OB data for chart rendering
         window._obData = ob;
-        loadECharts(function(){drawOBChart(ob);});
     }else{html+='<div class="badges"><span style="color:#999;font-size:13px">暂无OB超声预约</span></div>';}
     html+='</div>';
 
@@ -102,6 +102,8 @@ function render(data){
     html+='<div class="section"><div class="section-title">需求预测</div><div id="forecastContent"><div class="empty">预测数据加载中...</div></div></div>';
 
     document.getElementById('content').innerHTML=html;
+    // Draw OB chart after DOM is ready
+    if(window._obData) loadECharts(function(){drawOBChart(window._obData);});
     fetchForecast();
 }
 
