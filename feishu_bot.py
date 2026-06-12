@@ -459,20 +459,137 @@ def _format_detail(target_date, a, b):
 # =====================================================
 
 
-def send_text_message(token, chat_id, text):
+def _send_post_message(token, chat_id, title, content_blocks):
+    """Send a rich-text post message to a Feishu chat.
+    content_blocks is a list of paragraph lists. Each paragraph is a list of
+    element dicts: {"tag":"text","text":"hello"} or {"tag":"text","text":"bold","style":["bold"]}
+    """
     url = f"{FEISHU_API}/im/v1/messages?receive_id_type=chat_id"
-    body = {"receive_id": chat_id, "msg_type": "text",
-            "content": json.dumps({"text": text}, ensure_ascii=False)}
+    post_content = json.dumps({"zh_cn": {"title": title, "content": content_blocks}}, ensure_ascii=False)
+    body = {"receive_id": chat_id, "msg_type": "post", "content": post_content}
     resp = _get_session().post(url, json=body, headers={
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json; charset=utf-8",
     }, timeout=30)
     data = resp.json()
     if data.get("code") == 0:
-        print(f"  [OK] Sent. message_id={data.get('data',{}).get('message_id','?')}")
+        msg_id = data.get("data", {}).get("message_id", "?")
+        print(f"  [OK] Sent. message_id={msg_id}")
         return True
     print(f"  [FAIL] code={data.get('code')} msg={data.get('msg')}")
     return False
+
+
+def _t(text, bold=False):
+    """Shorthand for a text element."""
+    el = {"tag": "text", "text": text}
+    if bold:
+        el["style"] = ["bold"]
+    return el
+
+
+def _build_rich_summary(target_date, a, b):
+    """Build rich post content blocks for the summary message."""
+    wday_cn = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]
+    w = wday_cn[target_date.weekday()]
+    # Chinese labels
+    cn = {"CT": "CT", "X-ray": "X-ray", "B-ultrasound": "B超",
+          "Echo": "心彩", "Mammo": "钼靶", "BoneDensity": "骨密度", "MRI": "MRI"}
+    ob_cn = {"OB": "OB超声", "NT": "NT", "Anatomy": "大排畸"}
+
+    blocks = []
+
+    # Title line
+    blocks.append([_t(f"明日需求日报 — {target_date} {w}", bold=True)])
+
+    # Checkup section header
+    total_p = a.get("total_persons", 0)
+    blocks.append([_t("")])
+    blocks.append([_t("🟦 体检人群 ", bold=True), _t(f"共 {total_p} 人", bold=True)])
+
+    # Modality summary line
+    parts = []
+    for lbl in ["CT", "X-ray", "B-ultrasound", "Echo", "Mammo", "BoneDensity", "MRI"]:
+        n = a.get("total_counts", {}).get(lbl, 0)
+        if n:
+            parts.append(f"{cn[lbl]} {n}")
+    if parts:
+        blocks.append([_t("    " + "  |  ".join(parts))])
+
+    # Time estimation
+    tm = a.get("total_tech_minutes", 0)
+    dm = a.get("total_doc_minutes", 0)
+    blocks.append([_t(f"    预估操作 {tm}min（{tm/60:.1f}h）| 预估报告 {dm}min（{dm/60:.1f}h）")])
+
+    # OB section
+    blocks.append([_t("")])
+    ob_parts = []
+    for c in OB_CLASSES:
+        n = b.get("total_counts", {}).get(c, 0)
+        if n:
+            ob_parts.append(f"{ob_cn[c]} {n}")
+    if ob_parts:
+        blocks.append([_t("🟩 OB超声 ", bold=True), _t(f"{',  '.join(ob_parts)}")])
+    else:
+        blocks.append([_t("🟩 OB超声 ", bold=True), _t("暂无预约")])
+
+    # Footer
+    blocks.append([_t("")])
+    blocks.append([_t("—— 数据来源：飞书 Bitable ｜ 自动播报")])
+
+    return blocks
+
+
+def _build_rich_detail(target_date, a, b):
+    """Build rich post content blocks for the detail breakdown."""
+    wday_cn = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]
+    w = wday_cn[target_date.weekday()]
+    blocks = []
+
+    blocks.append([_t(f"时间段明细 — {target_date} {w}", bold=True)])
+
+    # Checkup detail
+    if a.get("time_slots"):
+        blocks.append([_t("")])
+        blocks.append([_t("🟦 体检人群", bold=True)])
+        cn = {"CT": "CT", "X-ray": "XR", "B-ultrasound": "B超",
+              "Echo": "心彩", "Mammo": "钼靶", "BoneDensity": "骨密度", "MRI": "MRI"}
+        times = a["time_slots"]
+        persons = a.get("person_count", [])
+        for i, ts in enumerate(times):
+            p = persons[i] if i < len(persons) else 0
+            if p == 0:
+                continue
+            tags = []
+            for lbl in ["CT", "X-ray", "B-ultrasound", "Echo", "Mammo", "BoneDensity", "MRI"]:
+                n = a["counts"].get(lbl, [])[i] if i < len(a["counts"].get(lbl, [])) else 0
+                if n:
+                    tags.append(f"{cn[lbl]}{n}")
+            line = f"  {ts}  {p}人  {' '.join(tags)}" if tags else f"  {ts}  {p}人"
+            blocks.append([_t(line)])
+    else:
+        blocks.append([_t("  暂无体检预约")])
+
+    # OB detail
+    if b.get("time_slots"):
+        blocks.append([_t("")])
+        blocks.append([_t("🟩 OB超声", bold=True)])
+        ob_cn = {"OB": "OB", "NT": "NT", "Anatomy": "大排畸"}
+        times = b["time_slots"]
+        for i, ts in enumerate(times):
+            parts = []
+            for c in OB_CLASSES:
+                n = b["counts"].get(c, [])[i] if i < len(b["counts"].get(c, [])) else 0
+                if n:
+                    parts.append(f"{ob_cn[c]}{n}")
+            if parts:
+                blocks.append([_t(f"  {ts}  {' '.join(parts)}")])
+    else:
+        blocks.append([_t("  暂无OB超声预约")])
+
+    blocks.append([_t("")])
+    blocks.append([_t("—— 完整看板见固定链接")])
+    return blocks
 
 
 # =====================================================
@@ -700,13 +817,14 @@ def main():
         print(f"[WARN] OB failed: {e}")
         result_b = _empty_ob_result()
 
-    summary = _format_summary(target_date, result_a, result_b)
-    detail = _format_detail(target_date, result_a, result_b)
+    # Build rich post message content
+    rich_title = f"明日需求日报 — {target_date} {['周一','周二','周三','周四','周五','周六','周日'][target_date.weekday()]}"
+    rich_blocks = _build_rich_summary(target_date, result_a, result_b)
+    detail_title = f"时间段明细 — {target_date}"
+    detail_blocks = _build_rich_detail(target_date, result_a, result_b)
 
-    print("--- SUMMARY ---")
-    print(summary)
-    print("--- DETAIL ---")
-    print(detail)
+    print(f"--- SUMMARY: {rich_title} ---")
+    print(f"--- DETAIL: {detail_title} ---")
 
     if args.output_html:
         html = _generate_html_report(target_date, result_a, result_b)
@@ -731,8 +849,8 @@ def main():
         return
 
     print(f"Sending to {chat_id}...")
-    ok1 = send_text_message(token, chat_id, summary)
-    ok2 = send_text_message(token, chat_id, detail)
+    ok1 = _send_post_message(token, chat_id, rich_title, rich_blocks)
+    ok2 = _send_post_message(token, chat_id, detail_title, detail_blocks)
     print("[DONE]" if (ok1 and ok2) else "[WARN] Some messages failed")
 
 
