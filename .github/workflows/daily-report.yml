@@ -28,6 +28,9 @@ jobs:
         run: |
           python feishu_bot.py --output-data publish/daily_data.json
 
+      - name: Run daily comparison (bot vs forecast)
+        run: python daily_compare.py
+
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
