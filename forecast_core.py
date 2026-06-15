@@ -12,6 +12,13 @@ from prophet import Prophet
 from lightgbm import LGBMRegressor
 
 # =====================================================
+# RANDOM SEEDS — 固定随机性，确保每次运行结果一致
+# =====================================================
+
+SEED = 42
+np.random.seed(SEED)
+
+# =====================================================
 # CONFIG
 # =====================================================
 
@@ -161,7 +168,7 @@ def hybrid_forecast(hourly_df, forecast_days=FORECAST_DAYS):
 
     prophet = build_prophet()
 
-    prophet.fit(prophet_train)
+    prophet.fit(prophet_train, seed=SEED)
 
     future_dates = pd.date_range(
         start=hourly_df["ds"].min(),
@@ -237,6 +244,7 @@ def hybrid_forecast(hourly_df, forecast_days=FORECAST_DAYS):
         min_child_samples=20,
         subsample=0.8,
         colsample_bytree=0.8,
+        random_state=SEED,
         verbose=-1,
     )
 
