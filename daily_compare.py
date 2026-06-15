@@ -129,9 +129,21 @@ def extract_forecast_data(forecast_df, target_date):
     result["ob_ultrasound"]["tech_minutes"] = round(float(ob_df["pred_tech_minutes"].sum()), 1)
     result["ob_ultrasound"]["doc_minutes"] = round(float(ob_df["pred_doc_minutes"].sum()), 1)
 
-    # Health Management Center filter
-    hc_depts = ["GZU Health Management Center", "GZU Health Management Center体检日"]
-    hc_df = day_df[day_df["eps_dept_desc"].isin(hc_depts)]
+    # Health Management Center filter — 按 weekday 只取当天应有的部门
+    # 体检日: 周一/三/五/六, 非体检日: 周二/四/日
+    WEEKDAY_DEPT_FILTER = {
+        0: "GZU Health Management Center 体检日",  # 周一
+        2: "GZU Health Management Center 体检日",  # 周三
+        4: "GZU Health Management Center 体检日",  # 周五
+        5: "GZU Health Management Center 体检日",  # 周六
+        1: "GZU Health Management Center",         # 周二
+        3: "GZU Health Management Center",         # 周四
+        6: "GZU Health Management Center",         # 周日
+    }
+    target_weekday = target_date.weekday()
+    expected_hc_dept = WEEKDAY_DEPT_FILTER.get(target_weekday, "GZU Health Management Center")
+    hc_df = day_df[day_df["eps_dept_desc"] == expected_hc_dept]
+    print(f"  [HC filter] weekday={target_weekday}, using dept='{expected_hc_dept}', rows={len(hc_df)}")
 
     # Category B: 体检超声
     us_types = ["Ultrasound", "Echocardiograms"]
