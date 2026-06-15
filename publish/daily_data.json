@@ -1,0 +1,106 @@
+{
+  "target_date": "2026-06-16",
+  "weekday": "Tue",
+  "checkup": {
+    "total_persons": 6,
+    "total_tech_minutes": 220,
+    "total_doc_minutes": 125,
+    "time_slots": [
+      "08:00",
+      "08:30",
+      "09:30",
+      "10:30",
+      "13:30",
+      "14:00"
+    ],
+    "person_count": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "counts": {
+      "MRI": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "CT": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "X-ray": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "Mammo": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "BoneDensity": [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0
+      ],
+      "B-ultrasound": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "Echo": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "total_counts": {
+      "MRI": 0,
+      "CT": 6,
+      "X-ray": 0,
+      "Mammo": 0,
+      "BoneDensity": 1,
+      "B-ultrasound": 6,
+      "Echo": 0
+    },
+    "service_breakdown": {}
+  },
+  "ob": {
+    "time_slots": [],
+    "counts": {
+      "OB": [],
+      "NT": [],
+      "Anatomy": []
+    },
+    "total_counts": {
+      "OB": 0,
+      "NT": 0,
+      "Anatomy": 0
+    }
+  }
+}
