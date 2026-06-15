@@ -146,9 +146,13 @@ function render(data){
     // ====== FORECAST ======
     html+='<div class="section"><div class="section-title">需求预测</div><div id="forecastContent"><div class="empty">预测数据加载中...</div></div></div>';
 
+    // ====== COMPARISON ======
+    html+='<div class="section"><div class="section-title">预测 vs 真实预约 对比</div><div id="comparisonContent"><div class="empty">对比数据加载中...</div></div></div>';
+
     document.getElementById('content').innerHTML=html;
     if(window._obData) loadECharts(function(){drawOBChart(window._obData);});
     fetchForecast();
+    fetchComparison();
     loadDailyReqs();
 }
 
@@ -258,6 +262,116 @@ function drawHourlyForDate(fd,cat){
     var selDate=sel?sel.value:Object.keys(hl).sort().pop();
     var dayData=hl[selDate]||{tech_minutes:[],doc_minutes:[]};
     try{var lDom=document.getElementById('fcHourly');if(lDom){var lc=echarts.getInstanceByDom(lDom)||echarts.init(lDom);var hours=[];for(var h=0;h<24;h++)hours.push(h+':00');lc.setOption({tooltip:{trigger:'axis'},legend:{data:['技师','医生'],top:5},xAxis:{type:'category',data:hours,axisLabel:{rotate:30,fontSize:9}},yAxis:{type:'value',name:'分钟'},series:[{name:'技师',type:'bar',data:dayData.tech_minutes,itemStyle:{color:colors[cat].tech},barGap:'10%'},{name:'医生',type:'bar',data:dayData.doc_minutes,itemStyle:{color:colors[cat].doc}}],grid:{left:50,right:15,top:40,bottom:50}});}}catch(e){}
+}
+
+// ============ COMPARISON (Bot vs Forecast) ============
+function fetchComparison(){
+    fetch('comparison_data.json?'+Date.now()).then(function(r){
+        if(r.ok)return r.json();
+        throw new Error('no data');
+    }).then(function(cd){renderComparison(cd);}).catch(function(e){
+        document.getElementById('comparisonContent').innerHTML='<div class="empty">对比数据暂未生成<br><small>请等待月度预测流水线完成后查看</small></div>';
+    });
+}
+
+function renderComparison(cd){
+    var cats=cd.categories||{},keys=['ob_ultrasound','hc_ultrasound','hc_radiology'];
+    var catColors={
+        ob_ultrasound:{bot_tech:'#4CAF50',bot_doc:'#81C784',fc_tech:'#2E7D32',fc_doc:'#A5D6A7'},
+        hc_ultrasound:{bot_tech:'#2196F3',bot_doc:'#64B5F6',fc_tech:'#1565C0',fc_doc:'#90CAF9'},
+        hc_radiology:{bot_tech:'#FF9800',bot_doc:'#FFB74D',fc_tech:'#E65100',fc_doc:'#FFCC80'}
+    };
+
+    // Summary badges
+    var h='<div class="badges" style="margin-bottom:8px">';
+    h+='<div class="badge badge-time"><span class="lbl">对比日期</span><span class="val">'+escapeHtml(cd.target_date||'')+'</span></div>';
+    h+='</div>';
+
+    // Summary table
+    h+='<div class="table-wrap" style="margin-bottom:16px"><table class="rpt-table"><thead><tr>';
+    h+='<th>类别</th><th style="text-align:center">来源</th><th style="text-align:center">技师 min</th><th style="text-align:center">医生 min</th><th style="text-align:center">技师差异</th><th style="text-align:center">医生差异</th>';
+    h+='</tr></thead><tbody>';
+
+    var hasData=false;
+    for(var i=0;i<keys.length;i++){
+        var c=cats[keys[i]];if(!c)continue;
+        var cc=catColors[keys[i]];
+        var techDiff=c.tech_diff_pct,docDiff=c.doc_diff_pct;
+        var techDiffStr=techDiff!==null?(techDiff>=0?'<span style="color:#c62828">+'+techDiff+'%</span>':'<span style="color:#2E7D32">'+techDiff+'%</span>'):'-';
+        var docDiffStr=docDiff!==null?(docDiff>=0?'<span style="color:#c62828">+'+docDiff+'%</span>':'<span style="color:#2E7D32">'+docDiff+'%</span>'):'-';
+
+        // Row: Bot
+        h+='<tr><td class="time-col" rowspan="2"><b>'+escapeHtml(c.label)+'</b></td>';
+        h+='<td style="font-size:11px">Bot真实</td>';
+        h+='<td class="count-col">'+c.bot_tech_minutes+'</td>';
+        h+='<td class="count-col">'+c.bot_doc_minutes+'</td>';
+        h+='<td class="count-col" rowspan="2">'+techDiffStr+'</td>';
+        h+='<td class="count-col" rowspan="2">'+docDiffStr+'</td></tr>';
+        // Row: Forecast
+        h+='<tr><td style="font-size:11px">预测</td>';
+        h+='<td class="count-col">'+c.forecast_tech_minutes+'</td>';
+        h+='<td class="count-col">'+c.forecast_doc_minutes+'</td></tr>';
+
+        if(c.bot_tech_minutes>0||c.forecast_tech_minutes>0)hasData=true;
+    }
+    h+='</tbody></table></div>';
+
+    // ECharts grouped bar chart
+    h+='<div class="table-wrap" style="padding:12px"><div id="cmpTechChart" style="height:280px"></div></div>';
+    h+='<div class="table-wrap" style="padding:12px;margin-top:10px"><div id="cmpDocChart" style="height:280px"></div></div>';
+
+    document.getElementById('comparisonContent').innerHTML=h;
+    if(!hasData)return;
+
+    window._cmpData=cd;window._cmpColors=catColors;
+    loadECharts(function(){drawComparisonCharts();});
+}
+
+function drawComparisonCharts(){
+    var cd=window._cmpData,cc=window._cmpColors;if(!cd)return;
+    var keys=['ob_ultrasound','hc_ultrasound','hc_radiology'];
+    var labels=[],botTech=[],fcTech=[],botDoc=[],fcDoc=[];
+    for(var i=0;i<keys.length;i++){
+        var k=keys[i],c=cd.categories[k];
+        if(!c){labels.push('');botTech.push(0);fcTech.push(0);botDoc.push(0);fcDoc.push(0);}
+        else{labels.push(c.label);botTech.push(c.bot_tech_minutes);fcTech.push(c.forecast_tech_minutes);botDoc.push(c.bot_doc_minutes);fcDoc.push(c.forecast_doc_minutes);}
+    }
+
+    var techDom=document.getElementById('cmpTechChart'),docDom=document.getElementById('cmpDocChart');
+    if(techDom){try{
+        var techChart=echarts.getInstanceByDom(techDom)||echarts.init(techDom);
+        techChart.setOption({
+            title:{text:'技师分钟数对比',left:'center',textStyle:{fontSize:13}},
+            tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},
+            legend:{data:['真实预约','月度预测'],top:28},
+            xAxis:{type:'category',data:labels},
+            yAxis:{type:'value',name:'分钟'},
+            series:[
+                {name:'真实预约',type:'bar',data:botTech,itemStyle:{color:'#4a9af5'},barGap:'10%'},
+                {name:'月度预测',type:'bar',data:fcTech,itemStyle:{color:'#a0c4f0'}}
+            ],
+            grid:{left:50,right:15,top:55,bottom:40}
+        });
+    }catch(e){}}
+    if(docDom){try{
+        var docChart=echarts.getInstanceByDom(docDom)||echarts.init(docDom);
+        docChart.setOption({
+            title:{text:'医生分钟数对比',left:'center',textStyle:{fontSize:13}},
+            tooltip:{trigger:'axis',axisPointer:{type:'shadow'}},
+            legend:{data:['真实预约','月度预测'],top:28},
+            xAxis:{type:'category',data:labels},
+            yAxis:{type:'value',name:'分钟'},
+            series:[
+                {name:'真实预约',type:'bar',data:botDoc,itemStyle:{color:'#4a9af5'},barGap:'10%'},
+                {name:'月度预测',type:'bar',data:fcDoc,itemStyle:{color:'#a0c4f0'}}
+            ],
+            grid:{left:50,right:15,top:55,bottom:40}
+        });
+    }catch(e){}}
+}
+
+function escapeHtml(s){
+    var d=document.createElement('div');d.textContent=s;return d.innerHTML;
 }
 
 // ============ DAILY REQUIREMENTS CRUD ============
