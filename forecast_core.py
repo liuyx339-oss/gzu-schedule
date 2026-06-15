@@ -402,18 +402,11 @@ def forecast_key_departments(
 
 
 def scale_key_to_total(total_forecast, key_forecast):
-    """协调关键科室独立预测与 Type 总量预测。
+    """将关键科室预测等比缩放到不超过 Type 总量。
 
-    三种情况：
-    1. 关键科室和 ≈ 总量（差异 ≤30%）：信任关键科室的趋势判断，以关键科室和作为有效总量。
-       → 关键科室不减，剩余池为 0，非关键科室分不到量。
-    2. 关键科室和 >> 总量（差异 >30%）：这是模型不一致（各自外推方向不同），
-       等比缩放关键科室使它们之和 = 总量。
-       → 典型场景：HC 暴涨但其他科室平稳，总量被稀释，关键科室过度外推。
-    3. 关键科室和 ≤ 总量：正常，余量分配给非关键科室。
+    如果某 (ds, Type) 的关键科室之和 > Type 总量，等比缩放使之和 = 总量。
+    如果关键科室之和 ≤ 总量，不做处理，剩余分配给非关键科室。
     """
-    ADMIT_RATIO = 1.3  # 关键科室和 / 总量 超过此值才视为不一致
-
     key_sum = (
         key_forecast
         .groupby(["ds", "Type"])["pred_cases"]
@@ -428,30 +421,7 @@ def scale_key_to_total(total_forecast, key_forecast):
     )
     merged["key_total"] = merged["key_total"].fillna(0)
 
-    # Case 1: 关键科室略超总量 → 以关键科室和为准，不缩放，但把总量拉上来
-    mild = merged[(merged["key_total"] > merged["type_total"]) &
-                  (merged["key_total"] <= merged["type_total"] * ADMIT_RATIO)]
-    if len(mild) > 0:
-        total_forecast = total_forecast.copy()
-        total_forecast = total_forecast.merge(
-            mild[["ds", "Type"]].assign(_expand=True),
-            on=["ds", "Type"],
-            how="left",
-        )
-        expand_idx = total_forecast["_expand"].fillna(False)
-        if expand_idx.any():
-            total_forecast.loc[expand_idx, "pred_cases"] = total_forecast.loc[expand_idx].merge(
-                mild[["ds", "Type", "key_total"]],
-                on=["ds", "Type"],
-                how="left",
-            )["key_total"].values
-            n_expanded = mild["ds"].nunique()
-            print(f"  [Expand] {len(mild)} (ds,Type) expanded total to key sum "
-                  f"(within {ADMIT_RATIO-1:.0%} threshold, trusting bottom-up)")
-        total_forecast.drop(columns=["_expand"], inplace=True, errors="ignore")
-
-    # Case 2: 关键科室远大于总量 → 缩放关键科室
-    overflow = merged[merged["key_total"] > merged["type_total"] * ADMIT_RATIO].copy()
+    overflow = merged[merged["key_total"] > merged["type_total"]].copy()
     if len(overflow) > 0:
         overflow["scale"] = overflow["type_total"] / overflow["key_total"]
         scaled = key_forecast.merge(
@@ -463,10 +433,9 @@ def scale_key_to_total(total_forecast, key_forecast):
             key_forecast = key_forecast.copy()
             key_forecast.loc[scaled.index, "pred_cases"] *= scaled["scale"].values
         n_dates = overflow["ds"].nunique()
-        print(f"  [Scale] {len(overflow)} (ds,Type) excess >{ADMIT_RATIO-1:.0%}, "
-              f"scaled key depts across {n_dates} dates to match total")
-
-    return key_forecast, total_forecast
+        print(f"  [Scale] {len(overflow)} (ds,Type) overflow across {n_dates} dates "
+              f"— key depts scaled to match total")
+    return key_forecast
 
 
 def build_remaining_pool(
@@ -807,7 +776,7 @@ def run_forecast_pipeline(df, forecast_days=FORECAST_DAYS):
         )
 
         # STEP 2.5: Scale key departments to total Type forecast
-        key_forecast, total_forecast = scale_key_to_total(total_forecast, key_forecast)
+        key_forecast = scale_key_to_total(total_forecast, key_forecast)
 
         # STEP 3: Remaining Pool
         remaining_pool = build_remaining_pool(
