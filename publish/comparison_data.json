@@ -5,8 +5,8 @@
       "label": "OB超声",
       "bot_tech_minutes": 0,
       "bot_doc_minutes": 0,
-      "forecast_tech_minutes": 437.2,
-      "forecast_doc_minutes": 206.1,
+      "forecast_tech_minutes": 159.2,
+      "forecast_doc_minutes": 77.0,
       "bot_persons": 0,
       "tech_diff_pct": null,
       "doc_diff_pct": null
@@ -15,11 +15,11 @@
       "label": "体检超声",
       "bot_tech_minutes": 120,
       "bot_doc_minutes": 60,
-      "forecast_tech_minutes": 493.2,
-      "forecast_doc_minutes": 407.9,
+      "forecast_tech_minutes": 295.0,
+      "forecast_doc_minutes": 239.5,
       "bot_persons": 6,
-      "tech_diff_pct": 311.0,
-      "doc_diff_pct": 579.8
+      "tech_diff_pct": 145.8,
+      "doc_diff_pct": 299.2
     },
     "hc_radiology": {
       "label": "体检放射",

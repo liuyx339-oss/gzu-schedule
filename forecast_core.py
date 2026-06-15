@@ -401,6 +401,43 @@ def forecast_key_departments(
 # =====================================================
 
 
+def scale_key_to_total(total_forecast, key_forecast):
+    """将关键科室预测等比缩放到不超过 Type 总量。
+
+    如果某 (ds, Type) 的关键科室 predicted_cases 之和 > Type 总量，
+    则等比缩放关键科室使它们之和 = 总量。
+    """
+    key_sum = (
+        key_forecast
+        .groupby(["ds", "Type"])["pred_cases"]
+        .sum()
+        .reset_index(name="key_total")
+    )
+    merged = pd.merge(
+        total_forecast[["ds", "Type", "pred_cases"]].rename(columns={"pred_cases": "type_total"}),
+        key_sum,
+        on=["ds", "Type"],
+        how="left",
+    )
+    merged["key_total"] = merged["key_total"].fillna(0)
+    # 需要缩放的 (ds, Type) 组合
+    overflow = merged[merged["key_total"] > merged["type_total"]].copy()
+    if len(overflow) > 0:
+        overflow["scale"] = overflow["type_total"] / overflow["key_total"]
+        scaled = key_forecast.merge(
+            overflow[["ds", "Type", "scale"]],
+            on=["ds", "Type"],
+            how="inner",
+        )
+        if len(scaled) > 0:
+            key_forecast = key_forecast.copy()
+            key_forecast.loc[scaled.index, "pred_cases"] *= scaled["scale"].values
+        n_overflow = overflow["ds"].nunique()
+        print(f"  [Scale] {len(overflow)} (ds,Type) pairs across {n_overflow} dates "
+              f"scaled key depts to match type total")
+    return key_forecast
+
+
 def build_remaining_pool(
     total_forecast,
     key_forecast,
@@ -737,6 +774,9 @@ def run_forecast_pipeline(df, forecast_days=FORECAST_DAYS):
         key_forecast = forecast_key_departments(
             category_df, category, forecast_days=forecast_days
         )
+
+        # STEP 2.5: Scale key departments to total Type forecast
+        key_forecast = scale_key_to_total(total_forecast, key_forecast)
 
         # STEP 3: Remaining Pool
         remaining_pool = build_remaining_pool(
