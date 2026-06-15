@@ -55,6 +55,18 @@ RAD_KEY_DEPTS = [
     "GZU Staff Annual Checkup Clinic",
 ]
 
+# weekday → 当天有效的 HC 部门名称
+# 体检日: 周一/三/五/六, 非体检日: 周二/四/日
+WEEKDAY_DEPT_FILTER = {
+    0: "GZU Health Management Center 体检日",
+    1: "GZU Health Management Center",
+    2: "GZU Health Management Center 体检日",
+    3: "GZU Health Management Center",
+    4: "GZU Health Management Center 体检日",
+    5: "GZU Health Management Center 体检日",
+    6: "GZU Health Management Center",
+}
+
 # =====================================================
 # FEATURE ENGINEERING
 # =====================================================
@@ -745,6 +757,31 @@ def translate_workload(
 # =====================================================
 
 
+def _cleanup_hc_dept(forecast_df):
+    """按 weekday 过滤 HC 部门，确保体检日只在周一/三/五/六出现。
+
+    模型会为所有日期预测 HC 和 HC体检日两个变体，
+    但实际上每天只该有一个，取决于当天是不是体检日。
+    """
+    HC_VARIANTS = {"GZU Health Management Center", "GZU Health Management Center 体检日"}
+    df = forecast_df.copy()
+    df["_wd"] = df["ds"].dt.dayofweek
+
+    before = len(df)
+    keep_mask = pd.Series(True, index=df.index)
+    for wd, expected_dept in WEEKDAY_DEPT_FILTER.items():
+        hc_rows = df[df["eps_dept_desc"].isin(HC_VARIANTS) & (df["_wd"] == wd)]
+        wrong = hc_rows[hc_rows["eps_dept_desc"] != expected_dept]
+        if len(wrong) > 0:
+            keep_mask[wrong.index] = False
+
+    df = df[keep_mask].drop(columns=["_wd"])
+    removed = before - len(df)
+    if removed > 0:
+        print(f"  [HC cleanup] Removed {removed} rows with wrong HC dept for their weekday")
+    return df
+
+
 def run_forecast_pipeline(df, forecast_days=FORECAST_DAYS):
     """
     运行完整的分层预测流水线，返回 workload DataFrame。
@@ -826,5 +863,8 @@ def run_forecast_pipeline(df, forecast_days=FORECAST_DAYS):
     forecast_only_df = final_df[
         final_df["ds"] > forecast_start
     ].copy()
+
+    # Clean up: 按 weekday 过滤 HC 部门变体
+    forecast_only_df = _cleanup_hc_dept(forecast_only_df)
 
     return forecast_only_df
