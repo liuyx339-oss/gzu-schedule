@@ -2335,7 +2335,7 @@ def generate_dashboard_html(final_schedule, final_hours, category_hours, hourly_
 
 
 def _render_dashboard_html_v3(data):
-    """渲染 V3 HTML 仪表盘 — 含分类工时面板"""
+    """渲染统一排班仪表盘 — 含密码保护 + 在线编辑 + 备注/需求 + V3分类面板"""
     json_data = json.dumps(data, ensure_ascii=False, default=str)
 
     html = r'''<!DOCTYPE html>
@@ -2343,307 +2343,701 @@ def _render_dashboard_html_v3(data):
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>排班仪表盘 V3</title>
+<title>月度排班表 - GZU</title>
 <style>
-* { margin:0; padding:0; box-sizing:border-box; }
-body { font-family:"Microsoft YaHei","SimHei",sans-serif; background:#f0f2f5; color:#333; min-height:100vh; }
-.header { background:linear-gradient(135deg,#1a73e8 0%,#0d47a1 100%); color:#fff; padding:20px 32px; text-align:center; }
-.header h1 { font-size:24px; font-weight:600; margin:0; }
-.header .subtitle { font-size:13px; opacity:0.85; margin-top:4px; }
-.stats-bar { display:flex; gap:16px; padding:16px 20px; max-width:1400px; margin:0 auto; flex-wrap:wrap; justify-content:center; }
-.stat-card { background:#fff; border-radius:8px; padding:16px 24px; box-shadow:0 1px 4px rgba(0,0,0,0.08); text-align:center; min-width:130px; }
-.stat-card .value { font-size:28px; font-weight:700; color:#1a73e8; }
-.stat-card .label { font-size:12px; color:#666; margin-top:4px; }
-.stat-card.orange .value { color:#FF9800; }
-.stat-card.red .value { color:#F44336; }
-.stat-card.green .value { color:#4CAF50; }
-.stat-card.blue .value { color:#1565C0; }
-.container { max-width:1400px; margin:0 auto; padding:0 20px 20px; }
-.tabs { display:flex; gap:4px; margin-bottom:16px; background:#fff; border-radius:8px; padding:4px; box-shadow:0 1px 4px rgba(0,0,0,0.08); }
-.tab { flex:1; text-align:center; padding:10px 20px; cursor:pointer; border-radius:6px; font-size:14px; font-weight:600; transition:all 0.2s; background:#fff; border:none; color:#333; }
-.tab:hover { background:#e8f0fe; }
-.tab.active { background:#1a73e8; color:#fff; }
-.legend { display:flex; gap:12px; flex-wrap:wrap; padding:12px 16px; background:#fff; border-radius:8px; margin-bottom:12px; box-shadow:0 1px 4px rgba(0,0,0,0.08); font-size:12px; align-items:center; }
-.legend-item { display:inline-flex; align-items:center; gap:4px; white-space:nowrap; }
-.legend-dot { width:14px; height:14px; border-radius:3px; display:inline-block; flex-shrink:0; }
-.roster-grid { background:#fff; border-radius:8px; padding:16px; box-shadow:0 1px 4px rgba(0,0,0,0.08); }
-.roster-grid h2 { font-size:16px; margin:0 0 12px 0; color:#1a73e8; }
-table.schedule { border-collapse:collapse; width:max-content; min-width:100%; font-size:12px; }
-table.schedule th, table.schedule td { border:1px solid #e0e0e0; padding:6px 5px; text-align:center; white-space:nowrap; }
-table.schedule th { background:#f5f5f5; font-weight:600; position:sticky; top:0; z-index:2; }
-table.schedule .name-col { min-width:90px; position:sticky; left:0; background:#fff; z-index:1; font-weight:600; text-align:left; padding-left:8px; }
-table.schedule .stats-col { min-width:55px; }
-table.schedule .shift-cell { font-size:11px; min-width:56px; cursor:pointer; transition:all 0.15s; border-radius:3px; position:relative; color:#000; }
-table.schedule .shift-cell:hover { transform:scale(1.08); z-index:3; box-shadow:0 2px 8px rgba(0,0,0,0.2); }
-table.schedule .shift-cell.cat-backup { border:2px dashed #F44336 !important; }
-table.schedule .shift-cell.cat-ln { border:3px solid #FF9800 !important; font-weight:bold; }
-table.schedule .shift-cell.cat-20 { border:2px solid #1a73e8 !important; }
-table.schedule .shift-cell.cell-oncall::after { content:"📞"; position:absolute; top:0px; right:1px; font-size:8px; line-height:1; }
-.popup { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:#fff; border-radius:12px; padding:24px; box-shadow:0 8px 32px rgba(0,0,0,0.2); z-index:1000; max-width:650px; width:90%; max-height:80vh; overflow-y:auto; }
-.popup.active { display:block; }
-.popup h3 { margin:0 0 12px 0; color:#1a73e8; }
-.popup table { width:100%; font-size:13px; border-collapse:collapse; margin-bottom:12px; }
-.popup table td, .popup table th { padding:6px 8px; border-bottom:1px solid #eee; text-align:left; }
-.overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:999; }
-.overlay.active { display:block; }
-.chart-container { width:100%; height:280px; margin-top:12px; }
-.category-legend { display:flex; gap:8px; align-items:center; margin-left:12px; font-size:11px; }
-.cat-tag { padding:2px 6px; border-radius:3px; font-weight:600; }
-.cat-80 { background:#e0e0e0; color:#000; }
-.cat-20 { background:#1a73e8; color:#fff; }
-.cat-bk { background:#F44336; color:#fff; }
-.cat-ln { background:#FF9800; color:#fff; }
-@media (max-width:768px) { table.schedule { font-size:10px; } table.schedule th, table.schedule td { padding:3px 2px; } }
+/* === Password Gate === */
+#pwdGate{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999}
+#pwdGate>div{background:#fff;border-radius:12px;padding:32px;box-shadow:0 8px 32px rgba(0,0,0,0.2);text-align:center;min-width:300px}
+#pwdGate input{padding:10px 14px;border:1px solid #ddd;border-radius:6px;font-size:16px;width:100%;text-align:center;margin:12px 0}
+#pwdGate button{padding:10px 28px;background:#1a73e8;color:#fff;border:none;border-radius:6px;font-size:14px;cursor:pointer}
+#pwdGate .err{color:#c62828;font-size:12px;margin-top:6px}
+
+/* === Base === */
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"Microsoft YaHei","SimHei",sans-serif;background:#f0f2f5;color:#333;min-height:100vh}
+.header{background:linear-gradient(135deg,#1a73e8 0%,#0d47a1 100%);color:#fff;padding:18px 24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.header h1{font-size:20px}
+.header .nav a{color:#fff;opacity:0.8;text-decoration:none;font-size:13px;margin-left:14px}
+
+/* === Toolbar === */
+.toolbar{display:flex;gap:10px;padding:12px 20px;align-items:center;flex-wrap:wrap;background:#fff;border-bottom:1px solid #eee}
+.toolbar select{padding:6px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px}
+.toolbar button{padding:6px 14px;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer}
+.btn-edit{background:#fff3e0;color:#e65100;border:1px solid #ffcc80!important}
+.btn-edit.active{background:#e65100;color:#fff}
+.btn-save{background:#1a73e8;color:#fff;display:none}
+.btn-save.show{display:inline-block}
+.btn-token{background:none;color:#999;font-size:11px!important;text-decoration:underline}
+.token-area{display:none;padding:8px 20px;background:#fff}
+.token-area.show{display:flex;gap:8px;align-items:center}
+.token-area input{padding:6px 10px;border:1px solid #ddd;border-radius:4px;width:300px;font-size:13px}
+.msg{font-size:12px;padding:2px 20px;background:#fff}
+.msg.ok{color:#2e7d32}
+.msg.err{color:#c62828}
+
+/* === Stats Bar === */
+.stats-bar{display:flex;gap:10px;padding:12px 20px;flex-wrap:wrap;background:#fff;justify-content:center}
+.stat-card{background:#fff;border-radius:8px;padding:12px 20px;box-shadow:0 1px 4px rgba(0,0,0,0.08);text-align:center;min-width:110px}
+.stat-card .value{font-size:22px;font-weight:700;color:#1a73e8}
+.stat-card .label{font-size:11px;color:#666;margin-top:2px}
+.stat-card.orange .value{color:#FF9800}
+.stat-card.red .value{color:#F44336}
+.stat-card.green .value{color:#4CAF50}
+.stat-card.blue .value{color:#1565C0}
+
+/* === Tabs === */
+.tabs{display:flex;gap:4px;margin:0 20px 12px;background:#fff;border-radius:8px;padding:4px;box-shadow:0 1px 4px rgba(0,0,0,0.08)}
+.tab{flex:1;text-align:center;padding:10px 20px;cursor:pointer;border-radius:6px;font-size:14px;font-weight:600;transition:all 0.2s;background:#fff;border:none;color:#333}
+.tab:hover{background:#e8f0fe}
+.tab.active{background:#1a73e8;color:#fff}
+
+/* === Legend === */
+.legend{display:flex;gap:8px;flex-wrap:wrap;padding:8px 20px;background:#fff;margin-bottom:8px;font-size:11px;align-items:center;box-shadow:0 1px 2px rgba(0,0,0,0.04)}
+.legend-item{display:inline-flex;align-items:center;gap:3px;white-space:nowrap}
+.legend-dot{width:12px;height:12px;border-radius:2px;display:inline-block;flex-shrink:0}
+.cat-tag{padding:1px 5px;border-radius:3px;font-weight:600;font-size:10px}
+.cat-80{background:#e0e0e0;color:#000}
+.cat-20{background:#1a73e8;color:#fff}
+.cat-bk{background:#F44336;color:#fff}
+.cat-ln{background:#FF9800;color:#fff}
+
+/* === Table === */
+.roster-grid{background:#fff;border-radius:8px;padding:16px;margin:0 20px 12px;box-shadow:0 1px 4px rgba(0,0,0,0.08);overflow-x:auto}
+.roster-grid h2{font-size:15px;margin:0 0 10px 0;color:#1a73e8}
+table.schedule{border-collapse:collapse;width:max-content;min-width:100%;font-size:11px}
+table.schedule th,table.schedule td{border:1px solid #e0e0e0;padding:4px 3px;text-align:center;white-space:nowrap}
+table.schedule th{background:#f5f5f5;font-weight:600;position:sticky;top:0;z-index:2}
+table.schedule .name-col{min-width:80px;position:sticky;left:0;background:#fff;z-index:1;font-weight:600;text-align:left;padding-left:6px}
+table.schedule .stats-col{min-width:42px;font-size:10px}
+table.schedule .shift-cell{font-size:10px;min-width:50px;transition:all 0.15s;border-radius:2px;position:relative;color:#000}
+table.schedule .shift-cell.editable{cursor:pointer}
+table.schedule .shift-cell.editable:hover{transform:scale(1.1);z-index:3;box-shadow:0 2px 8px rgba(0,0,0,0.25)}
+table.schedule .shift-cell.cat-backup{border:2px dashed #F44336!important}
+table.schedule .shift-cell.cat-ln{border:3px solid #FF9800!important;font-weight:bold}
+table.schedule .shift-cell.cat-20{border:2px solid #1a73e8!important}
+table.schedule .shift-cell.cell-oncall::after{content:"📞";position:absolute;top:0;right:1px;font-size:7px;line-height:1}
+
+/* === PTO === */
+.pto-cell{background:#FF4444!important;color:#fff!important;font-weight:bold}
+
+/* === Popup === */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:999}
+.overlay.active{display:block}
+.popup{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:12px;padding:20px;box-shadow:0 8px 32px rgba(0,0,0,0.2);z-index:1000;max-width:600px;width:90%;max-height:85vh;overflow-y:auto}
+.popup.active{display:block}
+.popup h3{margin:0 0 10px 0;color:#1a73e8;font-size:15px}
+.popup table{width:100%;font-size:12px;border-collapse:collapse;margin-bottom:10px}
+.popup table td,.popup table th{padding:4px 6px;border-bottom:1px solid #eee;text-align:left}
+.popup .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.popup .btn-row button{padding:6px 12px;border:1px solid #ddd;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;background:#fff}
+.popup .btn-row button:hover{background:#f0f0f0}
+.popup .btn-row button.sel{background:#1a73e8;color:#fff;border-color:#1a73e8}
+.popup .btn-save-changes{background:#1a73e8!important;color:#fff!important;padding:8px 18px!important;font-size:13px!important}
+
+/* === Chart === */
+.chart-container{width:100%;height:260px;margin-top:10px}
+
+/* === Shift Reference === */
+.shift-ref{margin:0 20px 16px}
+.shift-ref .section-title{font-size:14px;font-weight:700;color:#1a73e8;padding:8px 12px;background:#e8f0fe;border-radius:8px;margin-bottom:8px;border-left:4px solid #1a73e8}
+.shift-table{width:100%;font-size:11px;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden}
+.shift-table td,.shift-table th{padding:5px 8px;border-bottom:1px solid #eee}
+
+/* === Notes / Requirements === */
+.section-title{font-size:14px;font-weight:700;color:#1a73e8;padding:8px 12px;background:#e8f0fe;border-radius:8px;margin-bottom:8px;border-left:4px solid #1a73e8}
+.notes-section{margin:0 20px 16px}
+.notes-toolbar{display:flex;gap:8px;margin-bottom:8px}
+.notes-toolbar button{padding:5px 14px;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer}
+.btn-add-note{background:#1a73e8;color:#fff}
+.notes-list{display:flex;flex-direction:column;gap:6px}
+.note-card{background:#fff;border-radius:8px;padding:10px 14px;box-shadow:0 1px 3px rgba(0,0,0,0.06);position:relative}
+.note-card .note-meta{font-size:10px;color:#999;margin-bottom:4px}
+.note-card .note-text{font-size:12px;color:#333;line-height:1.5;white-space:pre-wrap}
+.note-card .note-actions{position:absolute;top:8px;right:10px;display:flex;gap:4px}
+.note-card .note-actions button{font-size:10px;padding:1px 6px;border:1px solid #ddd;border-radius:4px;background:#fff;cursor:pointer}
+.note-editor{display:none;background:#fff;border-radius:8px;padding:12px;box-shadow:0 2px 8px rgba(0,0,0,0.1);margin-bottom:8px}
+.note-editor.show{display:block}
+.note-editor textarea{width:100%;min-height:60px;border:1px solid #ddd;border-radius:6px;padding:8px;font-size:12px;font-family:inherit;resize:vertical}
+.note-editor .editor-actions{display:flex;gap:6px;margin-top:6px;justify-content:flex-end}
+.note-editor .editor-actions button{padding:4px 12px;border:none;border-radius:6px;font-size:11px;cursor:pointer}
+
+.footer{text-align:center;padding:16px;font-size:11px;color:#999}
+
+@media(max-width:768px){table.schedule{font-size:9px}table.schedule td,table.schedule th{padding:2px 1px}}
 </style>
 </head>
 <body>
+
+<!-- === PASSWORD GATE === -->
+<div id="pwdGate"><div>
+    <h2>月度排班表</h2>
+    <p style="color:#666;font-size:13px;margin:8px 0">请输入访问密码</p>
+    <input type="password" id="pwdInput" placeholder="输入密码" onkeydown="if(event.key=='Enter')checkPwd()">
+    <button onclick="checkPwd()">确认</button>
+    <div class="err" id="pwdErr"></div>
+</div></div>
+
+<div id="mainContent" style="display:none">
+
 <div class="header">
-    <h1>🏥 放射/超声 月度排班仪表盘 (V3)</h1>
-    <div class="subtitle">__MONTH__ | 全职目标: __TARGET_FULL__h | 80%阈值: __TARGET_80__h | 分层: 80% → 20% → 备班</div>
+    <h1>月度排班表 <span id="hdMonth"></span></h1>
+    <div class="nav"><a href="index.html">首页</a></div>
 </div>
 
+<!-- === TOOLBAR === -->
+<div class="toolbar">
+    <select id="roleSelect" onchange="switchRole()">
+        <option>放射医生</option>
+        <option>放射技师</option>
+        <option>B超医生</option>
+    </select>
+    <button class="btn-edit" id="btnEdit" onclick="toggleEdit()">编辑模式</button>
+    <button class="btn-save" id="btnSave" onclick="saveChanges()">保存修改</button>
+    <button class="btn-token" onclick="toggleToken()">设置Token</button>
+</div>
+<div class="token-area" id="tokenArea">
+    <span style="font-size:11px;color:#666">GitHub Token:</span>
+    <input type="password" id="tokenInput" placeholder="ghp_xxxxxxxxxxxx">
+    <button onclick="saveToken()" style="padding:5px 10px;font-size:11px">保存</button>
+</div>
+
+<div class="msg" id="msg"></div>
+
+<!-- === STATS BAR === -->
 <div class="stats-bar">
     <div class="stat-card"><div class="value">__STAT_FT__</div><div class="label">全职人员</div></div>
     <div class="stat-card"><div class="value">__STAT_AVG__h</div><div class="label">全职人均工时</div></div>
-    <div class="stat-card green"><div class="value">__STAT_80__h</div><div class="label">80%池总工时</div></div>
-    <div class="stat-card blue"><div class="value">__STAT_20__h</div><div class="label">20%池总工时</div></div>
-    <div class="stat-card orange"><div class="value">__STAT_LN__h</div><div class="label">L/N总工时</div></div>
-    <div class="stat-card red"><div class="value">__STAT_BU_H__h</div><div class="label">备班总工时</div></div>
+    <div class="stat-card green"><div class="value">__STAT_80__h</div><div class="label">80%池</div></div>
+    <div class="stat-card blue"><div class="value">__STAT_20__h</div><div class="label">20%池</div></div>
+    <div class="stat-card orange"><div class="value">__STAT_LN__h</div><div class="label">L/N</div></div>
+    <div class="stat-card red"><div class="value">__STAT_BU_H__h</div><div class="label">备班</div></div>
 </div>
 
-<div class="container">
-    <div class="tabs" id="tabs"></div>
-    <div class="legend" id="legend">
-        <b>班次图例:</b>
-        <span id="legendContent"></span>
-    </div>
-    <div class="legend" id="catLegend">
-        <b>分类标记:</b>
-        <span class="category-legend">
-            <span class="cat-tag cat-80">80%池</span> 黑色正常 |
-            <span class="cat-tag cat-20">20%池</span> 蓝色框 |
-            <span class="cat-tag cat-ln">L/N</span> 橙色粗框 |
-            <span class="cat-tag cat-bk">备班</span> 红色虚线框
-        </span>
-    </div>
-    <div class="roster-grid" id="roster"><div style="text-align:center;padding:40px;color:#999;">加载中...</div></div>
+<!-- === TABS === -->
+<div class="tabs" id="tabs"></div>
+
+<!-- === LEGEND === -->
+<div class="legend" id="legendBar">
+    <b>图例：</b><span id="legendContent"></span>
 </div>
+<div class="legend">
+    <b>分类：</b>
+    <span class="cat-tag cat-80">80%池</span> 黑色 |
+    <span class="cat-tag cat-20">20%池</span> 蓝色框 |
+    <span class="cat-tag cat-ln">L/N</span> 橙色粗框 |
+    <span class="cat-tag cat-bk">备班</span> 红色虚线框
+</div>
+
+<!-- === ROSTER === -->
+<div class="roster-grid" id="roster"><div style="text-align:center;padding:30px;color:#999">加载中...</div></div>
+
+<!-- === SHIFT REFERENCE === -->
+<div class="shift-ref">
+    <div class="section-title">班型参考</div>
+    <div id="shiftRef"></div>
+</div>
+
+<!-- === NOTES === -->
+<div class="notes-section">
+    <div class="section-title">部署使用说明</div>
+    <div class="notes-toolbar">
+        <button class="btn-add-note" onclick="addNote()">+ 新增说明</button>
+    </div>
+    <div class="note-editor" id="noteEditor">
+        <textarea id="noteText" placeholder="输入说明内容..."></textarea>
+        <div class="editor-actions">
+            <button onclick="cancelNote()" style="background:#eee;color:#666">取消</button>
+            <button onclick="saveNote()" style="background:#1a73e8;color:#fff">保存</button>
+        </div>
+    </div>
+    <div class="notes-list" id="notesList"></div>
+</div>
+
+<!-- === REQUIREMENTS === -->
+<div class="notes-section">
+    <div class="section-title">需求收集区</div>
+    <div class="notes-toolbar">
+        <button class="btn-add-note" onclick="addReq()">+ 新增需求</button>
+    </div>
+    <div class="note-editor" id="reqEditor">
+        <textarea id="reqText" placeholder="输入需求内容..."></textarea>
+        <div class="editor-actions">
+            <button onclick="cancelReq()" style="background:#eee;color:#666">取消</button>
+            <button onclick="saveReq()" style="background:#1a73e8;color:#fff">保存</button>
+        </div>
+    </div>
+    <div class="notes-list" id="reqsList"></div>
+</div>
+
+</div><!-- end mainContent -->
+
+<div class="footer">数据来源：schedule.py CP-SAT排班引擎 | 由 GitHub Actions 每月25日自动更新</div>
 
 <div class="overlay" id="overlay" onclick="closePopup()"></div>
 <div class="popup" id="popup"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
 <script>
+// ============ DATA ============
 var SCHEDULE_DATA = __JSON_DATA__;
 var TARGET_HOURS = __TARGET_FULL__;
 var TARGET_80 = __TARGET_80__;
 var currentRole = '放射医生';
+var editMode = false;
+var edits = {};
+var selectedCell = null;
 
-function init() {
+// ============ PASSWORD ============
+var PWD_HASH = 'Z3p1MjAyNg=='; // gzu2026
+function checkPwd(){
+    var inp = document.getElementById('pwdInput').value;
+    if(btoa(inp) === PWD_HASH){
+        document.getElementById('pwdGate').style.display = 'none';
+        document.getElementById('mainContent').style.display = 'block';
+        sessionStorage.setItem('_gzu_sched', '1');
+        init();
+    } else {
+        document.getElementById('pwdErr').textContent = '密码错误';
+    }
+}
+if(sessionStorage.getItem('_gzu_sched') === '1'){
+    document.getElementById('pwdGate').style.display = 'none';
+    document.getElementById('mainContent').style.display = 'block';
+    window.addEventListener('DOMContentLoaded', init);
+}
+
+// ============ INIT ============
+function init(){
+    document.getElementById('hdMonth').textContent = SCHEDULE_DATA.month || '';
     var tabs = document.getElementById('tabs');
     var roles = Object.keys(SCHEDULE_DATA.roles);
-    for (var i = 0; i < roles.length; i++) {
-        (function(role) {
+    for(var i=0; i<roles.length; i++){
+        (function(role){
             var btn = document.createElement('button');
             btn.className = 'tab' + (role === currentRole ? ' active' : '');
             btn.textContent = role;
-            btn.onclick = function() { currentRole = role; renderAll(); };
+            btn.onclick = function(){ currentRole = role; switchRole(); };
             tabs.appendChild(btn);
         })(roles[i]);
+    }
+    document.getElementById('roleSelect').value = currentRole;
+    renderAll();
+    loadNotes();
+    loadReqs();
+}
+
+function switchRole(){
+    currentRole = document.getElementById('roleSelect').value;
+    var tabEls = document.querySelectorAll('.tab');
+    for(var i=0; i<tabEls.length; i++){
+        tabEls[i].classList.toggle('active', tabEls[i].textContent === currentRole);
     }
     renderAll();
 }
 
-function renderAll() {
-    var tabEls = document.querySelectorAll('.tab');
-    for (var i = 0; i < tabEls.length; i++) {
-        var t = tabEls[i];
-        if (t.textContent === currentRole) { t.classList.add('active'); }
-        else { t.classList.remove('active'); }
-    }
+// ============ RENDER ============
+function renderAll(){
     renderLegend();
     renderRoster();
+    renderShiftRef();
 }
 
-function renderLegend() {
-    var roleData = SCHEDULE_DATA.roles[currentRole];
-    var colors = roleData.shift_colors;
-    var legend = document.getElementById('legendContent');
-    var html = '';
+function renderLegend(){
+    var rd = SCHEDULE_DATA.roles[currentRole];
+    var colors = rd.shift_colors;
+    var h = '';
     var shown = {};
-    var keys = Object.keys(colors);
-    for (var i = 0; i < keys.length; i++) {
-        var shift = keys[i];
-        if (shown[shift] || shift === 'off') continue;
-        shown[shift] = true;
-        var color = colors[shift];
-        var time = roleData.shift_times[shift] || '';
-        html += '<span class="legend-item"><span class="legend-dot" style="background:' + color + '"></span> ' + shift + (time ? ' (' + time + ')' : '') + '</span> ';
+    for(var k in colors){
+        if(shown[k] || k === 'off') continue;
+        shown[k] = true;
+        var time = rd.shift_times[k] || '';
+        h += '<span class="legend-item"><span class="legend-dot" style="background:' + colors[k] + '"></span> ' + k + (time?' ('+time+')':'') + '</span> ';
     }
-    html += '<span class="legend-item"><span class="legend-dot" style="background:#F5F5F5;border:1px solid #ddd"></span> 休息</span> ';
-    html += '<span class="legend-item" style="color:#9E9E9E;font-weight:600">📞 OnCall</span>';
-    legend.innerHTML = html;
+    h += '<span class="legend-item"><span class="legend-dot" style="background:#F5F5F5;border:1px solid #ddd"></span> 休息</span> ';
+    h += '<span class="legend-item" style="color:#9E9E9E">📞 OnCall</span>';
+    document.getElementById('legendContent').innerHTML = h;
 }
 
-function renderRoster() {
-    var roleData = SCHEDULE_DATA.roles[currentRole];
-    var roster = document.getElementById('roster');
-    var dates = roleData.dates;
-
-    var html = '<h2>' + currentRole + ' 排班表 (V3 分层标注)</h2>';
-    html += '<div style="overflow-x:auto;"><table class="schedule"><thead><tr>';
-    html += '<th class="name-col">人员</th>';
-    html += '<th class="stats-col">总工时</th><th class="stats-col">80%</th><th class="stats-col">20%</th>';
-    html += '<th class="stats-col">备班</th><th class="stats-col">L/N</th><th class="stats-col">目标</th>';
-    html += '<th class="stats-col">OnCall</th>';
-    for (var i = 0; i < dates.length; i++) {
-        html += '<th>' + dates[i].slice(3) + '</th>';
+function renderRoster(){
+    var rd = SCHEDULE_DATA.roles[currentRole];
+    var dates = rd.dates;
+    var h = '<h2>' + currentRole + ' 排班表</h2>';
+    h += '<table class="schedule"><thead><tr>';
+    h += '<th class="name-col">人员</th>';
+    h += '<th class="stats-col">工时</th><th class="stats-col">80%</th><th class="stats-col">20%</th>';
+    h += '<th class="stats-col">备班</th><th class="stats-col">L/N</th><th class="stats-col">目标</th><th class="stats-col">OnCall</th>';
+    for(var i=0; i<dates.length; i++){
+        h += '<th>' + dates[i].slice(3) + '</th>';
     }
-    html += '</tr></thead><tbody>';
+    h += '</tr></thead><tbody>';
 
-    var staffList = roleData.staff;
-    for (var si = 0; si < staffList.length; si++) {
-        var person = staffList[si];
-        html += '<tr>';
-        html += '<td class="name-col">' + person.name + (person.is_backup ? ' 🔄' : '') + '</td>';
+    var staff = rd.staff;
+    for(var si=0; si<staff.length; si++){
+        var person = staff[si];
+        h += '<tr>';
+        h += '<td class="name-col">' + person.name + (person.is_backup?' 🔄':'') + '</td>';
+        h += '<td class="stats-col" style="' + (person.hours > TARGET_80 && !person.is_backup?'color:#1a73e8;font-weight:600':'') + '">' + person.hours + 'h</td>';
+        h += '<td class="stats-col">' + person.hours_80 + 'h</td>';
+        h += '<td class="stats-col" style="color:#1a73e8">' + (person.hours_20>0?person.hours_20+'h':'-') + '</td>';
+        h += '<td class="stats-col" style="color:#F44336">' + (person.hours_backup>0?person.hours_backup+'h':'-') + '</td>';
+        h += '<td class="stats-col" style="color:#FF9800;font-weight:600">' + (person.hours_ln>0?person.hours_ln+'h':'-') + '</td>';
+        h += '<td class="stats-col">' + (person.target>0?person.target+'h':'-') + '</td>';
+        h += '<td class="stats-col">' + (person.oncall_count||'') + '</td>';
 
-        var over80 = person.hours > TARGET_80 && !person.is_backup;
-        html += '<td class="stats-col" style="' + (over80 ? 'color:#1a73e8;font-weight:600' : '') + '">' + person.hours + 'h</td>';
-        html += '<td class="stats-col">' + person.hours_80 + 'h</td>';
-        html += '<td class="stats-col" style="color:#1a73e8">' + (person.hours_20 > 0 ? person.hours_20 + 'h' : '-') + '</td>';
-        html += '<td class="stats-col" style="color:#F44336">' + (person.hours_backup > 0 ? person.hours_backup + 'h' : '-') + '</td>';
-        html += '<td class="stats-col" style="color:#FF9800;font-weight:600">' + (person.hours_ln > 0 ? person.hours_ln + 'h' : '-') + '</td>';
-        html += '<td class="stats-col">' + (person.target > 0 ? person.target + 'h' : '-') + '</td>';
-        html += '<td class="stats-col">' + (person.oncall_count || '') + '</td>';
-
-        for (var di = 0; di < dates.length; di++) {
+        for(var di=0; di<dates.length; di++){
             var ds = dates[di];
             var shiftVal = person.schedule[ds] || '';
             var catVal = person.category[ds] || '';
             var isOncall = person.is_oncall && person.is_oncall[ds];
-            var text = shiftVal || '-';
-            var extraClass = '';
-            var bg = shiftVal ? '#F8F8F8' : '#FFFFFF';
+            var hasEdit = edits[person.internal_name] && edits[person.internal_name][ds] !== undefined;
+            var displayShift = hasEdit ? edits[person.internal_name][ds] : shiftVal;
+            var text = displayShift || '-';
+            var extraClass = editMode ? ' editable' : '';
+            var bg = displayShift ? '#F8F8F8' : '#FFFFFF';
 
-            if (shiftVal) {
-                if (catVal === '备班') extraClass += ' cat-backup';
-                else if (catVal === 'L/N') extraClass += ' cat-ln';
-                else if (catVal === '20%') extraClass += ' cat-20';
+            if(displayShift){
+                if(catVal === '备班') extraClass += ' cat-backup';
+                else if(catVal === 'L/N') extraClass += ' cat-ln';
+                else if(catVal === '20%') extraClass += ' cat-20';
 
-                // 班型名称为主(粗体), 分类为后缀小标签
                 var badge = '';
-                if (catVal === '20%') badge = ' <sup style="background:#1a73e8;color:#fff;padding:1px 3px;border-radius:2px;font-size:9px;font-weight:600">20%</sup>';
-                else if (catVal === '备班') badge = ' <sup style="background:#F44336;color:#fff;padding:1px 3px;border-radius:2px;font-size:9px;font-weight:600">B</sup>';
-                else if (catVal === 'L/N') badge = ' <sup style="background:#FF9800;color:#fff;padding:1px 3px;border-radius:2px;font-size:9px;font-weight:600">LN</sup>';
-                else badge = '';
-                text = '<b style="color:#000">' + shiftVal + '</b>' + badge;
+                if(catVal === '20%') badge = ' <sup style="background:#1a73e8;color:#fff;padding:1px 3px;border-radius:2px;font-size:8px">20%</sup>';
+                else if(catVal === '备班') badge = ' <sup style="background:#F44336;color:#fff;padding:1px 3px;border-radius:2px;font-size:8px">B</sup>';
+                else if(catVal === 'L/N') badge = ' <sup style="background:#FF9800;color:#fff;padding:1px 3px;border-radius:2px;font-size:8px">LN</sup>';
+                text = '<b>' + displayShift + '</b>' + badge;
             }
-            // PTO标记 (红色背景)
-            if (person.pto && person.pto[ds]) {
-                shiftHtml = '<span class="pto-cell">PTO</span>';
-                return '<td class="shift-cell cell-pto" style="background:#FF4444;color:#fff;font-weight:bold;text-align:center;font-size:11px"><span>PTO</span></td>';
+            // PTO
+            if(person.pto && person.pto[ds]){
+                h += '<td class="shift-cell cell-pto" style="background:#FF4444;color:#fff;font-weight:bold"><span>PTO</span></td>';
+                continue;
             }
-            // OnCall标记
-            if (isOncall) {
-                text += ' 📞';
-                extraClass += ' cell-oncall';
-            }
-            // 超声楼层备注
-            if (person.notes && person.notes[ds]) {
-                var note = person.notes[ds];
-                text += ' [' + note + ']';
+            // OnCall
+            if(isOncall){ text += ' 📞'; extraClass += ' cell-oncall'; }
+            // Floor notes
+            if(person.notes && person.notes[ds]){
+                text += ' [' + person.notes[ds] + ']';
             }
 
-            html += '<td class="shift-cell' + extraClass + '" style="background:' + bg + '" onclick="showDayDetail(\'' + ds + '\')" title="' + ds + ': ' + (shiftVal || '休息') + ' [' + (catVal || '-') + ']' + (isOncall ? ' OnCall' : '') + '">' + text + '</td>';
+            var onclick = editMode ? ('onclick="openEditPopup(\'' + person.internal_name + '\',\'' + ds + '\')"') : ('onclick="showDayDetail(\'' + ds + '\')"');
+            h += '<td class="shift-cell' + extraClass + '" style="background:' + bg + '" ' + onclick + ' title="' + ds + ': ' + (displayShift||'休息') + ' [' + (catVal||'-') + ']">' + text + '</td>';
         }
-        html += '</tr>';
+        h += '</tr>';
     }
-    html += '</tbody></table></div>';
-    roster.innerHTML = html;
+    h += '</tbody></table>';
+    document.getElementById('roster').innerHTML = h;
 }
 
-function showDayDetail(dateStr) {
-    var popup = document.getElementById('popup');
-    var overlay = document.getElementById('overlay');
-    var roleData = SCHEDULE_DATA.roles[currentRole];
-
-    var html = '<h3>📅 ' + dateStr + ' — ' + currentRole + '</h3>';
-    html += '<table><thead><tr><th>人员</th><th>班次</th><th>时间</th><th>分类</th></tr></thead><tbody>';
-    var staffList = roleData.staff;
-    var hasData = false;
-    for (var si = 0; si < staffList.length; si++) {
-        var person = staffList[si];
-        var shiftVal = person.schedule[dateStr] || '';
-        var catVal = person.category[dateStr] || '';
-        if (shiftVal) {
-            hasData = true;
-            var parts = shiftVal.split(' + ');
-            var timeParts = [];
-            for (var k = 0; k < parts.length; k++) {
-                var p = parts[k].trim();
-                if (p.indexOf('备班(') >= 0) {
-                    timeParts.push(p);
-                } else {
-                    timeParts.push(roleData.shift_times[p] || p);
-                }
-            }
-            var times = timeParts.join(' + ');
-            var catDisplay = catVal;
-            if (catVal === '20%') catDisplay = '<span style="color:#1a73e8;font-weight:600">20%池</span>';
-            else if (catVal === '备班') catDisplay = '<span style="color:#F44336;font-weight:600">备班</span>';
-            else if (catVal === 'L/N') catDisplay = '<span style="color:#FF9800;font-weight:600">L/N</span>';
-            html += '<tr><td>' + person.name + (person.is_backup ? ' 🔄' : '') + '</td><td>' + shiftVal + '</td><td>' + times + '</td><td>' + catDisplay + '</td></tr>';
+function renderShiftRef(){
+    var rd = SCHEDULE_DATA.roles[currentRole];
+    var h = '<table class="shift-table"><thead><tr><th>班次</th><th>时间</th><th>说明</th></tr></thead><tbody>';
+    var shiftNames = ['D','D1','D2','D3','D4','D5','D6','C','C1','L','N','N1','N2','N3','L/N','T','T1','H','H1','H2','H3'];
+    for(var i=0; i<shiftNames.length; i++){
+        var s = shiftNames[i];
+        var time = rd.shift_times[s];
+        var color = rd.shift_colors[s];
+        if(time || color){
+            h += '<tr><td style="font-weight:600;background:' + (color||'#f5f5f5') + (color?'">':';color:#666">') + s + '</td><td>' + (time||'-') + '</td><td style="font-size:10px;color:#888">' + getShiftDesc(s) + '</td></tr>';
         }
     }
-    if (!hasData) html += '<tr><td colspan="4" style="text-align:center;color:#999">当日无人排班</td></tr>';
-    html += '</tbody></table>';
-    html += '<div class="chart-container" id="dayChart"></div>';
+    h += '</tbody></table>';
+    document.getElementById('shiftRef').innerHTML = h;
+}
+function getShiftDesc(s){
+    if(s=='L/N') return '24小时长班';
+    if(s.indexOf('D')===0) return s==='D'?'白班8h':'白班变体';
+    if(s.indexOf('C')===0) return '弹性班';
+    if(s.indexOf('N')===0) return s==='N'?'夜班':'夜班变体';
+    if(s.indexOf('H')===0) return '半天班';
+    if(s=='T') return '教学班';
+    if(s==='L') return '长班';
+    return '';
+}
 
-    popup.innerHTML = html;
-    popup.classList.add('active');
-    overlay.classList.add('active');
-
-    setTimeout(function() {
-        var demand = roleData.demand_samples[dateStr] || [];
-        if (demand.length > 0) {
-            var chartDom = document.getElementById('dayChart');
-            if (chartDom && typeof echarts !== 'undefined') {
-                var chart = echarts.init(chartDom);
-                var hours = [];
-                for (var h = 0; h < 24; h++) hours.push(h + ':00');
+// ============ DAY DETAIL POPUP (read-only) ============
+function showDayDetail(dateStr){
+    if(editMode) return;
+    var rd = SCHEDULE_DATA.roles[currentRole];
+    var h = '<h3>📅 ' + dateStr + ' — ' + currentRole + '</h3>';
+    h += '<table><thead><tr><th>人员</th><th>班次</th><th>时间</th><th>分类</th></tr></thead><tbody>';
+    var hasData = false;
+    for(var i=0; i<rd.staff.length; i++){
+        var p = rd.staff[i];
+        var sv = p.schedule[dateStr] || '';
+        if(sv){
+            hasData = true;
+            var parts = sv.split(' + ');
+            var times = [];
+            for(var k=0; k<parts.length; k++){
+                var pp = parts[k].trim();
+                if(pp.indexOf('备班(')>=0) times.push(pp);
+                else times.push(rd.shift_times[pp] || pp);
+            }
+            var cv = p.category[dateStr] || '';
+            var cd = cv;
+            if(cv==='20%') cd='<span style="color:#1a73e8;font-weight:600">20%池</span>';
+            else if(cv==='备班') cd='<span style="color:#F44336;font-weight:600">备班</span>';
+            else if(cv==='L/N') cd='<span style="color:#FF9800;font-weight:600">L/N</span>';
+            h += '<tr><td>' + p.name + '</td><td>' + sv + '</td><td>' + times.join(' + ') + '</td><td>' + cd + '</td></tr>';
+        }
+    }
+    if(!hasData) h += '<tr><td colspan="4" style="text-align:center;color:#999">当日无人排班</td></tr>';
+    h += '</tbody></table>';
+    h += '<div class="chart-container" id="dayChart"></div>';
+    document.getElementById('popup').innerHTML = h;
+    openOverlay();
+    // Demand chart
+    setTimeout(function(){
+        var demand = rd.demand_samples[dateStr] || [];
+        if(demand.length>0){
+            var cd = document.getElementById('dayChart');
+            if(cd && typeof echarts !== 'undefined'){
+                var chart = echarts.init(cd);
+                var hours = []; for(var hh=0; hh<24; hh++) hours.push(hh+':00');
                 chart.setOption({
-                    title: { text: dateStr + ' 需求HC', textStyle: { fontSize: 13 } },
-                    tooltip: { trigger: 'axis' },
-                    xAxis: { data: hours, axisLabel: { rotate:45, fontSize:10 } },
-                    yAxis: { name: '人数', minInterval: 1 },
-                    series: [{ name: '需求HC', type: 'bar', data: demand, itemStyle: { color: '#1a73e8' } }],
-                    grid: { left:40, right:20, top:40, bottom:50 }
+                    title:{text:dateStr+' 需求HC',textStyle:{fontSize:12}},
+                    tooltip:{trigger:'axis'},
+                    xAxis:{data:hours,axisLabel:{rotate:45,fontSize:9}},
+                    yAxis:{name:'人数',minInterval:1},
+                    series:[{name:'需求HC',type:'bar',data:demand,itemStyle:{color:'#1a73e8'}}],
+                    grid:{left:40,right:15,top:35,bottom:45}
                 });
             }
         }
-    }, 200);
+    },200);
 }
 
-function closePopup() {
-    var popup = document.getElementById('popup');
-    var overlay = document.getElementById('overlay');
-    if (popup) popup.classList.remove('active');
-    if (overlay) overlay.classList.remove('active');
+// ============ EDIT MODE ============
+function toggleEdit(){
+    var btn = document.getElementById('btnEdit');
+    var saveBtn = document.getElementById('btnSave');
+    editMode = !editMode;
+    if(editMode){
+        btn.textContent = '退出编辑';
+        btn.classList.add('active');
+        saveBtn.classList.add('show');
+    } else {
+        btn.textContent = '编辑模式';
+        btn.classList.remove('active');
+        saveBtn.classList.remove('show');
+    }
+    renderRoster();
 }
 
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') closePopup();
-});
+var ALLOWED_SHIFTS = ['C','C1','D1','D2','D3','D4','D5','D6','N','N1','N2','N3','L','L/N','T','T1','H','H1','H2','H3','OFF'];
+var SHIFT_LABELS = {OFF:'休息'};
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-} else {
-    init();
+function openEditPopup(personName, dateStr){
+    selectedCell = {name: personName, ds: dateStr};
+    var rd = SCHEDULE_DATA.roles[currentRole];
+    var person = null;
+    for(var i=0; i<rd.staff.length; i++){ if(rd.staff[i].internal_name === personName){ person = rd.staff[i]; break; } }
+    if(!person) return;
+    var currentShift = edits[personName]&&edits[personName][dateStr]!==undefined ? edits[personName][dateStr] : (person.schedule[dateStr] || '');
+
+    var h = '<h3>✏️ ' + person.name + ' — ' + dateStr + '</h3>';
+    h += '<p style="font-size:11px;color:#666;margin-bottom:8px">当前班次：<b>' + (currentShift||'休息') + '</b></p>';
+    h += '<div class="btn-row">';
+    for(var i=0; i<ALLOWED_SHIFTS.length; i++){
+        var s = ALLOWED_SHIFTS[i];
+        var sel = s === currentShift ? ' sel' : '';
+        var label = SHIFT_LABELS[s] || s;
+        h += '<button class="btn-shift' + sel + '" onclick="selectShift(\'' + s + '\')">' + label + '</button>';
+    }
+    h += '</div>';
+    h += '<button class="btn-save-changes" onclick="applyEdit()">确认修改</button>';
+    document.getElementById('popup').innerHTML = h;
+    openOverlay();
+}
+
+function selectShift(shift){
+    var btns = document.querySelectorAll('.btn-shift');
+    for(var i=0; i<btns.length; i++){ btns[i].classList.remove('sel'); }
+    var btns2 = document.querySelectorAll('.btn-shift');
+    for(var i=0; i<btns2.length; i++){
+        if(btns2[i].textContent === shift || (shift==='OFF' && btns2[i].textContent==='休息')){
+            btns2[i].classList.add('sel');
+        }
+    }
+    if(!edits[selectedCell.name]) edits[selectedCell.name] = {};
+    edits[selectedCell.name][selectedCell.ds] = shift;
+    renderRoster();
+    closePopup();
+}
+
+function applyEdit(){
+    closePopup();
+    renderRoster();
+}
+
+function openOverlay(){
+    document.getElementById('overlay').classList.add('active');
+    document.getElementById('popup').classList.add('active');
+}
+function closePopup(){
+    document.getElementById('overlay').classList.remove('active');
+    document.getElementById('popup').classList.remove('active');
+}
+document.addEventListener('keydown', function(e){ if(e.key==='Escape') closePopup(); });
+
+// ============ SAVE TO GITHUB ============
+function toggleToken(){
+    document.getElementById('tokenArea').classList.toggle('show');
+}
+function saveToken(){
+    var t = document.getElementById('tokenInput').value.trim();
+    if(t) localStorage.setItem('gh_token', t);
+    msg('Token已保存', 'ok');
+}
+
+async function saveChanges(){
+    var token = localStorage.getItem('gh_token');
+    if(!token){ msg('请先设置GitHub Token', 'err'); toggleToken(); return; }
+    var count = 0;
+    for(var p in edits){ for(var d in edits[p]){ count++; } }
+    if(count === 0){ msg('没有修改', 'err'); return; }
+
+    // Update SCHEDULE_DATA with edits
+    var rd = SCHEDULE_DATA.roles[currentRole];
+    for(var si=0; si<rd.staff.length; si++){
+        var person = rd.staff[si];
+        if(edits[person.internal_name]){
+            for(var ds in edits[person.internal_name]){
+                person.schedule[ds] = edits[person.internal_name][ds];
+                person.category[ds] = '';
+            }
+        }
+    }
+
+    var b64 = btoa(unescape(encodeURIComponent(JSON.stringify(SCHEDULE_DATA, null, 2))));
+    var path = 'publish/schedule_data.json';
+    try{
+        var getUrl = 'https://api.github.com/repos/liuyx339-oss/gzu-schedule/contents/' + path;
+        var d = await (await fetch(getUrl, {headers: {'Authorization': 'token ' + token}})).json();
+        var body = {message: 'Update schedule', content: b64, branch: 'master'};
+        if(d.sha) body.sha = d.sha;
+        var r = await (await fetch(getUrl, {method: 'PUT', headers: {'Authorization': 'token ' + token, 'Content-Type': 'application/json'}, body: JSON.stringify(body)})).json();
+        if(r.content){
+            msg('✅ 已保存 ' + count + ' 处修改', 'ok');
+            edits = {};
+            renderRoster();
+        } else {
+            msg('保存失败: ' + (r.message||'?'), 'err');
+        }
+    } catch(e){ msg('网络错误: ' + e.message, 'err'); }
+}
+
+function msg(text, cls){
+    var el = document.getElementById('msg');
+    el.textContent = text;
+    el.className = 'msg ' + (cls||'');
+    setTimeout(function(){ el.textContent = ''; el.className = 'msg'; }, 4000);
+}
+
+// ============ NOTES CRUD ============
+var NOTES_PATH = 'publish/notes.json';
+var notes = [];
+var editingNoteId = null;
+
+async function loadNotes(){
+    try{ var r = await fetch('notes.json?' + Date.now()); if(r.ok) notes = await r.json(); else notes = []; }
+    catch(e){ notes = []; }
+    renderNotes();
+}
+function renderNotes(){
+    var h = '';
+    if(!notes.length){ h = '<div style="color:#999;font-size:12px;text-align:center;padding:12px">暂无说明，点击"+ 新增说明"添加</div>'; }
+    for(var i=0; i<notes.length; i++){
+        var n = notes[i];
+        h += '<div class="note-card"><div class="note-meta">' + n.time + ' | #' + (notes.length-i) + '</div><div class="note-text">' + n.text + '</div><div class="note-actions"><button onclick="editNote(' + i + ')">编辑</button><button onclick="delNote(' + i + ')">删除</button></div></div>';
+    }
+    document.getElementById('notesList').innerHTML = h;
+}
+function addNote(){ editingNoteId = null; document.getElementById('noteText').value = ''; document.getElementById('noteEditor').classList.add('show'); }
+function editNote(idx){ editingNoteId = idx; document.getElementById('noteText').value = notes[idx].text; document.getElementById('noteEditor').classList.add('show'); }
+function cancelNote(){ document.getElementById('noteEditor').classList.remove('show'); }
+async function saveNote(){
+    var text = document.getElementById('noteText').value.trim(); if(!text) return;
+    var token = localStorage.getItem('gh_token'); if(!token){ msg('请先设置GitHub Token', 'err'); return; }
+    var now = new Date().toLocaleString('zh-CN');
+    if(editingNoteId !== null){ notes[editingNoteId].text = text; notes[editingNoteId].time = now; }
+    else{ notes.push({text:text, time:now}); }
+    notes.sort(function(a,b){ return b.time.localeCompare(a.time); });
+    var b64 = btoa(unescape(encodeURIComponent(JSON.stringify(notes,null,2))));
+    try{
+        var getUrl = 'https://api.github.com/repos/liuyx339-oss/gzu-schedule/contents/' + NOTES_PATH;
+        var d = await (await fetch(getUrl, {headers:{'Authorization':'token '+token}})).json();
+        var body = {message:'Update notes', content:b64, branch:'master'}; if(d.sha) body.sha = d.sha;
+        var r = await (await fetch(getUrl, {method:'PUT', headers:{'Authorization':'token '+token,'Content-Type':'application/json'}, body:JSON.stringify(body)})).json();
+        if(r.content){ renderNotes(); cancelNote(); msg('✅ 已保存', 'ok'); } else { msg('保存失败: '+(r.message||'?'), 'err'); }
+    } catch(e){ msg('网络错误: '+e.message, 'err'); }
+}
+async function delNote(idx){
+    if(!confirm('确定删除？')) return; notes.splice(idx,1);
+    var token = localStorage.getItem('gh_token'); if(!token) return;
+    var b64 = btoa(unescape(encodeURIComponent(JSON.stringify(notes,null,2))));
+    try{
+        var getUrl = 'https://api.github.com/repos/liuyx339-oss/gzu-schedule/contents/' + NOTES_PATH;
+        var d = await (await fetch(getUrl, {headers:{'Authorization':'token '+token}})).json();
+        var body = {message:'Delete note', content:b64, branch:'master'}; if(d.sha) body.sha = d.sha;
+        await fetch(getUrl, {method:'PUT', headers:{'Authorization':'token '+token,'Content-Type':'application/json'}, body:JSON.stringify(body)});
+        renderNotes();
+    } catch(e){}
+}
+
+// ============ REQUIREMENTS CRUD ============
+var REQS_PATH = 'publish/requirements.json';
+var reqs = [];
+var editingReqId = null;
+
+async function loadReqs(){
+    try{ var r = await fetch('requirements.json?' + Date.now()); if(r.ok) reqs = await r.json(); else reqs = []; }
+    catch(e){ reqs = []; }
+    renderReqs();
+}
+function renderReqs(){
+    var h = '';
+    if(!reqs.length){ h = '<div style="color:#999;font-size:12px;text-align:center;padding:12px">暂无需求，点击"+ 新增需求"添加</div>'; }
+    for(var i=0; i<reqs.length; i++){
+        var n = reqs[i];
+        h += '<div class="note-card"><div class="note-meta">' + n.time + ' | #' + (reqs.length-i) + '</div><div class="note-text">' + n.text + '</div><div class="note-actions"><button onclick="editReq(' + i + ')">编辑</button><button onclick="delReq(' + i + ')">删除</button></div></div>';
+    }
+    document.getElementById('reqsList').innerHTML = h;
+}
+function addReq(){ editingReqId = null; document.getElementById('reqText').value = ''; document.getElementById('reqEditor').classList.add('show'); }
+function editReq(idx){ editingReqId = idx; document.getElementById('reqText').value = reqs[idx].text; document.getElementById('reqEditor').classList.add('show'); }
+function cancelReq(){ document.getElementById('reqEditor').classList.remove('show'); }
+async function saveReq(){
+    var text = document.getElementById('reqText').value.trim(); if(!text) return;
+    var token = localStorage.getItem('gh_token'); if(!token){ msg('请先设置GitHub Token', 'err'); return; }
+    var now = new Date().toLocaleString('zh-CN');
+    if(editingReqId !== null){ reqs[editingReqId].text = text; reqs[editingReqId].time = now; }
+    else{ reqs.push({text:text, time:now}); }
+    reqs.sort(function(a,b){ return b.time.localeCompare(a.time); });
+    var b64 = btoa(unescape(encodeURIComponent(JSON.stringify(reqs,null,2))));
+    try{
+        var getUrl = 'https://api.github.com/repos/liuyx339-oss/gzu-schedule/contents/' + REQS_PATH;
+        var d = await (await fetch(getUrl, {headers:{'Authorization':'token '+token}})).json();
+        var body = {message:'Update requirements', content:b64, branch:'master'}; if(d.sha) body.sha = d.sha;
+        var r = await (await fetch(getUrl, {method:'PUT', headers:{'Authorization':'token '+token,'Content-Type':'application/json'}, body:JSON.stringify(body)})).json();
+        if(r.content){ renderReqs(); cancelReq(); msg('✅ 已保存', 'ok'); } else { msg('保存失败: '+(r.message||'?'), 'err'); }
+    } catch(e){ msg('网络错误: '+e.message, 'err'); }
+}
+async function delReq(idx){
+    if(!confirm('确定删除？')) return; reqs.splice(idx,1);
+    var token = localStorage.getItem('gh_token'); if(!token) return;
+    var b64 = btoa(unescape(encodeURIComponent(JSON.stringify(reqs,null,2))));
+    try{
+        var getUrl = 'https://api.github.com/repos/liuyx339-oss/gzu-schedule/contents/' + REQS_PATH;
+        var d = await (await fetch(getUrl, {headers:{'Authorization':'token '+token}})).json();
+        var body = {message:'Delete requirement', content:b64, branch:'master'}; if(d.sha) body.sha = d.sha;
+        await fetch(getUrl, {method:'PUT', headers:{'Authorization':'token '+token,'Content-Type':'application/json'}, body:JSON.stringify(body)});
+        renderReqs();
+    } catch(e){}
 }
 </script>
 </body>
 </html>'''
 
-    # 安全替换占位符
     replacements = [
         ('__MONTH__', str(data.get('month', ''))),
         ('__JSON_DATA__', json_data),
@@ -2660,6 +3054,7 @@ if (document.readyState === 'loading') {
         html = html.replace(placeholder, value)
 
     return html
+
 
 
 # ==========================================
@@ -2813,10 +3208,17 @@ def main():
                    pto_dates, xlsx_path)
 
     # --- Phase 9: Dashboard ---
+    # 输出到 pipeline_output/schedule/ (归档)
     html_path = os.path.join(schedule_dir, f"Schedule_Dashboard_{month_str}_V3.html")
     generate_dashboard_html(final_schedule, final_hours, category_hours, hourly_hc,
                             date_strs, staff, oncall_schedule, us_notes,
                             pto_dates, html_path)
+
+    # 同时输出到 publish/schedule.html (GitHub Pages)
+    publish_schedule_path = os.path.join(base_dir, "publish", "schedule.html")
+    import shutil
+    shutil.copy2(html_path, publish_schedule_path)
+    print(f"   🌐 线上版本: {publish_schedule_path}")
 
     # --- 总结 ---
     print("\n" + "="*60)
