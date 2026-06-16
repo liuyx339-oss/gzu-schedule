@@ -2619,7 +2619,7 @@ function init(){
             var btn = document.createElement('button');
             btn.className = 'tab' + (role === currentRole ? ' active' : '');
             btn.textContent = role;
-            btn.onclick = function(){ currentRole = role; switchRole(); };
+            btn.onclick = function(){ currentRole = role; document.getElementById('roleSelect').value = role; switchRole(); };
             tabs.appendChild(btn);
         })(roles[i]);
     }
