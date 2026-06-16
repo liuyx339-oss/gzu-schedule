@@ -8,7 +8,7 @@ on:
 jobs:
   weekly-forecast:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 5
     permissions:
       contents: write
     steps:
@@ -18,22 +18,9 @@ jobs:
         with:
           python-version: '3.12'
 
-      - uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: pip-prophet-${{ runner.os }}-${{ hashFiles('requirements.txt') }}
-          restore-keys: |
-            pip-prophet-${{ runner.os }}-
+      - run: pip install pandas
 
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install prophet lightgbm pandas numpy requests
-
-      - name: Run weekly forecast
-        env:
-          FEISHU_APP_ID: ${{ secrets.FEISHU_APP_ID }}
-          FEISHU_APP_SECRET: ${{ secrets.FEISHU_APP_SECRET }}
+      - name: Run weekly forecast (slice from monthly CSV)
         run: python weekly_forecast.py
 
       - name: Deploy to GitHub Pages
