@@ -466,7 +466,7 @@ def _build_interactive_card(target_date, a, b):
     cn = {"CT": "CT", "X-ray": "X-ray", "B-ultrasound": "B超",
           "Echo": "心彩", "Mammo": "钼靶", "BoneDensity": "骨密度", "MRI": "MRI"}
     mc = {"CT": "<font color='#9C27B0'>CT</font>",
-          "X-ray": "<font color='#2196F3'>X</font>",
+          "X-ray": "<font color='#2196F3'>X-ray</font>",
           "B-ultrasound": "<font color='#4CAF50'>B超</font>",
           "Echo": "<font color='#00BCD4'>心彩</font>",
           "Mammo": "<font color='#FF9800'>钼靶</font>",
@@ -505,6 +505,7 @@ def _build_interactive_card(target_date, a, b):
         f"---\n\n"
         f"🩺 **OB超声** {ob_str}\n\n"
         f"---\n\n"
+        f"📌 以上均按**人次**统计，非检查项目数\n\n"
         f"🔗 [完整日报](https://liuyx339-oss.github.io/gzu-schedule/dashboard.html)"
     )
 
