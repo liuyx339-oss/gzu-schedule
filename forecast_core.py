@@ -146,6 +146,9 @@ def hybrid_forecast(hourly_df, forecast_days=FORECAST_DAYS):
         freq="h",
     )
 
+    # Ensure no duplicate ds before set_index
+    hourly_df = hourly_df.groupby("ds", as_index=False)["cases"].sum()
+
     hourly_df = (
         hourly_df
         .set_index("ds")
