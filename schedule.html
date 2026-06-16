@@ -5,20 +5,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>月度排班表 - GZU</title>
 <style>
+/* === Password Gate === */
 #pwdGate{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999}
 #pwdGate>div{background:#fff;border-radius:12px;padding:32px;box-shadow:0 8px 32px rgba(0,0,0,0.2);text-align:center;min-width:300px}
 #pwdGate input{padding:10px 14px;border:1px solid #ddd;border-radius:6px;font-size:16px;width:100%;text-align:center;margin:12px 0}
 #pwdGate button{padding:10px 28px;background:#1a73e8;color:#fff;border:none;border-radius:6px;font-size:14px;cursor:pointer}
-#pwdGate button:hover{background:#1557b0}
 #pwdGate .err{color:#c62828;font-size:12px;margin-top:6px}
+
+/* === Base === */
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f5f7fa;color:#333}
+body{font-family:"Microsoft YaHei","SimHei",sans-serif;background:#f0f2f5;color:#333;min-height:100vh}
 .header{background:linear-gradient(135deg,#1a73e8 0%,#0d47a1 100%);color:#fff;padding:18px 24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
 .header h1{font-size:20px}
 .header .nav a{color:#fff;opacity:0.8;text-decoration:none;font-size:13px;margin-left:14px}
-.header .nav a:hover{opacity:1}
 
-.toolbar{display:flex;gap:10px;padding:14px 24px;align-items:center;flex-wrap:wrap;background:#fff;border-bottom:1px solid #eee}
+/* === Toolbar === */
+.toolbar{display:flex;gap:10px;padding:12px 20px;align-items:center;flex-wrap:wrap;background:#fff;border-bottom:1px solid #eee}
 .toolbar select{padding:6px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px}
 .toolbar button{padding:6px 14px;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer}
 .btn-edit{background:#fff3e0;color:#e65100;border:1px solid #ffcc80!important}
@@ -26,141 +28,176 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 .btn-save{background:#1a73e8;color:#fff;display:none}
 .btn-save.show{display:inline-block}
 .btn-token{background:none;color:#999;font-size:11px!important;text-decoration:underline}
-.token-area{display:none;padding:8px 24px;background:#fff}
+.token-area{display:none;padding:8px 20px;background:#fff}
 .token-area.show{display:flex;gap:8px;align-items:center}
 .token-area input{padding:6px 10px;border:1px solid #ddd;border-radius:4px;width:300px;font-size:13px}
-.msg{font-size:12px;padding:2px 14px;background:#fff}
+.msg{font-size:12px;padding:2px 20px;background:#fff}
 .msg.ok{color:#2e7d32}
 .msg.err{color:#c62828}
 
-/* Stats summary */
-.stats-bar{display:flex;gap:10px;padding:10px 24px;flex-wrap:wrap;background:#fff}
-.stat-chip{background:#f0f5ff;border-radius:8px;padding:6px 14px;font-size:12px}
-.stat-chip .lbl{color:#888;margin-right:4px}
-.stat-chip .val{font-weight:700;color:#1a73e8}
-.stat-chip.backup{background:#fff3e0}
-.stat-chip.backup .val{color:#e65100}
+/* === Stats Bar === */
+.stats-bar{display:flex;gap:10px;padding:12px 20px;flex-wrap:wrap;background:#fff;justify-content:center}
+.stat-card{background:#fff;border-radius:8px;padding:12px 20px;box-shadow:0 1px 4px rgba(0,0,0,0.08);text-align:center;min-width:110px}
+.stat-card .value{font-size:22px;font-weight:700;color:#1a73e8}
+.stat-card .label{font-size:11px;color:#666;margin-top:2px}
+.stat-card.orange .value{color:#FF9800}
+.stat-card.red .value{color:#F44336}
+.stat-card.green .value{color:#4CAF50}
+.stat-card.blue .value{color:#1565C0}
 
-/* Table — larger cells */
-.table-wrap{overflow-x:auto;margin:0 24px 20px}
-.schedule-table{border-collapse:collapse;font-size:13px;min-width:100%}
-.schedule-table th{background:#f0f5ff;color:#1a73e8;font-weight:600;padding:7px 6px;border:1px solid #d4e2f5;white-space:nowrap;text-align:center;font-size:12px}
-.schedule-table th.weekend{background:#e8ecf1}
-.schedule-table td{border:1px solid #d0d7e2;padding:6px 4px;text-align:center;min-width:44px;font-size:12px;cursor:default;transition:background 0.15s;font-weight:600}
-.schedule-table td.editable{cursor:pointer}
-.schedule-table td.editable:hover{background:#e8f0fe}
-.schedule-table td.selected{outline:2px solid #1a73e8;outline-offset:-2px;z-index:5;position:relative}
-.schedule-table td.edited{background:#fff9c4!important}
+/* === Tabs === */
+.tabs{display:flex;gap:4px;margin:0 20px 12px;background:#fff;border-radius:8px;padding:4px;box-shadow:0 1px 4px rgba(0,0,0,0.08)}
+.tab{flex:1;text-align:center;padding:10px 20px;cursor:pointer;border-radius:6px;font-size:14px;font-weight:600;transition:all 0.2s;background:#fff;border:none;color:#333}
+.tab:hover{background:#e8f0fe}
+.tab.active{background:#1a73e8;color:#fff}
 
-.schedule-table .name-col{text-align:left;font-weight:600;position:sticky;left:0;background:#fff;z-index:2;min-width:80px;font-size:13px}
-.schedule-table .stats-col{position:sticky;background:#fff;z-index:2;font-size:11px;min-width:48px}
-.schedule-table .stats-col.hdr{text-align:center}
-.schedule-table tr.backup-row .name-col{color:#e65100;font-weight:700}
-.schedule-table tr.backup-row td{background:#fffbf5}
-.schedule-table .divider-row td{border:none;height:8px;background:#f5f7fa}
-.schedule-table .divider-row th{border:none;height:8px;background:#f5f7fa}
+/* === Legend === */
+.legend{display:flex;gap:8px;flex-wrap:wrap;padding:8px 20px;background:#fff;margin-bottom:8px;font-size:11px;align-items:center;box-shadow:0 1px 2px rgba(0,0,0,0.04)}
+.legend-item{display:inline-flex;align-items:center;gap:3px;white-space:nowrap}
+.legend-dot{width:12px;height:12px;border-radius:2px;display:inline-block;flex-shrink:0}
+.cat-tag{padding:1px 5px;border-radius:3px;font-weight:600;font-size:10px}
+.cat-80{background:#e0e0e0;color:#000}
+.cat-20{background:#1a73e8;color:#fff}
+.cat-bk{background:#F44336;color:#fff}
+.cat-ln{background:#FF9800;color:#fff}
 
-/* Shift colors — bold & readable */
-.shift-D,.shift-D1,.shift-D2,.shift-D3,.shift-D4,.shift-D5,.shift-D6,.shift-DH{background:#2E7D32;color:#fff}
-.shift-C,.shift-C1,.shift-C2{background:#00897B;color:#fff}
-.shift-N,.shift-N1,.shift-N2,.shift-N3{background:#1565C0;color:#fff}
-.shift-L,.shift-L1,.shift-L2{background:#7B1FA2;color:#fff}
-.shift-T,.shift-T1,.shift-T2{background:#558B2F;color:#fff}
-.shift-H,.shift-H1,.shift-H2,.shift-H3{background:#F9A825;color:#333}
-.shift-LN,.shift-L\/N{background:#E65100;color:#fff}
-.shift-OC,.shift-OnCall,.shift-R{background:#FFF3E0;color:#E65100;font-weight:800}
-.shift-OFF{background:#F5F5F5;color:#bbb}
-.shift-empty{background:#fff;color:#ddd}
+/* === Table === */
+.roster-grid{background:#fff;border-radius:8px;padding:16px;margin:0 20px 12px;box-shadow:0 1px 4px rgba(0,0,0,0.08);overflow-x:auto}
+.roster-grid h2{font-size:15px;margin:0 0 10px 0;color:#1a73e8}
+table.schedule{border-collapse:collapse;width:max-content;min-width:100%;font-size:11px}
+table.schedule th,table.schedule td{border:1px solid #e0e0e0;padding:4px 3px;text-align:center;white-space:nowrap}
+table.schedule th{background:#f5f5f5;font-weight:600;position:sticky;top:0;z-index:2}
+table.schedule .name-col{min-width:80px;position:sticky;left:0;background:#fff;z-index:1;font-weight:600;text-align:left;padding-left:6px}
+table.schedule .stats-col{min-width:42px;font-size:10px}
+table.schedule .shift-cell{font-size:10px;min-width:50px;transition:all 0.15s;border-radius:2px;position:relative;color:#000}
+table.schedule .shift-cell.editable{cursor:pointer}
+table.schedule .shift-cell.editable:hover{transform:scale(1.1);z-index:3;box-shadow:0 2px 8px rgba(0,0,0,0.25)}
+table.schedule .shift-cell.cat-backup{border:2px dashed #F44336!important}
+table.schedule .shift-cell.cat-ln{border:3px solid #FF9800!important;font-weight:bold}
+table.schedule .shift-cell.cat-20{border:2px solid #1a73e8!important}
+table.schedule .shift-cell.cell-oncall::after{content:"📞";position:absolute;top:0;right:1px;font-size:7px;line-height:1}
 
-.edit-popup{display:none;position:fixed;background:#fff;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.15);z-index:1000;padding:6px;min-width:110px;max-height:400px;overflow-y:auto}
-.edit-popup.show{display:block}
-.edit-popup button{display:block;width:100%;padding:5px 12px;border:none;background:none;text-align:left;font-size:12px;cursor:pointer;border-radius:4px}
-.edit-popup button:hover{background:#e8f0fe}
-.edit-popup hr{margin:3px 0;border:none;border-top:1px solid #eee}
+/* === PTO === */
+.pto-cell{background:#FF4444!important;color:#fff!important;font-weight:bold}
 
-/* Legend */
-.legend{display:flex;gap:8px;flex-wrap:wrap;padding:10px 24px;font-size:11px;color:#666}
-.legend-item{display:flex;align-items:center;gap:3px}
-.legend-swatch{width:14px;height:14px;border-radius:3px;border:1px solid #ddd}
+/* === Popup === */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:999}
+.overlay.active{display:block}
+.popup{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;border-radius:12px;padding:20px;box-shadow:0 8px 32px rgba(0,0,0,0.2);z-index:1000;max-width:600px;width:90%;max-height:85vh;overflow-y:auto}
+.popup.active{display:block}
+.popup h3{margin:0 0 10px 0;color:#1a73e8;font-size:15px}
+.popup table{width:100%;font-size:12px;border-collapse:collapse;margin-bottom:10px}
+.popup table td,.popup table th{padding:4px 6px;border-bottom:1px solid #eee;text-align:left}
+.popup .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.popup .btn-row button{padding:6px 12px;border:1px solid #ddd;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;background:#fff}
+.popup .btn-row button:hover{background:#f0f0f0}
+.popup .btn-row button.sel{background:#1a73e8;color:#fff;border-color:#1a73e8}
+.popup .btn-save-changes{background:#1a73e8!important;color:#fff!important;padding:8px 18px!important;font-size:13px!important}
 
-.footer{text-align:center;padding:16px;font-size:11px;color:#999}
+/* === Chart === */
+.chart-container{width:100%;height:260px;margin-top:10px}
 
-/* Shift Reference — compact inline */
-.shift-ref{margin:16px 24px}
-.shift-ref .section-title{font-size:14px;font-weight:700;color:#1a73e8;padding:8px 12px;background:#e8f0fe;border-radius:8px;margin-bottom:10px;border-left:4px solid #1a73e8}
-.shift-cat{display:inline-block;margin:0 16px 8px 0;vertical-align:top}
-.shift-cat h4{font-size:12px;color:#555;margin-bottom:4px}
-.shift-inline{display:flex;gap:4px;flex-wrap:wrap}
-.shift-chip{display:inline-flex;align-items:center;gap:5px;background:#fff;border-radius:6px;padding:4px 10px;box-shadow:0 1px 2px rgba(0,0,0,0.05);font-size:11px}
-.shift-chip .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.shift-chip .time-str{color:#333;font-weight:600}
+/* === Shift Reference === */
+.shift-ref{margin:0 20px 16px}
+.shift-ref .section-title{font-size:14px;font-weight:700;color:#1a73e8;padding:8px 12px;background:#e8f0fe;border-radius:8px;margin-bottom:8px;border-left:4px solid #1a73e8}
+.shift-table{width:100%;font-size:11px;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden}
+.shift-table td,.shift-table th{padding:5px 8px;border-bottom:1px solid #eee}
 
-/* Notes Section */
-.notes-section{margin:20px 24px}
+/* === Notes / Requirements === */
+.section-title{font-size:14px;font-weight:700;color:#1a73e8;padding:8px 12px;background:#e8f0fe;border-radius:8px;margin-bottom:8px;border-left:4px solid #1a73e8}
+.notes-section{margin:0 20px 16px}
 .notes-toolbar{display:flex;gap:8px;margin-bottom:8px}
 .notes-toolbar button{padding:5px 14px;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer}
 .btn-add-note{background:#1a73e8;color:#fff}
-.btn-del-note{background:#fff;color:#c62828;border:1px solid #ef9a9a!important;font-size:10px!important;padding:2px 8px!important}
-.notes-list{display:flex;flex-direction:column;gap:8px}
-.note-card{background:#fff;border-radius:10px;padding:14px 16px;box-shadow:0 1px 3px rgba(0,0,0,0.06);position:relative}
-.note-card .note-meta{font-size:10px;color:#999;margin-bottom:6px}
-.note-card .note-text{font-size:13px;color:#333;line-height:1.6;white-space:pre-wrap}
-.note-card .note-actions{position:absolute;top:10px;right:12px;display:flex;gap:4px}
-.note-card .note-actions button{font-size:10px;padding:2px 8px;border:1px solid #ddd;border-radius:4px;background:#fff;cursor:pointer}
-.note-card .note-actions button:hover{background:#f5f5f5}
-.note-editor{display:none;background:#fff;border-radius:10px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,0.1);margin-bottom:8px}
+.notes-list{display:flex;flex-direction:column;gap:6px}
+.note-card{background:#fff;border-radius:8px;padding:10px 14px;box-shadow:0 1px 3px rgba(0,0,0,0.06);position:relative}
+.note-card .note-meta{font-size:10px;color:#999;margin-bottom:4px}
+.note-card .note-text{font-size:12px;color:#333;line-height:1.5;white-space:pre-wrap}
+.note-card .note-actions{position:absolute;top:8px;right:10px;display:flex;gap:4px}
+.note-card .note-actions button{font-size:10px;padding:1px 6px;border:1px solid #ddd;border-radius:4px;background:#fff;cursor:pointer}
+.note-editor{display:none;background:#fff;border-radius:8px;padding:12px;box-shadow:0 2px 8px rgba(0,0,0,0.1);margin-bottom:8px}
 .note-editor.show{display:block}
-.note-editor textarea{width:100%;min-height:80px;border:1px solid #ddd;border-radius:6px;padding:10px;font-size:13px;font-family:inherit;resize:vertical}
-.note-editor .editor-actions{display:flex;gap:6px;margin-top:8px;justify-content:flex-end}
-.note-editor .editor-actions button{padding:5px 14px;border:none;border-radius:6px;font-size:12px;cursor:pointer}
+.note-editor textarea{width:100%;min-height:60px;border:1px solid #ddd;border-radius:6px;padding:8px;font-size:12px;font-family:inherit;resize:vertical}
+.note-editor .editor-actions{display:flex;gap:6px;margin-top:6px;justify-content:flex-end}
+.note-editor .editor-actions button{padding:4px 12px;border:none;border-radius:6px;font-size:11px;cursor:pointer}
 
-@media(max-width:768px){.schedule-table{font-size:9px}.schedule-table td{min-width:30px}}
+.footer{text-align:center;padding:16px;font-size:11px;color:#999}
+
+@media(max-width:768px){table.schedule{font-size:9px}table.schedule td,table.schedule th{padding:2px 1px}}
 </style>
 </head>
 <body>
 
-<div id="pwdGate"><div><h2>月度排班表</h2><p style="color:#666;font-size:13px;margin:8px 0">请输入访问密码</p><input type="password" id="pwdInput" placeholder="输入密码" onkeydown="if(event.key==='Enter')checkPwd()"><button onclick="checkPwd()">确认</button><div class="err" id="pwdErr"></div></div></div>
+<!-- === PASSWORD GATE === -->
+<div id="pwdGate"><div>
+    <h2>月度排班表</h2>
+    <p style="color:#666;font-size:13px;margin:8px 0">请输入访问密码</p>
+    <input type="password" id="pwdInput" placeholder="输入密码" onkeydown="if(event.key=='Enter')checkPwd()">
+    <button onclick="checkPwd()">确认</button>
+    <div class="err" id="pwdErr"></div>
+</div></div>
 
 <div id="mainContent" style="display:none">
 
 <div class="header">
     <h1>月度排班表 <span id="hdMonth"></span></h1>
-    <div class="nav">
-        <a href="index.html">首页</a>
-    </div>
+    <div class="nav"><a href="index.html">首页</a></div>
 </div>
 
+<!-- === TOOLBAR === -->
 <div class="toolbar">
-    <select id="roleSelect"><option>放射医生</option><option>放射技师</option><option>B超医生</option></select>
+    <select id="roleSelect" onchange="switchRole()">
+        <option>放射医生</option>
+        <option>放射技师</option>
+        <option>B超医生</option>
+    </select>
     <button class="btn-edit" id="btnEdit" onclick="toggleEdit()">编辑模式</button>
     <button class="btn-save" id="btnSave" onclick="saveChanges()">保存修改</button>
     <button class="btn-token" onclick="toggleToken()">设置Token</button>
 </div>
-
 <div class="token-area" id="tokenArea">
     <span style="font-size:11px;color:#666">GitHub Token:</span>
     <input type="password" id="tokenInput" placeholder="ghp_xxxxxxxxxxxx">
-    <button onclick="saveToken()" style="padding:5px 10px;font-size:11px">保存（仅存浏览器）</button>
+    <button onclick="saveToken()" style="padding:5px 10px;font-size:11px">保存</button>
 </div>
 
-<div class="stats-bar" id="statsBar"></div>
 <div class="msg" id="msg"></div>
 
-<div class="legend" id="legendBar"></div>
-
-<div class="table-wrap">
-    <table class="schedule-table" id="scheduleTable"></table>
+<!-- === STATS BAR === -->
+<div class="stats-bar">
+    <div class="stat-card"><div class="value">15</div><div class="label">全职人员</div></div>
+    <div class="stat-card"><div class="value">182.6h</div><div class="label">全职人均工时</div></div>
+    <div class="stat-card green"><div class="value">1348.0h</div><div class="label">80%池</div></div>
+    <div class="stat-card blue"><div class="value">357.5h</div><div class="label">20%池</div></div>
+    <div class="stat-card orange"><div class="value">384.0h</div><div class="label">L/N</div></div>
+    <div class="stat-card red"><div class="value">0h</div><div class="label">备班</div></div>
 </div>
 
-<div class="edit-popup" id="editPopup"></div>
+<!-- === TABS === -->
+<div class="tabs" id="tabs"></div>
 
-<!-- ====== SHIFT REFERENCE ====== -->
+<!-- === LEGEND === -->
+<div class="legend" id="legendBar">
+    <b>图例：</b><span id="legendContent"></span>
+</div>
+<div class="legend">
+    <b>分类：</b>
+    <span class="cat-tag cat-80">80%池</span> 黑色 |
+    <span class="cat-tag cat-20">20%池</span> 蓝色框 |
+    <span class="cat-tag cat-ln">L/N</span> 橙色粗框 |
+    <span class="cat-tag cat-bk">备班</span> 红色虚线框
+</div>
+
+<!-- === ROSTER === -->
+<div class="roster-grid" id="roster"><div style="text-align:center;padding:30px;color:#999">加载中...</div></div>
+
+<!-- === SHIFT REFERENCE === -->
 <div class="shift-ref">
     <div class="section-title">班型参考</div>
-    <div id="shiftRefContent"></div>
+    <div id="shiftRef"></div>
 </div>
 
-<!-- ====== DEPLOYMENT NOTES ====== -->
+<!-- === NOTES === -->
 <div class="notes-section">
     <div class="section-title">部署使用说明</div>
     <div class="notes-toolbar">
@@ -176,7 +213,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
     <div class="notes-list" id="notesList"></div>
 </div>
 
-<!-- ====== REQUIREMENTS COLLECTION ====== -->
+<!-- === REQUIREMENTS === -->
 <div class="notes-section">
     <div class="section-title">需求收集区</div>
     <div class="notes-toolbar">
@@ -194,534 +231,469 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
 
 </div><!-- end mainContent -->
 
-<div class="footer">数据来源: schedule.py CP-SAT排班引擎 | 由 GitHub Actions 每月25日自动更新</div>
+<div class="footer">数据来源：schedule.py CP-SAT排班引擎 | 由 GitHub Actions 每月25日自动更新</div>
 
+<div class="overlay" id="overlay" onclick="closePopup()"></div>
+<div class="popup" id="popup"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
 <script>
-// ============ CONFIG ============
-var REPO_OWNER = 'liuyx339-oss';
-var REPO_NAME = 'gzu-schedule';
-var DATA_PATH = 'publish/schedule_data.json';
-var DATA_URL = 'schedule_data.json';
-
-// ============ STATE ============
-var scheduleData = null;
+// ============ DATA ============
+var SCHEDULE_DATA = {"month": "06月01日 ~ 06月30日", "roles": {"放射医生": {"staff": [{"name": "li zhenhuan", "internal_name": "li zhenhuan", "hours": 176.0, "target": 176.0, "hours_80": 92.5, "hours_20": 35.5, "hours_backup": 0.0, "hours_ln": 48.0, "is_backup": false, "oncall_count": 0, "schedule": {"06月01日": "L/N", "06月02日": "", "06月03日": "", "06月04日": "D", "06月05日": "", "06月06日": "C", "06月07日": "", "06月08日": "", "06月09日": "", "06月10日": "", "06月11日": "D", "06月12日": "D5", "06月13日": "", "06月14日": "D", "06月15日": "D4", "06月16日": "L/N", "06月17日": "", "06月18日": "D5", "06月19日": "", "06月20日": "C", "06月21日": "D", "06月22日": "", "06月23日": "", "06月24日": "D", "06月25日": "D", "06月26日": "", "06月27日": "D5", "06月28日": "D", "06月29日": "D5", "06月30日": "C"}, "category": {"06月01日": "L/N", "06月02日": "", "06月03日": "", "06月04日": "80%", "06月05日": "", "06月06日": "80%", "06月07日": "", "06月08日": "", "06月09日": "", "06月10日": "", "06月11日": "80%", "06月12日": "20%", "06月13日": "", "06月14日": "80%", "06月15日": "20%", "06月16日": "L/N", "06月17日": "", "06月18日": "20%", "06月19日": "", "06月20日": "80%", "06月21日": "80%", "06月22日": "", "06月23日": "", "06月24日": "80%", "06月25日": "80%", "06月26日": "", "06月27日": "20%", "06月28日": "80%", "06月29日": "80%", "06月30日": "80%"}, "notes": {}, "pto": {}, "is_oncall": {"06月01日": false, "06月02日": false, "06月03日": false, "06月04日": false, "06月05日": false, "06月06日": false, "06月07日": false, "06月08日": false, "06月09日": false, "06月10日": false, "06月11日": false, "06月12日": false, "06月13日": false, "06月14日": false, "06月15日": false, "06月16日": false, "06月17日": false, "06月18日": false, "06月19日": false, "06月20日": false, "06月21日": false, "06月22日": false, "06月23日": false, "06月24日": false, "06月25日": false, "06月26日": false, "06月27日": false, "06月28日": false, "06月29日": false, "06月30日": false}}, {"name": "Dustin Huang", "internal_name": "Dustin Huang", "hours": 176.0, "target": 176.0, "hours_80": 92.5, "hours_20": 35.5, "hours_backup": 0.0, "hours_ln": 48.0, "is_backup": false, "oncall_count": 0, "schedule": {"06月01日": "", "06月02日": "", "06月03日": "D", "06月04日": "D5", "06月05日": "D", "06月06日": "", "06月07日": "", "06月08日": "L/N", "06月09日": "", "06月10日": "D", "06月11日": "", "06月12日": "D", "06月13日": "C", "06月14日": "", "06月15日": "D", "06月16日": "D5", "06月17日": "D", "06月18日": "", "06月19日": "D", "06月20日": "", "06月21日": "D5", "06月22日": "D", "06月23日": "L/N", "06月24日": "", "06月25日": "", "06月26日": "D", "06月27日": "C", "06月28日": "", "06月29日": "", "06月30日": "D4"}, "category": {"06月01日": "", "06月02日": "", "06月03日": "80%", "06月04日": "20%", "06月05日": "80%", "06月06日": "", "06月07日": "", "06月08日": "L/N", "06月09日": "", "06月10日": "80%", "06月11日": "", "06月12日": "80%", "06月13日": "80%", "06月14日": "", "06月15日": "80%", "06月16日": "20%", "06月17日": "80%", "06月18日": "", "06月19日": "80%", "06月20日": "", "06月21日": "20%", "06月22日": "80%", "06月23日": "L/N", "06月24日": "", "06月25日": "", "06月26日": "80%", "06月27日": "80%", "06月28日": "", "06月29日": "", "06月30日": "20%"}, "notes": {}, "pto": {}, "is_oncall": {"06月01日": false, "06月02日": false, "06月03日": false, "06月04日": false, "06月05日": false, "06月06日": false, "06月07日": false, "06月08日": false, "06月09日": false, "06月10日": false, "06月11日": false, "06月12日": false, "06月13日": false, "06月14日": false, "06月15日": false, "06月16日": false, "06月17日": false, "06月18日": false, "06月19日": false, "06月20日": false, "06月21日": false, "06月22日": false, "06月23日": false, "06月24日": false, "06月25日": false, "06月26日": false, "06月27日": false, "06月28日": false, "06月29日": false, "06月30日": false}}, {"name": "放射医生备班", "internal_name": "放射医生备班", "hours": 454.0, "target": 176.0, "hours_80": 0.0, "hours_20": 0.0, "hours_backup": 454.0, "hours_ln": 0.0, "is_backup": false, "oncall_count": 0, "schedule": {"06月01日": "", "06月02日": "H2 + N2 + D", "06月03日": "N3", "06月04日": "N3", "06月05日": "T + N3", "06月06日": "N2", "06月07日": "D + H2 + N2", "06月08日": "", "06月09日": "N2 + D + D", "06月10日": "N3 + T", "06月11日": "T + N3", "06月12日": "N3", "06月13日": "N2", "06月14日": "N3 + T", "06月15日": "T + N3", "06月16日": "", "06月17日": "T + N3", "06月18日": "N3 + T", "06月19日": "T + N3", "06月20日": "N2", "06月21日": "N3", "06月22日": "N3", "06月23日": "T", "06月24日": "N3", "06月25日": "N3 + T", "06月26日": "N3", "06月27日": "N3", "06月28日": "N3", "06月29日": "N3 + T + T", "06月30日": "N3"}, "category": {"06月01日": "", "06月02日": "备班", "06月03日": "备班", "06月04日": "备班", "06月05日": "备班", "06月06日": "备班", "06月07日": "备班", "06月08日": "", "06月09日": "备班", "06月10日": "备班", "06月11日": "备班", "06月12日": "备班", "06月13日": "备班", "06月14日": "备班", "06月15日": "备班", "06月16日": "", "06月17日": "备班", "06月18日": "备班", "06月19日": "备班", "06月20日": "备班", "06月21日": "备班", "06月22日": "备班", "06月23日": "备班", "06月24日": "备班", "06月25日": "备班", "06月26日": "备班", "06月27日": "备班", "06月28日": "备班", "06月29日": "备班", "06月30日": "备班"}, "notes": {}, "pto": {}, "is_oncall": {"06月01日": false, "06月02日": false, "06月03日": false, "06月04日": false, "06月05日": false, "06月06日": false, "06月07日": false, "06月08日": false, "06月09日": false, "06月10日": false, "06月11日": false, "06月12日": false, "06月13日": false, "06月14日": false, "06月15日": false, "06月16日": false, "06月17日": false, "06月18日": false, "06月19日": false, "06月20日": false, "06月21日": false, "06月22日": false, "06月23日": false, "06月24日": false, "06月25日": false, "06月26日": false, "06月27日": false, "06月28日": false, "06月29日": false, "06月30日": false}}], "dates": ["06月01日", "06月02日", "06月03日", "06月04日", "06月05日", "06月06日", "06月07日", "06月08日", "06月09日", "06月10日", "06月11日", "06月12日", "06月13日", "06月14日", "06月15日", "06月16日", "06月17日", "06月18日", "06月19日", "06月20日", "06月21日", "06月22日", "06月23日", "06月24日", "06月25日", "06月26日", "06月27日", "06月28日", "06月29日", "06月30日"], "shift_colors": {"D": "#4CAF50", "D1": "#66BB6A", "D2": "#81C784", "D3": "#A5D6A7", "D4": "#43A047", "D5": "#388E3C", "D6": "#2E7D32", "C": "#4CAF50", "C1": "#66BB6A", "L": "#8BC34A", "H1": "#29B6F6", "H2": "#4FC3F7", "H3": "#81D4FA", "T": "#B3E5FC", "N": "#1a73e8", "N2": "#1565C0", "N3": "#0D47A1", "L/N": "#FF9800", "OnCall": "#9E9E9E", "off": "#F5F5F5"}, "shift_times": {"D": "08:30-17:30", "D1": "08:30-17:00", "D2": "09:00-17:30", "D3": "09:30-18:00", "D4": "09:00-18:00", "D5": "08:30-18:00", "D6": "07:30-15:30", "C": "07:40-16:10", "C1": "08:00-16:30", "L": "08:00-20:00", "H1": "07:40-11:40", "H2": "08:30-12:30", "H3": "13:30-17:30", "T": "08:00-12:00", "N": "17:30-08:00", "N2": "17:30-07:30", "N3": "18:00-08:00", "L/N": "08:00-08:00"}, "demand_samples": {"06月01日": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "06月02日": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.0, 2.0, 2.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "06月03日": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0], "06月04日": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.0, 2.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0], "06月05日": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.0, 2.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "06月06日": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "06月07日": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.0, 2.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}, "total_days": 30}, "放射技师": {"staff": [{"name": "Zheng Xiaochun", "internal_name": "Zheng Xiaochun", "hours": 176.0, "target": 176.0, "hours_80": 96.0, "hours_20": 32.0, "hours_backup": 0.0, "hours_ln": 48.0, "is_backup": false, "oncall_count": 5, "schedule": {"06月01日": "L/N", "06月02日": "", "06月03日": "T", "06月04日": "T", "06月05日": "T", "06月06日": "C1", "06月07日": "C", "06月08日": "", "06月09日": "T", "06月10日": "T", "06月11日": "T", "06月12日": "N3", "06月13日": "", "06月14日": "T", "06月15日": "C", "06月16日": "L/N", "06月17日": "", "06月18日": "", "06月19日": "N2", "06月20日": "", "06月21日": "", "06月22日": "C", "06月23日": "", "06月24日": "N3", "06月25日": "", "06月26日": "", "06月27日": "C", "06月28日": "T", "06月29日": "N2", "06月30日": ""}, "category": {"06月01日": "L/N", "06月02日": "", "06月03日": "20%", "06月04日": "20%", "06月05日": "20%", "06月06日": "80%", "06月07日": "80%", "06月08日": "", "06月09日": "20%", "06月10日": "20%", "06月11日": "20%", "06月12日": "80%", "06月13日": "", "06月14日": "20%", "06月15日": "80%", "06月16日": "L/N", "06月17日": "", "06月18日": "", "06月19日": "80%", "06月20日": "", "06月21日": "", "06月22日": "80%", "06月23日": "", "06月24日": "80%", "06月25日": "", "06月26日": "", "06月27日": "80%", "06月28日": "20%", "06月29日": "80%", "06月30日": ""}, "notes": {}, "pto": {}, "is_oncall": {"06月01日": false, "06月02日": true, "06月03日": false, "06月04日": false, "06月05日": false, "06月06日": false, "06月07日": false, "06月08日": true, "06月09日": false, "06月10日": false, "06月11日": false, "06月12日": false, "06月13日": false, "06月14日": false, "06月15日": false, "06月16日": false, "06月17日": false, "06月18日": false, "06月19日": false, "06月20日": true, "06月21日": false, "06月22日": false, "06月23日": false, "06月24日": false, "06月25日": true, "06月26日": false, "06月27日": false, "06月28日": false, "06月29日": false, "06月30日": true}}, {"name": "Zhang Meng", "internal_name": "Zhang Meng", "hours": 172.0, "target": 176.0, "hours_80": 96.0, "hours_20": 28.0, "hours_backup": 0.0, "hours_ln": 48.0, "is_backup": false, "oncall_count": 8, "schedule": {"06月01日": "", "06月02日": "", "06月03日": "L/N", "06月04日": "", "06月05日": "N2", "06月06日": "", "06月07日": "T", "06月08日": "T", "06月09日": "T", "06月10日": "T", "06月11日": "C1", "06月12日": "T", "06月13日": "", "06月14日": "N2", "06月15日": "", "06月16日": "", "06月17日": "C", "06月18日": "L/N", "06月19日": "", "06月20日": "N3", "06月21日": "", "06月22日": "C", "06月23日": "T", "06月24日": "C", "06月25日": "C", "06月26日": "", "06月27日": "N3", "06月28日": "", "06月29日": "", "06月30日": "T"}, "category": {"06月01日": "", "06月02日": "", "06月03日": "L/N", "06月04日": "", "06月05日": "80%", "06月06日": "", "06月07日": "20%", "06月08日": "20%", "06月09日": "20%", "06月10日": "20%", "06月11日": "80%", "06月12日": "20%", "06月13日": "", "06月14日": "80%", "06月15日": "", "06月16日": "", "06月17日": "80%", "06月18日": "L/N", "06月19日": "", "06月20日": "80%", "06月21日": "", "06月22日": "80%", "06月23日": "20%", "06月24日": "80%", "06月25日": "80%", "06月26日": "", "06月27日": "80%", "06月28日": "", "06月29日": "", "06月30日": "20%"}, "notes": {}, "pto": {}, "is_oncall": {"06月01日": true, "06月02日": false, "06月03日": false, "06月04日": true, "06月05日": false, "06月06日": true, "06月07日": false, "06月08日": false, "06月09日": false, "06月10日": false, "06月11日": false, "06月12日": false, "06月13日": false, "06月14日": false, "06月15日": true, "06月16日": false, "06月17日": false, "06月18日": false, "06月19日": true, "06月20日": false, "06月21日": true, "06月22日": false, "06月23日": false, "06月24日": false, "06月25日": false, "06月26日": true, "06月27日": false, "06月28日": true, "06月29日": false, "06月30日": false}}, {"name": "Ma Linlin", "internal_name": "Ma Linlin", "hours": 176.0, "target": 176.0, "hours_80": 96.0, "hours_20": 32.0, "hours_backup": 0.0, "hours_ln": 48.0, "is_backup": false, "oncall_count": 4, "schedule": {"06月01日": "T", "06月02日": "T", "06月03日": "T", "06月04日": "C", "06月05日": "C", "06月06日": "L/N", "06月07日": "", "06月08日": "T", "06月09日": "C", "06月10日": "", "06月11日": "", "06月12日": "", "06月13日": "C1", "06月14日": "C", "06月15日": "T", "06月16日": "C1", "06月17日": "", "06月18日": "C1", "06月19日": "T", "06月20日": "D3", "06月21日": "L/N", "06月22日": "", "06月23日": "C1", "06月24日": "D3", "06月25日": "", "06月26日": "", "06月27日": "D3", "06月28日": "T", "06月29日": "H3", "06月30日": "C"}, "category": {"06月01日": "20%", "06月02日": "20%", "06月03日": "20%", "06月04日": "80%", "06月05日": "80%", "06月06日": "L/N", "06月07日": "", "06月08日": "20%", "06月09日": "80%", "06月10日": "", "06月11日": "", "06月12日": "", "06月13日": "80%", "06月14日": "80%", "06月15日": "20%", "06月16日": "80%", "06月17日": "", "06月18日": "80%", "06月19日": "20%", "06月20日": "80%", "06月21日": "L/N", "06月22日": "", "06月23日": "80%", "06月24日": "80%", "06月25日": "", "06月26日": "", "06月27日": "80%", "06月28日": "20%", "06月29日": "20%", "06月30日": "80%"}, "notes": {}, "pto": {}, "is_oncall": {"06月01日": false, "06月02日": false, "06月03日": false, "06月04日": false, "06月05日": false, "06月06日": false, "06月07日": true, "06月08日": false, "06月09日": false, "06月10日": true, "06月11日": false, "06月12日": true, "06月13日": false, "06月14日": false, "06月15日": false, "06月16日": false, "06月17日": false, "06月18日": false, "06月19日": false, "06月20日": false, "06月21日": false, "06月22日": true, "06月23日": false, "06月24日": false, "06月25日": false, "06月26日": false, "06月27日": false, "06月28日": false, "06月29日": false, "06月30日": false}}, {"name": "Yang Yongjun", "internal_name": "Yang Yongjun", "hours": 176.0, "target": 176.0, "hours_80": 96.0, "hours_20": 32.0, "hours_backup": 0.0, "hours_ln": 48.0, "is_backup": false, "oncall_count": 3, "schedule": {"06月01日": "T", "06月02日": "T", "06月03日": "T", "06月04日": "C", "06月05日": "C", "06月06日": "T", "06月07日": "D", "06月08日": "L/N", "06月09日": "", "06月10日": "C", "06月11日": "T", "06月12日": "D5", "06月13日": "T", "06月14日": "", "06月15日": "D", "06月16日": "", "06月17日": "C", "06月18日": "", "06月19日": "C", "06月20日": "C", "06月21日": "T", "06月22日": "", "06月23日": "L/N", "06月24日": "", "06月25日": "N2", "06月26日": "", "06月27日": "", "06月28日": "", "06月29日": "C", "06月30日": "T"}, "category": {"06月01日": "20%", "06月02日": "20%", "06月03日": "20%", "06月04日": "80%", "06月05日": "80%", "06月06日": "20%", "06月07日": "80%", "06月08日": "L/N", "06月09日": "", "06月10日": "80%", "06月11日": "20%", "06月12日": "80%", "06月13日": "20%", "06月14日": "", "06月15日": "80%", "06月16日": "", "06月17日": "80%", "06月18日": "", "06月19日": "80%", "06月20日": "80%", "06月21日": "20%", "06月22日": "", "06月23日": "L/N", "06月24日": "", "06月25日": "80%", "06月26日": "", "06月27日": "", "06月28日": "", "06月29日": "80%", "06月30日": "20%"}, "notes": {}, "pto": {}, "is_oncall": {"06月01日": false, "06月02日": false, "06月03日": false, "06月04日": false, "06月05日": false, "06月06日": false, "06月07日": false, "06月08日": false, "06月09日": true, "06月10日": false, "06月11日": false, "06月12日": false, "06月13日": false, "06月14日": false, "06月15日": false, "06月16日": true, "06月17日": false, "06月18日": false, "06月19日": false, "06月20日": false, "06月21日": false, "06月22日": false, "06月23日": false, "06月24日": false, "06月25日": false, "06月26日": false, "06月27日": true, "06月28日": false, "06月29日": false, "06月30日": false}}, {"name": "Yi Hong", "internal_name": "Yi Hong", "hours": 176.0, "target": 176.0, "hours_80": 96.0, "hours_20": 32.0, "hours_backup": 0.0, "hours_ln": 48.0, "is_backup": false, "oncall_count": 5, "schedule": {"06月01日": "C1", "06月02日": "C", "06月03日": "", "06月04日": "N2", "06月05日": "", "06月06日": "T", "06月07日": "T", "06月08日": "T", "06月09日": "L", "06月10日": "C", "06月11日": "L/N", "06月12日": "", "06月13日": "", "06月14日": "C", "06月15日": "T", "06月16日": "T", "06月17日": "", "06月18日": "", "06月19日": "", "06月20日": "T", "06月21日": "", "06月22日": "N2", "06月23日": "", "06月24日": "T", "06月25日": "C", "06月26日": "L/N", "06月27日": "", "06月28日": "C1", "06月29日": "C", "06月30日": "T"}, "category": {"06月01日": "80%", "06月02日": "80%", "06月03日": "", "06月04日": "80%", "06月05日": "", "06月06日": "20%", "06月07日": "20%", "06月08日": "20%", "06月09日": "80%", "06月10日": "80%", "06月11日": "L/N", "06月12日": "", "06月13日": "", "06月14日": "80%", "06月15日": "20%", "06月16日": "20%", "06月17日": "", "06月18日": "", "06月19日": "", "06月20日": "20%", "06月21日": "", "06月22日": "80%", "06月23日": "", "06月24日": "20%", "06月25日": "80%", "06月26日": "L/N", "06月27日": "", "06月28日": "80%", "06月29日": "80%", "06月30日": "20%"}, "notes": {}, "pto": {}, "is_oncall": {"06月01日": false, "06月02日": false, "06月03日": true, "06月04日": false, "06月05日": true, "06月06日": false, "06月07日": false, "06月08日": false, "06月09日": false, "06月10日": false, "06月11日": false, "06月12日": false, "06月13日": true, "06月14日": false, "06月15日": false, "06月16日": false, "06月17日": true, "06月18日": false, "06月19日": false, "06月20日": false, "06月21日": false, "06月22日": false, "06月23日": true, "06月24日": false, "06月25日": false, "06月26日": false, "06月27日": false, "06月28日": false, "06月29日": false, "06月30日": false}}, {"name": "Liu Shuting", "internal_name": "Liu Shuting", "hours": 176.0, "target": 176.0, "hours_80": 96.0, "hours_20": 32.0, "hours_backup": 0.0, "hours_ln": 48.0, "is_backup": false, "oncall_count": 5, "schedule": {"06月01日": "T", "06月02日": "L", "06月03日": "C1", "06月04日": "T", "06月05日": "", "06月06日": "T", "06月07日": "T", "06月08日": "C1", "06月09日": "T", "06月10日": "N2", "06月11日": "", "06月12日": "C", "06月13日": "L/N", "06月14日": "", "06月15日": "T", "06月16日": "T", "06月17日": "N2", "06月18日": "", "06月19日": "C", "06月20日": "T", "06月21日": "C1", "06月22日": "", "06月23日": "", "06月24日": "", "06月25日": "", "06月26日": "C1", "06月27日": "", "06月28日": "L/N", "06月29日": "", "06月30日": "D3"}, "category": {"06月01日": "20%", "06月02日": "80%", "06月03日": "80%", "06月04日": "20%", "06月05日": "", "06月06日": "20%", "06月07日": "20%", "06月08日": "80%", "06月09日": "20%", "06月10日": "80%", "06月11日": "", "06月12日": "80%", "06月13日": "L/N", "06月14日": "", "06月15日": "20%", "06月16日": "20%", "06月17日": "80%", "06月18日": "", "06月19日": "80%", "06月20日": "20%", "06月21日": "80%", "06月22日": "", "06月23日": "", "06月24日": "", "06月25日": "", "06月26日": "80%", "06月27日": "", "06月28日": "L/N", "06月29日": "", "06月30日": "80%"}, "notes": {}, "pto": {}, "is_oncall": {"06月01日": false, "06月02日": false, "06月03日": false, "06月04日": false, "06月05日": false, "06月06日": false, "06月07日": false, "06月08日": false, "06月09日": false, "06月10日": false, "06月11日": true, "06月12日": false, "06月13日": false, "06月14日": true, "06月15日": false, "06月16日": false, "06月17日": false, "06月18日": true, "06月19日": false, "06月20日": false, "06月21日": false, "06月22日": false, "06月23日": false, "06月24日": true, "06月25日": false, "06月26日": false, "06月27日": false, "06月28日": false, "06月29日": true, "06月30日": false}}, {"name": "放射技师备班", "internal_name": "放射技师备班", "hours": 3.0, "target": 176.0, "hours_80": 0.0, "hours_20": 0.0, "hours_backup": 3.0, "hours_ln": 0.0, "is_backup": false, "oncall_count": 0, "schedule": {"06月01日": "", "06月02日": "", "06月03日": "", "06月04日": "", "06月05日": "", "06月06日": "", "06月07日": "", "06月08日": "", "06月09日": "", "06月10日": "", "06月11日": "", "06月12日": "", "06月13日": "", "06月14日": "", "06月15日": "", "06月16日": "", "06月17日": "", "06月18日": "", "06月19日": "", "06月20日": "", "06月21日": "", "06月22日": "", "06月23日": "", "06月24日": "", "06月25日": "", "06月26日": "", "06月27日": "", "06月28日": "", "06月29日": "备班(08:00-11:00)", "06月30日": ""}, "category": {"06月01日": "", "06月02日": "", "06月03日": "", "06月04日": "", "06月05日": "", "06月06日": "", "06月07日": "", "06月08日": "", "06月09日": "", "06月10日": "", "06月11日": "", "06月12日": "", "06月13日": "", "06月14日": "", "06月15日": "", "06月16日": "", "06月17日": "", "06月18日": "", "06月19日": "", "06月20日": "", "06月21日": "", "06月22日": "", "06月23日": "", "06月24日": "", "06月25日": "", "06月26日": "", "06月27日": "", "06月28日": "", "06月29日": "备班", "06月30日": ""}, "notes": {}, "pto": {}, "is_oncall": {"06月01日": false, "06月02日": false, "06月03日": false, "06月04日": false, "06月05日": false, "06月06日": false, "06月07日": false, "06月08日": false, "06月09日": false, "06月10日": false, "06月11日": false, "06月12日": false, "06月13日": false, "06月14日": false, "06月15日": false, "06月16日": false, "06月17日": false, "06月18日": false, "06月19日": false, "06月20日": false, "06月21日": false, "06月22日": false, "06月23日": false, "06月24日": false, "06月25日": false, "06月26日": false, "06月27日": false, "06月28日": false, "06月29日": false, "06月30日": false}}], "dates": ["06月01日", "06月02日", "06月03日", "06月04日", "06月05日", "06月06日", "06月07日", "06月08日", "06月09日", "06月10日", "06月11日", "06月12日", "06月13日", "06月14日", "06月15日", "06月16日", "06月17日", "06月18日", "06月19日", "06月20日", "06月21日", "06月22日", "06月23日", "06月24日", "06月25日", "06月26日", "06月27日", "06月28日", "06月29日", "06月30日"], "shift_colors": {"D": "#4CAF50", "D1": "#66BB6A", "D2": "#81C784", "D3": "#A5D6A7", "D4": "#43A047", "D5": "#388E3C", "D6": "#2E7D32", "C": "#4CAF50", "C1": "#66BB6A", "L": "#8BC34A", "H1": "#29B6F6", "H2": "#4FC3F7", "H3": "#81D4FA", "T": "#B3E5FC", "N": "#1a73e8", "N2": "#1565C0", "N3": "#0D47A1", "L/N": "#FF9800", "OnCall": "#9E9E9E", "off": "#F5F5F5"}, "shift_times": {"D": "08:30-17:30", "D1": "08:30-17:00", "D2": "09:00-17:30", "D3": "09:30-18:00", "D4": "09:00-18:00", "D5": "08:30-18:00", "D6": "07:30-15:30", "C": "07:40-16:10", "C1": "08:00-16:30", "L": "08:00-20:00", "H1": "07:40-11:40", "H2": "08:30-12:30", "H3": "13:30-17:30", "T": "08:00-12:00", "N": "17:30-08:00", "N2": "17:30-07:30", "N3": "18:00-08:00", "L/N": "08:00-08:00"}, "demand_samples": {"06月01日": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "06月02日": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.0, 2.0, 2.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "06月03日": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0], "06月04日": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.0, 2.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0], "06月05日": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.0, 2.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "06月06日": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 2.0, 2.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0], "06月07日": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.0, 2.0, 2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}, "total_days": 30}, "B超医生": {"staff": [{"name": "Xu Jing", "internal_name": "Xu Jing", "hours": 191.0, "target": 176.0, "hours_80": 154.0, "hours_20": 35.5, "hours_backup": 0.0, "hours_ln": 0.0, "is_backup": false, "oncall_count": 5, "schedule": {"06月01日": "D5", "06月02日": "D3", "06月03日": "C1", "06月04日": "C1", "06月05日": "C1", "06月06日": "C", "06月07日": "", "06月08日": "C1", "06月09日": "C1", "06月10日": "", "06月11日": "D", "06月12日": "C1", "06月13日": "", "06月14日": "D5", "06月15日": "", "06月16日": "D", "06月17日": "C1", "06月18日": "D4", "06月19日": "C1", "06月20日": "C", "06月21日": "", "06月22日": "C1", "06月23日": "", "06月24日": "C1", "06月25日": "D", "06月26日": "C1", "06月27日": "D6", "06月28日": "", "06月29日": "C1", "06月30日": "D5"}, "category": {"06月01日": "20%", "06月02日": "80%", "06月03日": "80%", "06月04日": "80%", "06月05日": "80%", "06月06日": "80%", "06月07日": "", "06月08日": "80%", "06月09日": "80%", "06月10日": "", "06月11日": "80%", "06月12日": "80%", "06月13日": "", "06月14日": "20%", "06月15日": "", "06月16日": "80%", "06月17日": "80%", "06月18日": "20%", "06月19日": "80%", "06月20日": "80%", "06月21日": "", "06月22日": "80%", "06月23日": "", "06月24日": "80%", "06月25日": "80%", "06月26日": "80%", "06月27日": "80%", "06月28日": "", "06月29日": "80%", "06月30日": "20%"}, "notes": {"06月01日": "4", "06月02日": "9", "06月03日": "4", "06月04日": "9", "06月05日": "2(B1)", "06月06日": "2(B1)", "06月08日": "9", "06月09日": "4", "06月11日": "2(B1)", "06月12日": "9", "06月14日": "4", "06月16日": "4", "06月17日": "9", "06月18日": "2(B1)", "06月19日": "9", "06月20日": "4", "06月22日": "4", "06月24日": "2(B1)", "06月25日": "4", "06月26日": "9", "06月27日": "9", "06月30日": "2(B1)"}, "pto": {}, "is_oncall": {"06月01日": false, "06月02日": false, "06月03日": false, "06月04日": false, "06月05日": false, "06月06日": false, "06月07日": true, "06月08日": false, "06月09日": false, "06月10日": true, "06月11日": false, "06月12日": false, "06月13日": false, "06月14日": false, "06月15日": true, "06月16日": false, "06月17日": false, "06月18日": false, "06月19日": false, "06月20日": false, "06月21日": true, "06月22日": false, "06月23日": false, "06月24日": false, "06月25日": false, "06月26日": false, "06月27日": false, "06月28日": true, "06月29日": false, "06月30日": false}}, {"name": "Liu Xiaoyan", "internal_name": "Liu Xiaoyan", "hours": 189.0, "target": 176.0, "hours_80": 171.0, "hours_20": 18.0, "hours_backup": 0.0, "hours_ln": 0.0, "is_backup": false, "oncall_count": 3, "schedule": {"06月01日": "D5", "06月02日": "D5", "06月03日": "C1", "06月04日": "D", "06月05日": "D3", "06月06日": "H2", "06月07日": "D", "06月08日": "", "06月09日": "D5", "06月10日": "D", "06月11日": "D5", "06月12日": "", "06月13日": "", "06月14日": "", "06月15日": "D", "06月16日": "C1", "06月17日": "", "06月18日": "H2", "06月19日": "D", "06月20日": "D3", "06月21日": "D", "06月22日": "C1", "06月23日": "", "06月24日": "D", "06月25日": "C1", "06月26日": "C1", "06月27日": "D", "06月28日": "D", "06月29日": "D", "06月30日": "H2"}, "category": {"06月01日": "20%", "06月02日": "80%", "06月03日": "80%", "06月04日": "80%", "06月05日": "80%", "06月06日": "80%", "06月07日": "80%", "06月08日": "", "06月09日": "80%", "06月10日": "80%", "06月11日": "20%", "06月12日": "", "06月13日": "", "06月14日": "", "06月15日": "80%", "06月16日": "80%", "06月17日": "", "06月18日": "80%", "06月19日": "80%", "06月20日": "80%", "06月21日": "80%", "06月22日": "80%", "06月23日": "", "06月24日": "80%", "06月25日": "80%", "06月26日": "80%", "06月27日": "80%", "06月28日": "80%", "06月29日": "80%", "06月30日": "80%"}, "notes": {"06月01日": "9", "06月02日": "4", "06月03日": "9", "06月04日": "2(B1)", "06月05日": "4", "06月07日": "9", "06月09日": "2(B1)", "06月10日": "4", "06月15日": "4", "06月16日": "9", "06月19日": "4", "06月20日": "9", "06月21日": "4", "06月22日": "9", "06月24日": "4", "06月25日": "9", "06月26日": "4", "06月27日": "2(B1)", "06月28日": "9", "06月29日": "2(B1)"}, "pto": {}, "is_oncall": {"06月01日": false, "06月02日": false, "06月03日": false, "06月04日": false, "06月05日": false, "06月06日": false, "06月07日": false, "06月08日": true, "06月09日": false, "06月10日": false, "06月11日": false, "06月12日": true, "06月13日": false, "06月14日": false, "06月15日": false, "06月16日": false, "06月17日": true, "06月18日": false, "06月19日": false, "06月20日": false, "06月21日": false, "06月22日": false, "06月23日": false, "06月24日": false, "06月25日": false, "06月26日": false, "06月27日": false, "06月28日": false, "06月29日": false, "06月30日": false}}, {"name": "Lu Liyu", "internal_name": "Lu Liyu", "hours": 174.0, "target": 176.0, "hours_80": 145.5, "hours_20": 27.0, "hours_backup": 0.0, "hours_ln": 0.0, "is_backup": false, "oncall_count": 3, "schedule": {"06月01日": "D5", "06月02日": "H2", "06月03日": "", "06月04日": "C1", "06月05日": "D", "06月06日": "D5", "06月07日": "D5", "06月08日": "", "06月09日": "D5", "06月10日": "C1", "06月11日": "C1", "06月12日": "", "06月13日": "C", "06月14日": "D", "06月15日": "D5", "06月16日": "", "06月17日": "", "06月18日": "C1", "06月19日": "", "06月20日": "D6", "06月21日": "D", "06月22日": "", "06月23日": "C1", "06月24日": "C1", "06月25日": "", "06月26日": "", "06月27日": "C", "06月28日": "C1", "06月29日": "D", "06月30日": "D5"}, "category": {"06月01日": "20%", "06月02日": "80%", "06月03日": "", "06月04日": "80%", "06月05日": "80%", "06月06日": "20%", "06月07日": "80%", "06月08日": "", "06月09日": "20%", "06月10日": "80%", "06月11日": "80%", "06月12日": "", "06月13日": "80%", "06月14日": "80%", "06月15日": "80%", "06月16日": "", "06月17日": "", "06月18日": "80%", "06月19日": "", "06月20日": "80%", "06月21日": "80%", "06月22日": "", "06月23日": "80%", "06月24日": "80%", "06月25日": "", "06月26日": "", "06月27日": "80%", "06月28日": "80%", "06月29日": "80%", "06月30日": "80%"}, "notes": {"06月01日": "2(B1)", "06月04日": "4", "06月05日": "9", "06月06日": "9", "06月07日": "4", "06月09日": "9", "06月10日": "2(B1)", "06月11日": "4", "06月13日": "4", "06月14日": "9", "06月15日": "2(B1)", "06月18日": "4", "06月20日": "2(B1)", "06月21日": "9", "06月23日": "4", "06月24日": "9", "06月27日": "4", "06月28日": "4", "06月29日": "9", "06月30日": "9"}, "pto": {}, "is_oncall": {"06月01日": false, "06月02日": false, "06月03日": true, "06月04日": false, "06月05日": false, "06月06日": false, "06月07日": false, "06月08日": false, "06月09日": false, "06月10日": false, "06月11日": false, "06月12日": false, "06月13日": false, "06月14日": false, "06月15日": false, "06月16日": false, "06月17日": false, "06月18日": false, "06月19日": true, "06月20日": false, "06月21日": false, "06月22日": true, "06月23日": false, "06月24日": false, "06月25日": false, "06月26日": false, "06月27日": false, "06月28日": false, "06月29日": false, "06月30日": false}}, {"name": "doctor hou", "internal_name": "doctor hou", "hours": 134.5, "target": 176.0, "hours_80": 116.5, "hours_20": 18.0, "hours_backup": 0.0, "hours_ln": 0.0, "is_backup": false, "oncall_count": 1, "schedule": {"06月01日": "D5", "06月02日": "H2", "06月03日": "", "06月04日": "", "06月05日": "H2", "06月06日": "D", "06月07日": "", "06月08日": "D", "06月09日": "", "06月10日": "D", "06月11日": "D5", "06月12日": "D", "06月13日": "C", "06月14日": "C1", "06月15日": "D", "06月16日": "H3", "06月17日": "D", "06月18日": "D5", "06月19日": "", "06月20日": "H1", "06月21日": "H2", "06月22日": "", "06月23日": "", "06月24日": "", "06月25日": "H3", "06月26日": "", "06月27日": "", "06月28日": "", "06月29日": "D", "06月30日": "C1"}, "category": {"06月01日": "20%", "06月02日": "80%", "06月03日": "", "06月04日": "", "06月05日": "80%", "06月06日": "80%", "06月07日": "", "06月08日": "80%", "06月09日": "", "06月10日": "80%", "06月11日": "20%", "06月12日": "80%", "06月13日": "80%", "06月14日": "80%", "06月15日": "80%", "06月16日": "80%", "06月17日": "80%", "06月18日": "80%", "06月19日": "", "06月20日": "80%", "06月21日": "80%", "06月22日": "", "06月23日": "", "06月24日": "", "06月25日": "80%", "06月26日": "", "06月27日": "", "06月28日": "", "06月29日": "80%", "06月30日": "80%"}, "notes": {"06月06日": "4", "06月08日": "4", "06月10日": "9", "06月11日": "9", "06月12日": "4", "06月13日": "9", "06月14日": "2(B1)", "06月15日": "9", "06月17日": "4", "06月18日": "9", "06月29日": "4", "06月30日": "4"}, "pto": {}, "is_oncall": {"06月01日": false, "06月02日": false, "06月03日": false, "06月04日": false, "06月05日": false, "06月06日": false, "06月07日": false, "06月08日": false, "06月09日": false, "06月10日": false, "06月11日": false, "06月12日": false, "06月13日": false, "06月14日": false, "06月15日": false, "06月16日": false, "06月17日": false, "06月18日": false, "06月19日": false, "06月20日": false, "06月21日": false, "06月22日": false, "06月23日": false, "06月24日": false, "06月25日": false, "06月26日": true, "06月27日": false, "06月28日": false, "06月29日": false, "06月30日": false}}, {"name": "Dustin Huang (US)", "internal_name": "Dustin Huang (US)", "hours": 0, "target": 176.0, "hours_80": 0, "hours_20": 0, "hours_backup": 0, "hours_ln": 0, "is_backup": false, "oncall_count": 18, "schedule": {"06月01日": "", "06月02日": "", "06月03日": "", "06月04日": "", "06月05日": "", "06月06日": "", "06月07日": "", "06月08日": "", "06月09日": "", "06月10日": "", "06月11日": "", "06月12日": "", "06月13日": "", "06月14日": "", "06月15日": "", "06月16日": "", "06月17日": "", "06月18日": "", "06月19日": "", "06月20日": "", "06月21日": "", "06月22日": "", "06月23日": "", "06月24日": "", "06月25日": "", "06月26日": "", "06月27日": "", "06月28日": "", "06月29日": "", "06月30日": ""}, "category": {"06月01日": "", "06月02日": "", "06月03日": "", "06月04日": "", "06月05日": "", "06月06日": "", "06月07日": "", "06月08日": "", "06月09日": "", "06月10日": "", "06月11日": "", "06月12日": "", "06月13日": "", "06月14日": "", "06月15日": "", "06月16日": "", "06月17日": "", "06月18日": "", "06月19日": "", "06月20日": "", "06月21日": "", "06月22日": "", "06月23日": "", "06月24日": "", "06月25日": "", "06月26日": "", "06月27日": "", "06月28日": "", "06月29日": "", "06月30日": ""}, "notes": {}, "pto": {}, "is_oncall": {"06月01日": true, "06月02日": true, "06月03日": false, "06月04日": true, "06月05日": true, "06月06日": true, "06月07日": false, "06月08日": false, "06月09日": true, "06月10日": false, "06月11日": true, "06月12日": false, "06月13日": true, "06月14日": true, "06月15日": false, "06月16日": true, "06月17日": false, "06月18日": true, "06月19日": false, "06月20日": true, "06月21日": false, "06月22日": false, "06月23日": true, "06月24日": true, "06月25日": true, "06月26日": false, "06月27日": true, "06月28日": false, "06月29日": true, "06月30日": true}}, {"name": "超声医生备班", "internal_name": "超声医生备班", "hours": 189.0, "target": 176.0, "hours_80": 0.0, "hours_20": 0.0, "hours_backup": 187.5, "hours_ln": 0.0, "is_backup": false, "oncall_count": 0, "schedule": {"06月01日": "", "06月02日": "", "06月03日": "T + T + T + H3", "06月04日": "T", "06月05日": "T", "06月06日": "", "06月07日": "", "06月08日": "D", "06月09日": "", "06月10日": "T", "06月11日": "", "06月12日": "D", "06月13日": "D", "06月14日": "", "06月15日": "T", "06月16日": "", "06月17日": "T + H3 + T", "06月18日": "", "06月19日": "D", "06月20日": "", "06月21日": "T", "06月22日": "D6", "06月23日": "D", "06月24日": "T + H3", "06月25日": "", "06月26日": "D", "06月27日": "", "06月28日": "", "06月29日": "T + T", "06月30日": "T"}, "category": {"06月01日": "", "06月02日": "", "06月03日": "备班", "06月04日": "备班", "06月05日": "备班", "06月06日": "", "06月07日": "", "06月08日": "备班", "06月09日": "", "06月10日": "备班", "06月11日": "", "06月12日": "备班", "06月13日": "备班", "06月14日": "", "06月15日": "备班", "06月16日": "", "06月17日": "备班", "06月18日": "", "06月19日": "备班", "06月20日": "", "06月21日": "备班", "06月22日": "备班", "06月23日": "备班", "06月24日": "备班", "06月25日": "", "06月26日": "备班", "06月27日": "", "06月28日": "", "06月29日": "备班", "06月30日": "备班"}, "notes": {}, "pto": {}, "is_oncall": {"06月01日": false, "06月02日": false, "06月03日": false, "06月04日": false, "06月05日": false, "06月06日": false, "06月07日": false, "06月08日": false, "06月09日": false, "06月10日": false, "06月11日": false, "06月12日": false, "06月13日": false, "06月14日": false, "06月15日": false, "06月16日": false, "06月17日": false, "06月18日": false, "06月19日": false, "06月20日": false, "06月21日": false, "06月22日": false, "06月23日": false, "06月24日": false, "06月25日": false, "06月26日": false, "06月27日": false, "06月28日": false, "06月29日": false, "06月30日": false}}], "dates": ["06月01日", "06月02日", "06月03日", "06月04日", "06月05日", "06月06日", "06月07日", "06月08日", "06月09日", "06月10日", "06月11日", "06月12日", "06月13日", "06月14日", "06月15日", "06月16日", "06月17日", "06月18日", "06月19日", "06月20日", "06月21日", "06月22日", "06月23日", "06月24日", "06月25日", "06月26日", "06月27日", "06月28日", "06月29日", "06月30日"], "shift_colors": {"D": "#4CAF50", "D1": "#66BB6A", "D2": "#81C784", "D3": "#A5D6A7", "D4": "#43A047", "D5": "#388E3C", "D6": "#2E7D32", "C": "#4CAF50", "C1": "#66BB6A", "L": "#8BC34A", "H1": "#29B6F6", "H2": "#4FC3F7", "H3": "#81D4FA", "T": "#B3E5FC", "N": "#1a73e8", "N2": "#1565C0", "N3": "#0D47A1", "L/N": "#FF9800", "OnCall": "#9E9E9E", "off": "#F5F5F5"}, "shift_times": {"D": "08:30-17:30", "D1": "08:30-17:00", "D2": "09:00-17:30", "D3": "09:30-18:00", "D4": "09:00-18:00", "D5": "08:30-18:00", "D6": "07:30-15:30", "C": "07:40-16:10", "C1": "08:00-16:30", "L": "08:00-20:00", "H1": "07:40-11:40", "H2": "08:30-12:30", "H3": "13:30-17:30", "T": "08:00-12:00", "N": "17:30-08:00", "N2": "17:30-07:30", "N3": "18:00-08:00", "L/N": "08:00-08:00"}, "demand_samples": {"06月01日": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "06月02日": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 3.0, 4.0, 4.0, 3.0, 2.0, 2.0, 2.0, 2.0, 2.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "06月03日": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 5.0, 5.0, 5.0, 3.0, 2.0, 2.0, 3.0, 3.0, 3.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0], "06月04日": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 4.0, 4.0, 4.0, 3.0, 2.0, 2.0, 3.0, 3.0, 3.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0], "06月05日": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 4.0, 5.0, 5.0, 4.0, 3.0, 3.0, 3.0, 3.0, 3.0, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "06月06日": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 4.0, 4.0, 4.0, 3.0, 2.0, 2.0, 2.0, 2.0, 2.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0], "06月07日": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.0, 2.0, 2.0, 2.0, 2.0, 1.0, 2.0, 2.0, 2.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}, "total_days": 30}}, "statistics": {"total_fulltime": 15, "total_backup": 0, "total_backup_hours": 0, "avg_fulltime_hours": 182.6, "total_80_hours": 1348.0, "total_20_hours": 357.5, "total_ln_hours": 384.0}};
+var TARGET_HOURS = 176.0;
+var TARGET_80 = 140.8;
 var currentRole = '放射医生';
 var editMode = false;
 var edits = {};
 var selectedCell = null;
 
-// Shift legend
-var LEGEND = {
-    'C':{color:'#00897B',label:'C (80%班)'},'C1':{color:'#00897B',label:'C1 (20%班)'},
-    'D':{color:'#2E7D32',label:'D (白班)'},'D1':{color:'#2E7D32',label:'D1'},'D2':{color:'#2E7D32',label:'D2'},
-    'D3':{color:'#2E7D32',label:'D3'},'D4':{color:'#2E7D32',label:'D4'},'D5':{color:'#2E7D32',label:'D5'},'D6':{color:'#2E7D32',label:'D6'},
-    'N':{color:'#1565C0',label:'N (夜班)'},'N1':{color:'#1565C0',label:'N1'},'N2':{color:'#1565C0',label:'N2'},'N3':{color:'#1565C0',label:'N3'},
-    'L/N':{color:'#E65100',label:'L/N (24H)'},
-    'L':{color:'#7B1FA2',label:'L'},'L1':{color:'#7B1FA2',label:'L1'},
-    'T':{color:'#558B2F',label:'T'},'T1':{color:'#558B2F',label:'T1'},
-    'H':{color:'#F9A825',label:'H'},'H1':{color:'#F9A825',label:'H1'},'H2':{color:'#F9A825',label:'H2'},'H3':{color:'#F9A825',label:'H3'},
-};
-var ALLOWED_SHIFTS = ['C','C1','D1','D2','D3','D4','D5','D6','N','N1','N2','N3','L','L/N','T','T1','H','H1','H2','H3','OFF'];
+// ============ PASSWORD ============
+var PWD_HASH = 'Z3p1MjAyNg=='; // gzu2026
+function checkPwd(){
+    var inp = document.getElementById('pwdInput').value;
+    if(btoa(inp) === PWD_HASH){
+        document.getElementById('pwdGate').style.display = 'none';
+        document.getElementById('mainContent').style.display = 'block';
+        sessionStorage.setItem('_gzu_sched', '1');
+        init();
+    } else {
+        document.getElementById('pwdErr').textContent = '密码错误';
+    }
+}
+if(sessionStorage.getItem('_gzu_sched') === '1'){
+    document.getElementById('pwdGate').style.display = 'none';
+    document.getElementById('mainContent').style.display = 'block';
+    window.addEventListener('DOMContentLoaded', init);
+}
 
 // ============ INIT ============
-async function init() {
-    try {
-        var resp = await fetch(DATA_URL);
-        scheduleData = await resp.json();
-    } catch(e) {
-        scheduleData = null;
-        msg('无法加载排班数据', 'err');
+function init(){
+    document.getElementById('hdMonth').textContent = SCHEDULE_DATA.month || '';
+    var tabs = document.getElementById('tabs');
+    var roles = Object.keys(SCHEDULE_DATA.roles);
+    for(var i=0; i<roles.length; i++){
+        (function(role){
+            var btn = document.createElement('button');
+            btn.className = 'tab' + (role === currentRole ? ' active' : '');
+            btn.textContent = role;
+            btn.onclick = function(){ currentRole = role; switchRole(); };
+            tabs.appendChild(btn);
+        })(roles[i]);
     }
-    document.getElementById('hdMonth').textContent = scheduleData ? scheduleData.month : '';
-    document.getElementById('roleSelect').addEventListener('change', function(){
-        currentRole = this.value;
-        renderAll();
-    });
-    document.addEventListener('click', function(e){
-        if (!e.target.closest('.edit-popup') && !e.target.closest('td')) {
-            document.getElementById('editPopup').classList.remove('show');
-        }
-    });
+    document.getElementById('roleSelect').value = currentRole;
     renderAll();
-    renderShiftRef();
     loadNotes();
     loadReqs();
 }
 
-function getDates() {
-    var month = scheduleData ? scheduleData.month : '';
-    if (!month || month === '-') {
-        var now = new Date(); var y = now.getFullYear(); var m = now.getMonth() + 1;
-    } else {
-        var parts = month.split('-'); var y = parseInt(parts[0]); var m = parseInt(parts[1]);
+function switchRole(){
+    currentRole = document.getElementById('roleSelect').value;
+    var tabEls = document.querySelectorAll('.tab');
+    for(var i=0; i<tabEls.length; i++){
+        tabEls[i].classList.toggle('active', tabEls[i].textContent === currentRole);
     }
-    var days = new Date(y, m, 0).getDate();
-    var dates = [];
-    for (var d = 1; d <= days; d++) {
-        var dt = new Date(y, m-1, d);
-        dates.push({
-            label: d,
-            day: dt.getDay(),
-            full: y + '-' + String(m).padStart(2,'0') + '-' + String(d).padStart(2,'0')
-        });
-    }
-    return dates;
+    renderAll();
 }
 
-function renderAll() {
-    renderStats();
+// ============ RENDER ============
+function renderAll(){
     renderLegend();
-    renderTable();
+    renderRoster();
+    renderShiftRef();
 }
 
-// ============ STATS BAR ============
-function renderStats() {
-    if (!scheduleData) return;
-    var role = scheduleData.roles[currentRole];
-    if (!role) return;
-
-    var html = '';
-    // Summary: total people, total hours
-    var ft = role.fulltime || [];
-    html += '<div class="stat-chip"><span class="lbl">全职</span><span class="val">'+ft.length+'人</span></div>';
-    if (role.backup && role.backup.length > 0) {
-        var bk = role.backup[0];
-        html += '<div class="stat-chip backup"><span class="lbl">'+bk.name+'</span><span class="val">'+bk.stats['备班工时']+'h</span></div>';
+function renderLegend(){
+    var rd = SCHEDULE_DATA.roles[currentRole];
+    var colors = rd.shift_colors;
+    var h = '';
+    var shown = {};
+    for(var k in colors){
+        if(shown[k] || k === 'off') continue;
+        shown[k] = true;
+        var time = rd.shift_times[k] || '';
+        h += '<span class="legend-item"><span class="legend-dot" style="background:' + colors[k] + '"></span> ' + k + (time?' ('+time+')':'') + '</span> ';
     }
-    document.getElementById('statsBar').innerHTML = html;
+    h += '<span class="legend-item"><span class="legend-dot" style="background:#F5F5F5;border:1px solid #ddd"></span> 休息</span> ';
+    h += '<span class="legend-item" style="color:#9E9E9E">📞 OnCall</span>';
+    document.getElementById('legendContent').innerHTML = h;
 }
 
-// ============ LEGEND ============
-function renderLegend() {
-    var seen = {};
-    var html = '';
-    var keys = ['C','D','T','N','L','H','L/N'];
-    for (var i = 0; i < keys.length; i++) {
-        var l = LEGEND[keys[i]];
-        if (l && !seen[l.label]) {
-            seen[l.label] = true;
-            html += '<div class="legend-item"><div class="legend-swatch" style="background:'+l.color+'"></div>'+l.label+'</div>';
-        }
+function renderRoster(){
+    var rd = SCHEDULE_DATA.roles[currentRole];
+    var dates = rd.dates;
+    var h = '<h2>' + currentRole + ' 排班表</h2>';
+    h += '<table class="schedule"><thead><tr>';
+    h += '<th class="name-col">人员</th>';
+    h += '<th class="stats-col">工时</th><th class="stats-col">80%</th><th class="stats-col">20%</th>';
+    h += '<th class="stats-col">备班</th><th class="stats-col">L/N</th><th class="stats-col">目标</th><th class="stats-col">OnCall</th>';
+    for(var i=0; i<dates.length; i++){
+        h += '<th>' + dates[i].slice(3) + '</th>';
     }
-    html += '<div class="legend-item"><div class="legend-swatch" style="background:#f5f5f5;border:1px solid #ccc"></div>休息</div>';
-    html += '<div class="legend-item"><div class="legend-swatch" style="background:#FFF3E0;border:1px solid #E65100"></div>OnCall</div>';
-    document.getElementById('legendBar').innerHTML = html;
-}
+    h += '</tr></thead><tbody>';
 
-// ============ TABLE ============
-function renderTable() {
-    if (!scheduleData) return;
-    var role = scheduleData.roles[currentRole];
-    if (!role) return;
+    var staff = rd.staff;
+    for(var si=0; si<staff.length; si++){
+        var person = staff[si];
+        h += '<tr>';
+        h += '<td class="name-col">' + person.name + (person.is_backup?' 🔄':'') + '</td>';
+        h += '<td class="stats-col" style="' + (person.hours > TARGET_80 && !person.is_backup?'color:#1a73e8;font-weight:600':'') + '">' + person.hours + 'h</td>';
+        h += '<td class="stats-col">' + person.hours_80 + 'h</td>';
+        h += '<td class="stats-col" style="color:#1a73e8">' + (person.hours_20>0?person.hours_20+'h':'-') + '</td>';
+        h += '<td class="stats-col" style="color:#F44336">' + (person.hours_backup>0?person.hours_backup+'h':'-') + '</td>';
+        h += '<td class="stats-col" style="color:#FF9800;font-weight:600">' + (person.hours_ln>0?person.hours_ln+'h':'-') + '</td>';
+        h += '<td class="stats-col">' + (person.target>0?person.target+'h':'-') + '</td>';
+        h += '<td class="stats-col">' + (person.oncall_count||'') + '</td>';
 
-    var dates = getDates();
-    var fulltime = role.fulltime || [];
-    var backup = role.backup || [];
+        for(var di=0; di<dates.length; di++){
+            var ds = dates[di];
+            var shiftVal = person.schedule[ds] || '';
+            var catVal = person.category[ds] || '';
+            var isOncall = person.is_oncall && person.is_oncall[ds];
+            var hasEdit = edits[person.internal_name] && edits[person.internal_name][ds] !== undefined;
+            var displayShift = hasEdit ? edits[person.internal_name][ds] : shiftVal;
+            var text = displayShift || '-';
+            var extraClass = editMode ? ' editable' : '';
+            var bg = displayShift ? '#F8F8F8' : '#FFFFFF';
 
-    // Stat column headers
-    var statKeys = [];
-    if (fulltime.length > 0) {
-        statKeys = Object.keys(fulltime[0].stats).filter(function(k){return k !== '人员' && k !== '角色' && k !== '类型'});
-    }
+            if(displayShift){
+                if(catVal === '备班') extraClass += ' cat-backup';
+                else if(catVal === 'L/N') extraClass += ' cat-ln';
+                else if(catVal === '20%') extraClass += ' cat-20';
 
-    var html = '<thead><tr><th class="name-col">人员</th>';
-    // Stat columns
-    for (var sk = 0; sk < statKeys.length; sk++) {
-        var lbl = statKeys[sk];
-        if (lbl.length > 5) lbl = lbl.substring(0,4);
-        html += '<th class="stats-col hdr">'+lbl+'</th>';
-    }
-    // Date columns
-    for (var d = 0; d < dates.length; d++) {
-        var cls = (dates[d].day === 0 || dates[d].day === 6) ? 'weekend' : '';
-        html += '<th class="'+cls+'">'+dates[d].label+'</th>';
-    }
-    html += '</tr></thead><tbody>';
-
-    // Fulltime staff rows
-    for (var s = 0; s < fulltime.length; s++) {
-        var staff = fulltime[s];
-        html += '<tr>';
-        html += '<td class="name-col">'+staff.name+'</td>';
-        // Stat cells
-        for (var sk = 0; sk < statKeys.length; sk++) {
-            var val = staff.stats[statKeys[sk]] || '';
-            html += '<td class="stats-col">'+val+'</td>';
-        }
-        // Date cells
-        for (var d = 0; d < dates.length; d++) {
-            var dateKey = dates[d].full;
-            var editKey = staff.name + '|' + dateKey;
-            var origShift = (staff.schedule || {})[dateKey] || '';
-            var shift = (edits[editKey] !== undefined) ? edits[editKey] : origShift;
-            var cls = getShiftClass(shift);
-            if (dates[d].day === 0 || dates[d].day === 6) cls += ' weekend';
-            if (editMode) cls += ' editable';
-            if (edits[editKey] !== undefined) cls += ' edited';
-            html += '<td class="'+cls+'" data-staff="'+staff.name+'" data-date="'+dateKey+'" data-shift="'+shift+'" onclick="cellClick(this)">'+dispShift(shift)+'</td>';
-        }
-        html += '</tr>';
-    }
-
-    // Backup staff rows
-    if (backup.length > 0) {
-        // divider
-        html += '<tr class="divider-row"><td></td></tr>';
-
-        for (var b = 0; b < backup.length; b++) {
-            var bs = backup[b];
-            html += '<tr class="backup-row">';
-            html += '<td class="name-col">'+bs.name+'</td>';
-            // Stat cells for backup
-            for (var sk = 0; sk < statKeys.length; sk++) {
-                var val = bs.stats[statKeys[sk]] || '';
-                html += '<td class="stats-col">'+val+'</td>';
+                var badge = '';
+                if(catVal === '20%') badge = ' <sup style="background:#1a73e8;color:#fff;padding:1px 3px;border-radius:2px;font-size:8px">20%</sup>';
+                else if(catVal === '备班') badge = ' <sup style="background:#F44336;color:#fff;padding:1px 3px;border-radius:2px;font-size:8px">B</sup>';
+                else if(catVal === 'L/N') badge = ' <sup style="background:#FF9800;color:#fff;padding:1px 3px;border-radius:2px;font-size:8px">LN</sup>';
+                text = '<b>' + displayShift + '</b>' + badge;
             }
-            // Date cells
-            for (var d = 0; d < dates.length; d++) {
-                var dateKey = dates[d].full;
-                var editKey = bs.name + '|' + dateKey;
-                var origShift = (bs.schedule || {})[dateKey] || '';
-                var shift = (edits[editKey] !== undefined) ? edits[editKey] : origShift;
-                var cls = getShiftClass(shift);
-                if (dates[d].day === 0 || dates[d].day === 6) cls += ' weekend';
-                if (editMode) cls += ' editable';
-                if (edits[editKey] !== undefined) cls += ' edited';
-                html += '<td class="'+cls+'" data-staff="'+bs.name+'" data-date="'+dateKey+'" data-shift="'+shift+'" onclick="cellClick(this)">'+dispShift(shift)+'</td>';
+            // PTO
+            if(person.pto && person.pto[ds]){
+                h += '<td class="shift-cell cell-pto" style="background:#FF4444;color:#fff;font-weight:bold"><span>PTO</span></td>';
+                continue;
             }
-            html += '</tr>';
-        }
-    }
-
-    html += '</tbody>';
-    document.getElementById('scheduleTable').innerHTML = html;
-}
-
-function getShiftClass(shift) {
-    if (!shift) return 'shift-empty';
-    if (shift.indexOf('📞') >= 0) return 'shift-OC';
-    // Extract base shift type (first token before space or +)
-    var base = shift.split(/[\s\n\+]/)[0];
-    if (base === 'L/N' || base === 'LN') return 'shift-LN';
-    if (['C','C1','C2'].indexOf(base) >= 0) return 'shift-C';
-    if (['D','D1','D2','D3','D4','D5','D6','DH'].indexOf(base) >= 0) return 'shift-D';
-    if (['N','N1','N2','N3'].indexOf(base) >= 0) return 'shift-N';
-    if (['L','L1','L2'].indexOf(base) >= 0) return 'shift-L';
-    if (['T','T1','T2'].indexOf(base) >= 0) return 'shift-T';
-    if (['H','H1','H2','H3'].indexOf(base) >= 0) return 'shift-H';
-    return 'shift-empty';
-}
-
-function dispShift(shift) {
-    if (!shift) return '';
-    // For LN with time info, just show L/N
-    if (shift.indexOf('L/N') >= 0 || shift.indexOf('LN') >= 0) return 'L/N';
-    if (shift.indexOf('N2') >= 0 || shift.indexOf('N1') >= 0 || shift.indexOf('N3') >= 0) {
-        // Show compact: "N2+T"
-        var parts = shift.split('\n')[0].replace(/\+/g,'');
-        return parts.substring(0,8);
-    }
-    return shift.split('\n')[0]; // first line only
-}
-
-// ============ EDIT ============
-function toggleEdit() {
-    editMode = !editMode;
-    var btn = document.getElementById('btnEdit');
-    if (editMode) {
-        btn.textContent = '退出编辑'; btn.classList.add('active');
-        document.getElementById('btnSave').classList.add('show');
-        msg('编辑模式 — 点击单元格修改班次', 'ok');
-    } else {
-        btn.textContent = '编辑模式'; btn.classList.remove('active');
-        document.getElementById('btnSave').classList.remove('show');
-        document.getElementById('editPopup').classList.remove('show');
-        msg('', '');
-    }
-    renderTable();
-}
-
-function cellClick(td) {
-    if (!editMode) return;
-    document.getElementById('editPopup').classList.remove('show');
-
-    var staff = td.dataset.staff;
-    var date = td.dataset.date;
-    var cur = td.dataset.shift;
-    if (selectedCell) selectedCell.classList.remove('selected');
-    td.classList.add('selected');
-    selectedCell = td;
-
-    var popup = document.getElementById('editPopup');
-    var rect = td.getBoundingClientRect();
-    var html = '';
-    for (var i = 0; i < ALLOWED_SHIFTS.length; i++) {
-        var s = ALLOWED_SHIFTS[i];
-        var l = LEGEND[s];
-        var bg = l ? l.color : '#fff';
-        html += '<button onclick="applyShift(\''+staff+'\',\''+date+'\',\''+s+'\')" style="'+(s===cur?'font-weight:700;background:#e8f0fe':'')+'"><span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:'+bg+';margin-right:6px;vertical-align:middle"></span>'+s+'</button>';
-    }
-    html += '<hr><button onclick="applyShift(\''+staff+'\',\''+date+'\',\'\')" style="color:#999">清除</button>';
-    popup.innerHTML = html;
-    popup.style.left = Math.min(rect.left, window.innerWidth-130)+'px';
-    popup.style.top = Math.min(rect.bottom+2, window.innerHeight-320)+'px';
-    popup.classList.add('show');
-}
-
-function applyShift(staff, date, newShift) {
-    var key = staff + '|' + date;
-    var role = scheduleData.roles[currentRole];
-    var allStaff = (role.fulltime||[]).concat(role.backup||[]);
-    var orig = '';
-    for (var s = 0; s < allStaff.length; s++) {
-        if (allStaff[s].name === staff) {
-            orig = (allStaff[s].schedule||{})[date] || '';
-            break;
-        }
-    }
-    if (newShift === orig || (newShift === '' && orig === '')) {
-        delete edits[key];
-    } else {
-        edits[key] = newShift;
-    }
-    document.getElementById('editPopup').classList.remove('show');
-    renderTable();
-}
-
-// ============ SAVE ============
-async function saveChanges() {
-    if (Object.keys(edits).length === 0) {
-        msg('没有修改', 'err'); return;
-    }
-    var role = scheduleData.roles[currentRole];
-    var allStaff = (role.fulltime||[]).concat(role.backup||[]);
-    var cnt = 0;
-    for (var key in edits) {
-        if (!edits.hasOwnProperty(key)) continue;
-        var parts = key.split('|'); var staff = parts[0]; var date = parts.slice(1).join('|');
-        for (var s = 0; s < allStaff.length; s++) {
-            if (allStaff[s].name === staff) {
-                if (!allStaff[s].schedule) allStaff[s].schedule = {};
-                allStaff[s].schedule[date] = edits[key]; cnt++; break;
+            // OnCall
+            if(isOncall){ text += ' 📞'; extraClass += ' cell-oncall'; }
+            // Floor notes
+            if(person.notes && person.notes[ds]){
+                text += ' [' + person.notes[ds] + ']';
             }
+
+            var onclick = editMode ? ('onclick="openEditPopup(\'' + person.internal_name + '\',\'' + ds + '\')"') : ('onclick="showDayDetail(\'' + ds + '\')"');
+            h += '<td class="shift-cell' + extraClass + '" style="background:' + bg + '" ' + onclick + ' title="' + ds + ': ' + (displayShift||'休息') + ' [' + (catVal||'-') + ']">' + text + '</td>';
         }
+        h += '</tr>';
     }
-    var token = localStorage.getItem('gh_token');
-    if (!token) { msg('请先设置GitHub Token', 'err'); toggleToken(); return; }
-
-    scheduleData.updated = new Date().toISOString();
-    var content = JSON.stringify(scheduleData, null, 2);
-    var contentB64 = btoa(unescape(encodeURIComponent(content)));
-    msg('保存中...', 'ok');
-    try {
-        var getUrl = 'https://api.github.com/repos/'+REPO_OWNER+'/'+REPO_NAME+'/contents/'+DATA_PATH;
-        var getResp = await fetch(getUrl, {headers:{'Authorization':'token '+token}});
-        var getData = await getResp.json();
-        var body = {message:'Update schedule ('+currentRole+')',content:contentB64,branch:'gh-pages'};
-        if (getData.sha) body.sha = getData.sha;
-        var putResp = await fetch('https://api.github.com/repos/'+REPO_OWNER+'/'+REPO_NAME+'/contents/'+DATA_PATH, {
-            method:'PUT', headers:{'Authorization':'token '+token,'Content-Type':'application/json'}, body:JSON.stringify(body)
-        });
-        var putData = await putResp.json();
-        if (putData.content) { edits={}; msg('已保存（'+cnt+'处）','ok'); renderTable(); document.getElementById('btnSave').classList.remove('show'); }
-        else { msg('失败: '+(putData.message||'?'), 'err'); }
-    } catch(e) { msg('网络错误: '+e.message, 'err'); }
+    h += '</tbody></table>';
+    document.getElementById('roster').innerHTML = h;
 }
 
-function toggleToken() {
-    var area = document.getElementById('tokenArea'); area.classList.toggle('show');
-    var saved = localStorage.getItem('gh_token');
-    if (saved) document.getElementById('tokenInput').value = saved.substring(0,8)+'...';
-}
-function saveToken() {
-    var val = document.getElementById('tokenInput').value.trim();
-    if (val && !val.startsWith('...')) { localStorage.setItem('gh_token',val); msg('Token已保存','ok'); document.getElementById('tokenArea').classList.remove('show'); }
-}
-function msg(text, cls) { var el = document.getElementById('msg'); el.textContent = text; el.className = 'msg '+(cls||''); }
-
-// ============ SHIFT REFERENCE ============
-var SHIFT_REF_DATA = [
-    {cat:'白班（8-12h）', color:'#2E7D32', times:['07:40-16:10','08:00-16:30','08:30-17:30','08:30-17:00','09:00-17:30','09:30-18:00','09:00-18:00','08:30-18:00','07:30-15:30','08:00-20:00']},
-    {cat:'半天班（4h）', color:'#F9A825', times:['08:00-12:00','07:40-11:40','08:30-12:30','13:30-17:30']},
-    {cat:'夜班（14-15h）', color:'#1565C0', times:['17:30-08:00','17:30-07:30','18:00-08:00']},
-    {cat:'24小时班', color:'#E65100', times:['08:00-08:00']},
-    {cat:'OnCall 备呼', color:'#E65100', times:['待命值班']}
-];
 function renderShiftRef(){
-    var html='';
-    for(var i=0;i<SHIFT_REF_DATA.length;i++){
-        var cat=SHIFT_REF_DATA[i];
-        html+='<div class="shift-cat"><h4 style="color:'+cat.color+'">'+cat.cat+'：</h4><div class="shift-inline">';
-        for(var j=0;j<cat.times.length;j++){
-            html+='<span class="shift-chip"><span class="dot" style="background:'+cat.color+'"></span><span class="time-str">'+cat.times[j]+'</span></span>';
+    var rd = SCHEDULE_DATA.roles[currentRole];
+    var h = '<table class="shift-table"><thead><tr><th>班次</th><th>时间</th><th>说明</th></tr></thead><tbody>';
+    var shiftNames = ['D','D1','D2','D3','D4','D5','D6','C','C1','L','N','N1','N2','N3','L/N','T','T1','H','H1','H2','H3'];
+    for(var i=0; i<shiftNames.length; i++){
+        var s = shiftNames[i];
+        var time = rd.shift_times[s];
+        var color = rd.shift_colors[s];
+        if(time || color){
+            h += '<tr><td style="font-weight:600;background:' + (color||'#f5f5f5') + (color?'">':';color:#666">') + s + '</td><td>' + (time||'-') + '</td><td style="font-size:10px;color:#888">' + getShiftDesc(s) + '</td></tr>';
         }
-        html+='</div></div>';
     }
-    document.getElementById('shiftRefContent').innerHTML=html;
+    h += '</tbody></table>';
+    document.getElementById('shiftRef').innerHTML = h;
+}
+function getShiftDesc(s){
+    if(s=='L/N') return '24小时长班';
+    if(s.indexOf('D')===0) return s==='D'?'白班8h':'白班变体';
+    if(s.indexOf('C')===0) return '弹性班';
+    if(s.indexOf('N')===0) return s==='N'?'夜班':'夜班变体';
+    if(s.indexOf('H')===0) return '半天班';
+    if(s=='T') return '教学班';
+    if(s==='L') return '长班';
+    return '';
+}
+
+// ============ DAY DETAIL POPUP (read-only) ============
+function showDayDetail(dateStr){
+    if(editMode) return;
+    var rd = SCHEDULE_DATA.roles[currentRole];
+    var h = '<h3>📅 ' + dateStr + ' — ' + currentRole + '</h3>';
+    h += '<table><thead><tr><th>人员</th><th>班次</th><th>时间</th><th>分类</th></tr></thead><tbody>';
+    var hasData = false;
+    for(var i=0; i<rd.staff.length; i++){
+        var p = rd.staff[i];
+        var sv = p.schedule[dateStr] || '';
+        if(sv){
+            hasData = true;
+            var parts = sv.split(' + ');
+            var times = [];
+            for(var k=0; k<parts.length; k++){
+                var pp = parts[k].trim();
+                if(pp.indexOf('备班(')>=0) times.push(pp);
+                else times.push(rd.shift_times[pp] || pp);
+            }
+            var cv = p.category[dateStr] || '';
+            var cd = cv;
+            if(cv==='20%') cd='<span style="color:#1a73e8;font-weight:600">20%池</span>';
+            else if(cv==='备班') cd='<span style="color:#F44336;font-weight:600">备班</span>';
+            else if(cv==='L/N') cd='<span style="color:#FF9800;font-weight:600">L/N</span>';
+            h += '<tr><td>' + p.name + '</td><td>' + sv + '</td><td>' + times.join(' + ') + '</td><td>' + cd + '</td></tr>';
+        }
+    }
+    if(!hasData) h += '<tr><td colspan="4" style="text-align:center;color:#999">当日无人排班</td></tr>';
+    h += '</tbody></table>';
+    h += '<div class="chart-container" id="dayChart"></div>';
+    document.getElementById('popup').innerHTML = h;
+    openOverlay();
+    // Demand chart
+    setTimeout(function(){
+        var demand = rd.demand_samples[dateStr] || [];
+        if(demand.length>0){
+            var cd = document.getElementById('dayChart');
+            if(cd && typeof echarts !== 'undefined'){
+                var chart = echarts.init(cd);
+                var hours = []; for(var hh=0; hh<24; hh++) hours.push(hh+':00');
+                chart.setOption({
+                    title:{text:dateStr+' 需求HC',textStyle:{fontSize:12}},
+                    tooltip:{trigger:'axis'},
+                    xAxis:{data:hours,axisLabel:{rotate:45,fontSize:9}},
+                    yAxis:{name:'人数',minInterval:1},
+                    series:[{name:'需求HC',type:'bar',data:demand,itemStyle:{color:'#1a73e8'}}],
+                    grid:{left:40,right:15,top:35,bottom:45}
+                });
+            }
+        }
+    },200);
+}
+
+// ============ EDIT MODE ============
+function toggleEdit(){
+    var btn = document.getElementById('btnEdit');
+    var saveBtn = document.getElementById('btnSave');
+    editMode = !editMode;
+    if(editMode){
+        btn.textContent = '退出编辑';
+        btn.classList.add('active');
+        saveBtn.classList.add('show');
+    } else {
+        btn.textContent = '编辑模式';
+        btn.classList.remove('active');
+        saveBtn.classList.remove('show');
+    }
+    renderRoster();
+}
+
+var ALLOWED_SHIFTS = ['C','C1','D1','D2','D3','D4','D5','D6','N','N1','N2','N3','L','L/N','T','T1','H','H1','H2','H3','OFF'];
+var SHIFT_LABELS = {OFF:'休息'};
+
+function openEditPopup(personName, dateStr){
+    selectedCell = {name: personName, ds: dateStr};
+    var rd = SCHEDULE_DATA.roles[currentRole];
+    var person = null;
+    for(var i=0; i<rd.staff.length; i++){ if(rd.staff[i].internal_name === personName){ person = rd.staff[i]; break; } }
+    if(!person) return;
+    var currentShift = edits[personName]&&edits[personName][dateStr]!==undefined ? edits[personName][dateStr] : (person.schedule[dateStr] || '');
+
+    var h = '<h3>✏️ ' + person.name + ' — ' + dateStr + '</h3>';
+    h += '<p style="font-size:11px;color:#666;margin-bottom:8px">当前班次：<b>' + (currentShift||'休息') + '</b></p>';
+    h += '<div class="btn-row">';
+    for(var i=0; i<ALLOWED_SHIFTS.length; i++){
+        var s = ALLOWED_SHIFTS[i];
+        var sel = s === currentShift ? ' sel' : '';
+        var label = SHIFT_LABELS[s] || s;
+        h += '<button class="btn-shift' + sel + '" onclick="selectShift(\'' + s + '\')">' + label + '</button>';
+    }
+    h += '</div>';
+    h += '<button class="btn-save-changes" onclick="applyEdit()">确认修改</button>';
+    document.getElementById('popup').innerHTML = h;
+    openOverlay();
+}
+
+function selectShift(shift){
+    var btns = document.querySelectorAll('.btn-shift');
+    for(var i=0; i<btns.length; i++){ btns[i].classList.remove('sel'); }
+    var btns2 = document.querySelectorAll('.btn-shift');
+    for(var i=0; i<btns2.length; i++){
+        if(btns2[i].textContent === shift || (shift==='OFF' && btns2[i].textContent==='休息')){
+            btns2[i].classList.add('sel');
+        }
+    }
+    if(!edits[selectedCell.name]) edits[selectedCell.name] = {};
+    edits[selectedCell.name][selectedCell.ds] = shift;
+    renderRoster();
+    closePopup();
+}
+
+function applyEdit(){
+    closePopup();
+    renderRoster();
+}
+
+function openOverlay(){
+    document.getElementById('overlay').classList.add('active');
+    document.getElementById('popup').classList.add('active');
+}
+function closePopup(){
+    document.getElementById('overlay').classList.remove('active');
+    document.getElementById('popup').classList.remove('active');
+}
+document.addEventListener('keydown', function(e){ if(e.key==='Escape') closePopup(); });
+
+// ============ SAVE TO GITHUB ============
+function toggleToken(){
+    document.getElementById('tokenArea').classList.toggle('show');
+}
+function saveToken(){
+    var t = document.getElementById('tokenInput').value.trim();
+    if(t) localStorage.setItem('gh_token', t);
+    msg('Token已保存', 'ok');
+}
+
+async function saveChanges(){
+    var token = localStorage.getItem('gh_token');
+    if(!token){ msg('请先设置GitHub Token', 'err'); toggleToken(); return; }
+    var count = 0;
+    for(var p in edits){ for(var d in edits[p]){ count++; } }
+    if(count === 0){ msg('没有修改', 'err'); return; }
+
+    // Update SCHEDULE_DATA with edits
+    var rd = SCHEDULE_DATA.roles[currentRole];
+    for(var si=0; si<rd.staff.length; si++){
+        var person = rd.staff[si];
+        if(edits[person.internal_name]){
+            for(var ds in edits[person.internal_name]){
+                person.schedule[ds] = edits[person.internal_name][ds];
+                person.category[ds] = '';
+            }
+        }
+    }
+
+    var b64 = btoa(unescape(encodeURIComponent(JSON.stringify(SCHEDULE_DATA, null, 2))));
+    var path = 'publish/schedule_data.json';
+    try{
+        var getUrl = 'https://api.github.com/repos/liuyx339-oss/gzu-schedule/contents/' + path;
+        var d = await (await fetch(getUrl, {headers: {'Authorization': 'token ' + token}})).json();
+        var body = {message: 'Update schedule', content: b64, branch: 'master'};
+        if(d.sha) body.sha = d.sha;
+        var r = await (await fetch(getUrl, {method: 'PUT', headers: {'Authorization': 'token ' + token, 'Content-Type': 'application/json'}, body: JSON.stringify(body)})).json();
+        if(r.content){
+            msg('✅ 已保存 ' + count + ' 处修改', 'ok');
+            edits = {};
+            renderRoster();
+        } else {
+            msg('保存失败: ' + (r.message||'?'), 'err');
+        }
+    } catch(e){ msg('网络错误: ' + e.message, 'err'); }
+}
+
+function msg(text, cls){
+    var el = document.getElementById('msg');
+    el.textContent = text;
+    el.className = 'msg ' + (cls||'');
+    setTimeout(function(){ el.textContent = ''; el.className = 'msg'; }, 4000);
 }
 
 // ============ NOTES CRUD ============
-var NOTES_PATH='publish/notes.json';
-var notesData=[];
-var editingNoteId=null;
+var NOTES_PATH = 'publish/notes.json';
+var notes = [];
+var editingNoteId = null;
 
 async function loadNotes(){
-    try{
-        var resp=await fetch('notes.json?'+Date.now());
-        if(resp.ok) notesData=await resp.json();
-        else notesData=[];
-    }catch(e){notesData=[];}
+    try{ var r = await fetch('notes.json?' + Date.now()); if(r.ok) notes = await r.json(); else notes = []; }
+    catch(e){ notes = []; }
     renderNotes();
 }
 function renderNotes(){
-    var html='';
-    if(!notesData.length){html='<div style="color:#999;font-size:13px;text-align:center;padding:20px">暂无使用说明，点击"+ 新增说明"添加</div>';}
-    for(var i=0;i<notesData.length;i++){
-        var n=notesData[i];
-        html+='<div class="note-card"><div class="note-meta">'+n.time+' | 修改记录 #'+(notesData.length-i)+'</div><div class="note-text">'+n.text+'</div><div class="note-actions"><button onclick="editNote('+i+')">编辑</button><button onclick="delNote('+i+')">删除</button></div></div>';
+    var h = '';
+    if(!notes.length){ h = '<div style="color:#999;font-size:12px;text-align:center;padding:12px">暂无说明，点击"+ 新增说明"添加</div>'; }
+    for(var i=0; i<notes.length; i++){
+        var n = notes[i];
+        h += '<div class="note-card"><div class="note-meta">' + n.time + ' | #' + (notes.length-i) + '</div><div class="note-text">' + n.text + '</div><div class="note-actions"><button onclick="editNote(' + i + ')">编辑</button><button onclick="delNote(' + i + ')">删除</button></div></div>';
     }
-    document.getElementById('notesList').innerHTML=html;
+    document.getElementById('notesList').innerHTML = h;
 }
-function addNote(){
-    editingNoteId=null;
-    document.getElementById('noteText').value='';
-    document.getElementById('noteEditor').classList.add('show');
-}
-function editNote(idx){
-    editingNoteId=idx;
-    document.getElementById('noteText').value=notesData[idx].text;
-    document.getElementById('noteEditor').classList.add('show');
-}
-function cancelNote(){
-    document.getElementById('noteEditor').classList.remove('show');
-}
+function addNote(){ editingNoteId = null; document.getElementById('noteText').value = ''; document.getElementById('noteEditor').classList.add('show'); }
+function editNote(idx){ editingNoteId = idx; document.getElementById('noteText').value = notes[idx].text; document.getElementById('noteEditor').classList.add('show'); }
+function cancelNote(){ document.getElementById('noteEditor').classList.remove('show'); }
 async function saveNote(){
-    var text=document.getElementById('noteText').value.trim();
-    if(!text){msg('内容不能为空','err');return;}
-    var token=localStorage.getItem('gh_token');
-    if(!token){msg('请先设置GitHub Token','err');toggleToken();return;}
-
-    var now=new Date().toLocaleString('zh-CN');
-    if(editingNoteId!==null){
-        notesData[editingNoteId].text=text;
-        notesData[editingNoteId].time=now;
-    }else{
-        notesData.push({text:text,time:now});
-    }
-    notesData.sort(function(a,b){return b.time.localeCompare(a.time);});
-
-    var content=JSON.stringify(notesData,null,2);
-    var b64=btoa(unescape(encodeURIComponent(content)));
-    msg('保存中...','ok');
+    var text = document.getElementById('noteText').value.trim(); if(!text) return;
+    var token = localStorage.getItem('gh_token'); if(!token){ msg('请先设置GitHub Token', 'err'); return; }
+    var now = new Date().toLocaleString('zh-CN');
+    if(editingNoteId !== null){ notes[editingNoteId].text = text; notes[editingNoteId].time = now; }
+    else{ notes.push({text:text, time:now}); }
+    notes.sort(function(a,b){ return b.time.localeCompare(a.time); });
+    var b64 = btoa(unescape(encodeURIComponent(JSON.stringify(notes,null,2))));
     try{
-        var getUrl='https://api.github.com/repos/liuyx339-oss/gzu-schedule/contents/'+NOTES_PATH;
-        var getResp=await fetch(getUrl,{headers:{'Authorization':'token '+token}});
-        var getData=await getResp.json();
-        var body={message:'Update notes',content:b64,branch:'gh-pages'};
-        if(getData.sha)body.sha=getData.sha;
-        var putResp=await fetch(getUrl,{method:'PUT',headers:{'Authorization':'token '+token,'Content-Type':'application/json'},body:JSON.stringify(body)});
-        var putData=await putResp.json();
-        if(putData.content){msg('已保存','ok');renderNotes();cancelNote();}
-        else{msg('保存失败: '+(putData.message||'?'),'err');}
-    }catch(e){msg('网络错误: '+e.message,'err');}
+        var getUrl = 'https://api.github.com/repos/liuyx339-oss/gzu-schedule/contents/' + NOTES_PATH;
+        var d = await (await fetch(getUrl, {headers:{'Authorization':'token '+token}})).json();
+        var body = {message:'Update notes', content:b64, branch:'master'}; if(d.sha) body.sha = d.sha;
+        var r = await (await fetch(getUrl, {method:'PUT', headers:{'Authorization':'token '+token,'Content-Type':'application/json'}, body:JSON.stringify(body)})).json();
+        if(r.content){ renderNotes(); cancelNote(); msg('✅ 已保存', 'ok'); } else { msg('保存失败: '+(r.message||'?'), 'err'); }
+    } catch(e){ msg('网络错误: '+e.message, 'err'); }
 }
 async function delNote(idx){
-    if(!confirm('确定删除这条说明？'))return;
-    notesData.splice(idx,1);
-    var token=localStorage.getItem('gh_token');
-    if(!token){msg('请先设置GitHub Token','err');return;}
-    var content=JSON.stringify(notesData,null,2);
-    var b64=btoa(unescape(encodeURIComponent(content)));
+    if(!confirm('确定删除？')) return; notes.splice(idx,1);
+    var token = localStorage.getItem('gh_token'); if(!token) return;
+    var b64 = btoa(unescape(encodeURIComponent(JSON.stringify(notes,null,2))));
     try{
-        var getUrl='https://api.github.com/repos/liuyx339-oss/gzu-schedule/contents/'+NOTES_PATH;
-        var getResp=await fetch(getUrl,{headers:{'Authorization':'token '+token}});
-        var getData=await getResp.json();
-        var body={message:'Delete note',content:b64,branch:'gh-pages'};
-        if(getData.sha)body.sha=getData.sha;
-        await fetch(getUrl,{method:'PUT',headers:{'Authorization':'token '+token,'Content-Type':'application/json'},body:JSON.stringify(body)});
-        msg('已删除','ok');renderNotes();
-    }catch(e){msg('网络错误: '+e.message,'err');}
+        var getUrl = 'https://api.github.com/repos/liuyx339-oss/gzu-schedule/contents/' + NOTES_PATH;
+        var d = await (await fetch(getUrl, {headers:{'Authorization':'token '+token}})).json();
+        var body = {message:'Delete note', content:b64, branch:'master'}; if(d.sha) body.sha = d.sha;
+        await fetch(getUrl, {method:'PUT', headers:{'Authorization':'token '+token,'Content-Type':'application/json'}, body:JSON.stringify(body)});
+        renderNotes();
+    } catch(e){}
 }
 
 // ============ REQUIREMENTS CRUD ============
-var REQS_PATH='publish/requirements.json';
-var reqsData=[];
-var editingReqId=null;
+var REQS_PATH = 'publish/requirements.json';
+var reqs = [];
+var editingReqId = null;
 
 async function loadReqs(){
-    try{
-        var resp=await fetch('requirements.json?'+Date.now());
-        if(resp.ok) reqsData=await resp.json();
-        else reqsData=[];
-    }catch(e){reqsData=[];}
+    try{ var r = await fetch('requirements.json?' + Date.now()); if(r.ok) reqs = await r.json(); else reqs = []; }
+    catch(e){ reqs = []; }
     renderReqs();
 }
 function renderReqs(){
-    var html='';
-    if(!reqsData.length){html='<div style="color:#999;font-size:13px;text-align:center;padding:20px">暂无需求记录，点击"+ 新增需求"添加</div>';}
-    for(var i=0;i<reqsData.length;i++){
-        var r=reqsData[i];
-        html+='<div class="note-card"><div class="note-meta">'+r.time+' | 记录 #'+(reqsData.length-i)+'</div><div class="note-text">'+r.text+'</div><div class="note-actions"><button onclick="editReq('+i+')">编辑</button><button onclick="delReq('+i+')">删除</button></div></div>';
+    var h = '';
+    if(!reqs.length){ h = '<div style="color:#999;font-size:12px;text-align:center;padding:12px">暂无需求，点击"+ 新增需求"添加</div>'; }
+    for(var i=0; i<reqs.length; i++){
+        var n = reqs[i];
+        h += '<div class="note-card"><div class="note-meta">' + n.time + ' | #' + (reqs.length-i) + '</div><div class="note-text">' + n.text + '</div><div class="note-actions"><button onclick="editReq(' + i + ')">编辑</button><button onclick="delReq(' + i + ')">删除</button></div></div>';
     }
-    document.getElementById('reqsList').innerHTML=html;
+    document.getElementById('reqsList').innerHTML = h;
 }
-function addReq(){editingReqId=null;document.getElementById('reqText').value='';document.getElementById('reqEditor').classList.add('show');}
-function editReq(idx){editingReqId=idx;document.getElementById('reqText').value=reqsData[idx].text;document.getElementById('reqEditor').classList.add('show');}
-function cancelReq(){document.getElementById('reqEditor').classList.remove('show');}
+function addReq(){ editingReqId = null; document.getElementById('reqText').value = ''; document.getElementById('reqEditor').classList.add('show'); }
+function editReq(idx){ editingReqId = idx; document.getElementById('reqText').value = reqs[idx].text; document.getElementById('reqEditor').classList.add('show'); }
+function cancelReq(){ document.getElementById('reqEditor').classList.remove('show'); }
 async function saveReq(){
-    var text=document.getElementById('reqText').value.trim();
-    if(!text){msg('内容不能为空','err');return;}
-    var token=localStorage.getItem('gh_token');
-    if(!token){msg('请先设置GitHub Token','err');toggleToken();return;}
-    var now=new Date().toLocaleString('zh-CN');
-    if(editingReqId!==null){reqsData[editingReqId].text=text;reqsData[editingReqId].time=now;}
-    else{reqsData.push({text:text,time:now});}
-    reqsData.sort(function(a,b){return b.time.localeCompare(a.time);});
-    var content=JSON.stringify(reqsData,null,2);
-    var b64=btoa(unescape(encodeURIComponent(content)));
-    msg('保存中...','ok');
+    var text = document.getElementById('reqText').value.trim(); if(!text) return;
+    var token = localStorage.getItem('gh_token'); if(!token){ msg('请先设置GitHub Token', 'err'); return; }
+    var now = new Date().toLocaleString('zh-CN');
+    if(editingReqId !== null){ reqs[editingReqId].text = text; reqs[editingReqId].time = now; }
+    else{ reqs.push({text:text, time:now}); }
+    reqs.sort(function(a,b){ return b.time.localeCompare(a.time); });
+    var b64 = btoa(unescape(encodeURIComponent(JSON.stringify(reqs,null,2))));
     try{
-        var getUrl='https://api.github.com/repos/liuyx339-oss/gzu-schedule/contents/'+REQS_PATH;
-        var getResp=await fetch(getUrl,{headers:{'Authorization':'token '+token}});
-        var getData=await getResp.json();
-        var body={message:'Update requirements',content:b64,branch:'gh-pages'};
-        if(getData.sha)body.sha=getData.sha;
-        var putResp=await fetch(getUrl,{method:'PUT',headers:{'Authorization':'token '+token,'Content-Type':'application/json'},body:JSON.stringify(body)});
-        var putData=await putResp.json();
-        if(putData.content){msg('已保存','ok');renderReqs();cancelReq();}
-        else{msg('保存失败: '+(putData.message||'?'),'err');}
-    }catch(e){msg('网络错误: '+e.message,'err');}
+        var getUrl = 'https://api.github.com/repos/liuyx339-oss/gzu-schedule/contents/' + REQS_PATH;
+        var d = await (await fetch(getUrl, {headers:{'Authorization':'token '+token}})).json();
+        var body = {message:'Update requirements', content:b64, branch:'master'}; if(d.sha) body.sha = d.sha;
+        var r = await (await fetch(getUrl, {method:'PUT', headers:{'Authorization':'token '+token,'Content-Type':'application/json'}, body:JSON.stringify(body)})).json();
+        if(r.content){ renderReqs(); cancelReq(); msg('✅ 已保存', 'ok'); } else { msg('保存失败: '+(r.message||'?'), 'err'); }
+    } catch(e){ msg('网络错误: '+e.message, 'err'); }
 }
 async function delReq(idx){
-    if(!confirm('确定删除这条需求？'))return;
-    reqsData.splice(idx,1);
-    var token=localStorage.getItem('gh_token');
-    if(!token){msg('请先设置GitHub Token','err');return;}
-    var content=JSON.stringify(reqsData,null,2);
-    var b64=btoa(unescape(encodeURIComponent(content)));
+    if(!confirm('确定删除？')) return; reqs.splice(idx,1);
+    var token = localStorage.getItem('gh_token'); if(!token) return;
+    var b64 = btoa(unescape(encodeURIComponent(JSON.stringify(reqs,null,2))));
     try{
-        var getUrl='https://api.github.com/repos/liuyx339-oss/gzu-schedule/contents/'+REQS_PATH;
-        var getResp=await fetch(getUrl,{headers:{'Authorization':'token '+token}});
-        var getData=await getResp.json();
-        var body={message:'Delete requirement',content:b64,branch:'gh-pages'};
-        if(getData.sha)body.sha=getData.sha;
-        await fetch(getUrl,{method:'PUT',headers:{'Authorization':'token '+token,'Content-Type':'application/json'},body:JSON.stringify(body)});
-        msg('已删除','ok');renderReqs();
-    }catch(e){msg('网络错误: '+e.message,'err');}
+        var getUrl = 'https://api.github.com/repos/liuyx339-oss/gzu-schedule/contents/' + REQS_PATH;
+        var d = await (await fetch(getUrl, {headers:{'Authorization':'token '+token}})).json();
+        var body = {message:'Delete requirement', content:b64, branch:'master'}; if(d.sha) body.sha = d.sha;
+        await fetch(getUrl, {method:'PUT', headers:{'Authorization':'token '+token,'Content-Type':'application/json'}, body:JSON.stringify(body)});
+        renderReqs();
+    } catch(e){}
 }
-
-// ============ PASSWORD GATE ============
-var PWD_HASH='cmFkMjAyNg==';
-function checkPwd(){
-    var inp=document.getElementById('pwdInput').value;
-    if(btoa(inp)===PWD_HASH){
-        document.getElementById('pwdGate').style.display='none';
-        document.getElementById('mainContent').style.display='block';
-        sessionStorage.setItem('_gzu_rad','1');
-        init();
-    }else{document.getElementById('pwdErr').textContent='密码错误,请重试';}
-}
-if(sessionStorage.getItem('_gzu_rad')==='1'){document.getElementById('pwdGate').style.display='none';document.getElementById('mainContent').style.display='block';window.addEventListener('DOMContentLoaded',init);}
 </script>
 </body>
 </html>
