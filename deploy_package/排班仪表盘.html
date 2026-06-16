@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GZU 排班仪表盘</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"Microsoft YaHei","SimHei",sans-serif;background:#f0f2f5;color:#333;min-height:100vh}
+.header{background:linear-gradient(135deg,#1a73e8 0%,#0d47a1 100%);color:#fff;padding:18px 32px;text-align:center}
+.header h1{font-size:22px;font-weight:600}
+.header .subtitle{font-size:12px;opacity:.85;margin-top:4px}
+.stats-bar{display:flex;gap:12px;padding:12px 20px;max-width:1500px;margin:0 auto;flex-wrap:wrap;justify-content:center}
+.stat-card{background:#fff;border-radius:8px;padding:12px 20px;box-shadow:0 1px 4px rgba(0,0,0,.08);text-align:center;min-width:110px}
+.stat-card .value{font-size:24px;font-weight:700;color:#1a73e8}
+.stat-card .label{font-size:11px;color:#666;margin-top:2px}
+.stat-card.orange .value{color:#FF9800}
+.stat-card.red .value{color:#F44336}
+.stat-card.green .value{color:#4CAF50}
+.stat-card.blue .value{color:#1565C0}
+.container{max-width:1500px;margin:0 auto;padding:0 16px 16px}
+.tabs{display:flex;gap:4px;margin-bottom:12px;background:#fff;border-radius:8px;padding:4px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.tab{flex:1;text-align:center;padding:10px 16px;cursor:pointer;border-radius:6px;font-size:14px;font-weight:600;transition:.2s;background:#fff;border:none;color:#333}
+.tab:hover{background:#e8f0fe}
+.tab.active{background:#1a73e8;color:#fff}
+.legend{display:flex;gap:10px;flex-wrap:wrap;padding:10px 14px;background:#fff;border-radius:8px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,.08);font-size:11px;align-items:center}
+.legend-dot{width:12px;height:12px;border-radius:3px;display:inline-block;flex-shrink:0}
+.roster-grid{background:#fff;border-radius:8px;padding:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);overflow-x:auto}
+.roster-grid h2{font-size:15px;margin:0 0 10px 0;color:#1a73e8}
+table.schedule{border-collapse:collapse;width:max-content;min-width:100%;font-size:11px}
+table.schedule th,table.schedule td{border:1px solid #e0e0e0;padding:4px 3px;text-align:center;white-space:nowrap}
+table.schedule th{background:#f5f5f5;font-weight:600;position:sticky;top:0;z-index:2}
+table.schedule .name-col{min-width:90px;position:sticky;left:0;background:#fff;z-index:1;font-weight:600;text-align:left;padding-left:6px}
+table.schedule .stats-col{min-width:48px;font-size:10px}
+table.schedule .shift-cell{font-size:10px;min-width:52px;cursor:pointer;transition:all .15s;border-radius:3px;position:relative;color:#000;padding:3px 2px}
+table.schedule .shift-cell:hover{transform:scale(1.08);z-index:3;box-shadow:0 2px 8px rgba(0,0,0,.2);outline:2px solid #FF9800}
+table.schedule .shift-cell.off:hover{background:#e0e0e0!important}
+table.schedule .shift-cell.modified{border:2px dashed #FF9800!important}
+table.schedule .shift-cell.modified::after{content:"✎";position:absolute;top:-1px;right:1px;font-size:8px;color:#FF9800}
+table.schedule .shift-cell.cat-20{outline:2px solid #1a73e8;outline-offset:-1px}
+table.schedule .shift-cell.cat-ln{outline:3px solid #FF9800;outline-offset:-1px;font-weight:bold}
+table.schedule .shift-cell.cat-backup{outline:2px dashed #F44336;outline-offset:-1px}
+.toast{position:fixed;top:60px;right:20px;background:#4CAF50;color:#fff;padding:10px 20px;border-radius:6px;font-size:13px;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.show{opacity:1}
+.toast.error{background:#F44336}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9998}
+.modal-overlay.active{display:flex;align-items:center;justify-content:center}
+.modal{background:#fff;border-radius:12px;padding:24px;box-shadow:0 8px 32px rgba(0,0,0,.25);max-width:420px;width:90%}
+.modal h3{margin:0 0 16px 0;color:#1a73e8;font-size:16px}
+.modal .info{background:#f5f5f5;padding:8px 12px;border-radius:6px;margin-bottom:14px;font-size:12px;line-height:1.6}
+.modal label{display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:4px;margin-top:10px}
+.modal select,.modal input{width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;margin-bottom:4px}
+.modal .btn-row{display:flex;gap:8px;margin-top:16px;justify-content:flex-end}
+.modal .btn{padding:8px 20px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;transition:.2s}
+.modal .btn-save{background:#1a73e8;color:#fff}
+.modal .btn-save:hover{background:#1557b0}
+.modal .btn-cancel{background:#eee;color:#333}
+.modal .btn-cancel:hover{background:#ddd}
+.modal .btn-clear{background:#F44336;color:#fff}
+.modal .btn-clear:hover{background:#d32f2f}
+.loading{text-align:center;padding:40px;color:#999}
+.spinner{display:inline-block;width:32px;height:32px;border:3px solid #e0e0e0;border-top-color:#1a73e8;border-radius:50%;animation:spin .8s linear infinite;margin-bottom:10px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.sync-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600}
+.sync-badge.on{background:#C8E6C9;color:#2E7D32}
+.sync-badge.off{background:#FFECB3;color:#F57F17}
+@media(max-width:768px){table.schedule{font-size:9px}table.schedule th,table.schedule td{padding:2px 1px}}
+</style>
+</head>
+<body>
+
+<div class="header">
+    <h1>🏥 GZU 放射/超声 月度排班仪表盘</h1>
+    <div class="subtitle" id="subtitle">加载中...</div>
+</div>
+
+<div class="stats-bar" id="statsBar"></div>
+
+<div class="container">
+    <div class="tabs" id="tabs"></div>
+    <div class="legend" id="legend"></div>
+    <div class="legend" style="justify-content:space-between;">
+        <span>💡 <b>点击任意格子</b>即可修改排班 | <span style="color:#FF9800;">✎</span> = 人工修改过</span>
+        <span>飞书: <span class="sync-badge off" id="feishuBadge">检查中...</span>
+        &nbsp;|&nbsp; <button onclick="exportExcel()" style="padding:4px 12px;border:1px solid #1a73e8;background:#fff;color:#1a73e8;border-radius:4px;cursor:pointer;font-size:11px;">📥 导出Excel</button></span>
+    </div>
+    <div class="roster-grid" id="roster"><div class="loading"><div class="spinner"></div><p>正在加载排班数据...</p></div></div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+        <h3 id="modalTitle">修改排班</h3>
+        <div class="info" id="modalInfo"></div>
+        <label>👤 人员</label>
+        <select id="modalPerson"></select>
+        <label>🕐 班次</label>
+        <select id="modalShift"></select>
+        <label>📝 修改原因（可选）</label>
+        <input type="text" id="modalReason" placeholder="例：临时调班、请假...">
+        <div class="btn-row">
+            <button class="btn btn-clear" onclick="clearShift()">清空(休息)</button>
+            <button class="btn btn-cancel" onclick="closeModal()">取消</button>
+            <button class="btn btn-save" onclick="saveModification()">💾 保存</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var SCHEDULE_DATA = null, currentRole = '放射医生', editContext = null, feishuEnabled = false;
+
+async function init() {
+    try {
+        var resp = await fetch('/api/schedule');
+        var json = await resp.json();
+        if (!json.success) throw new Error(json.error);
+        SCHEDULE_DATA = json.data;
+        var sr = await fetch('/api/status');
+        var sj = await sr.json();
+        feishuEnabled = sj.data.feishu_enabled;
+        document.getElementById('feishuBadge').textContent = feishuEnabled ? '已启用' : '未启用';
+        document.getElementById('feishuBadge').className = 'sync-badge ' + (feishuEnabled ? 'on' : 'off');
+        document.getElementById('subtitle').textContent = SCHEDULE_DATA.month + ' | 全职目标: 176h | 80%阈值: 140.8h';
+        renderStats(); renderTabs(); renderTable();
+    } catch(e) {
+        document.getElementById('roster').innerHTML = '<div class="loading"><p style="color:#F44336;">⚠ 加载失败: ' + e.message + '</p><p style="font-size:12px;color:#999;">请确认已双击 启动.bat 启动服务器</p></div>';
+    }
+}
+
+function renderStats() {
+    var s = SCHEDULE_DATA.statistics, h = '';
+    h += '<div class="stat-card"><div class="value">' + s.total_fulltime + '</div><div class="label">全职人员</div></div>';
+    h += '<div class="stat-card"><div class="value">' + s.avg_fulltime_hours + 'h</div><div class="label">全职人均工时</div></div>';
+    h += '<div class="stat-card green"><div class="value">' + s.total_80_hours + 'h</div><div class="label">80%池总工时</div></div>';
+    h += '<div class="stat-card blue"><div class="value">' + s.total_20_hours + 'h</div><div class="label">20%池总工时</div></div>';
+    h += '<div class="stat-card orange"><div class="value">' + s.total_ln_hours + 'h</div><div class="label">L/N总工时</div></div>';
+    h += '<div class="stat-card red"><div class="value">' + s.total_backup_hours + 'h</div><div class="label">备班总工时</div></div>';
+    document.getElementById('statsBar').innerHTML = h;
+}
+
+function renderTabs() {
+    var roles = Object.keys(SCHEDULE_DATA.roles), h = '';
+    roles.forEach(function(r) {
+        h += '<button class="tab' + (r===currentRole?' active':'') + '" onclick="switchRole(\''+r+'\')">' + r + '</button>';
+    });
+    document.getElementById('tabs').innerHTML = h;
+}
+
+function switchRole(role) { currentRole = role; renderTabs(); renderTable(); }
+
+function renderTable() {
+    var rd = SCHEDULE_DATA.roles[currentRole];
+    if (!rd) return;
+    var colors = rd.shift_colors, times = rd.shift_times;
+    var lh = '<b>班次图例:</b> ';
+    Object.keys(times).forEach(function(sh) {
+        lh += '<span style="margin-right:8px"><span class="legend-dot" style="background:'+(colors[sh]||'#ccc')+'"></span>' + sh + ' (' + times[sh] + ')</span>';
+    });
+    document.getElementById('legend').innerHTML = lh;
+
+    var dates = rd.dates, staff = rd.staff;
+    var h = '<h2>' + currentRole + ' 排班表</h2><table class="schedule"><thead><tr>';
+    h += '<th class="name-col">人员</th><th class="stats-col">总工时</th><th class="stats-col">80%</th><th class="stats-col">20%</th><th class="stats-col">L/N</th><th class="stats-col">备班</th>';
+    dates.forEach(function(d) {
+        h += '<th>' + d.replace(/月/g,'/').replace(/日/g,'') + '</th>';
+    });
+    h += '</tr></thead><tbody>';
+    staff.forEach(function(s) {
+        h += '<tr>';
+        h += '<td class="name-col" style="' + (s.is_backup?'color:#F44336;':'') + '">' + s.name + '</td>';
+        h += '<td class="stats-col">' + s.hours + '</td>';
+        h += '<td class="stats-col">' + s.hours_80 + '</td>';
+        h += '<td class="stats-col">' + s.hours_20 + '</td>';
+        h += '<td class="stats-col">' + s.hours_ln + '</td>';
+        h += '<td class="stats-col">' + s.hours_backup + '</td>';
+        dates.forEach(function(d) {
+            var shift = (s.schedule[d]||'').trim();
+            var cat = (s.category||{})[d]||'';
+            var bg = colors[shift] || (shift?'#E0E0E0':'#FAFAFA');
+            var cls = 'shift-cell';
+            if (!shift) cls += ' off';
+            if (cat==='备班') cls += ' cat-backup';
+            else if (cat==='L/N') cls += ' cat-ln';
+            else if (cat==='20%') cls += ' cat-20';
+            else if (cat==='人工修改') cls += ' modified';
+            var label = shift||'';
+            if (label.length>12) label = label.substring(0,10)+'…';
+            h += '<td class="' + cls + '" style="background:' + bg + ';" ' +
+                'onclick="openEdit(\''+currentRole+'\',\''+s.name+'\',\''+d+'\',\''+(shift||'')+'\')" ' +
+                'title="'+d+': '+(shift||'休息')+(cat?' ['+cat+']':'')+'">' + label + '</td>';
+        });
+        h += '</tr>';
+    });
+    h += '</tbody></table>';
+    document.getElementById('roster').innerHTML = h;
+}
+
+function openEdit(role, staffName, date, oldShift) {
+    editContext = {role:role, staffName:staffName, date:date, oldShift:oldShift};
+    var rd = SCHEDULE_DATA.roles[role];
+    document.getElementById('modalTitle').textContent = '修改排班 — ' + date;
+    document.getElementById('modalInfo').innerHTML = '<b>当前:</b> ' + staffName + ' → ' + (oldShift||'休息') + '<br><b>日期:</b> ' + date + ' | <b>角色:</b> ' + role;
+    var ps = document.getElementById('modalPerson'); ps.innerHTML = '';
+    rd.staff.forEach(function(s) {
+        if (s.is_backup) return;
+        var o = document.createElement('option'); o.value = s.name; o.textContent = s.name + ' (' + s.hours + 'h)';
+        if (s.name===staffName) o.selected = true; ps.appendChild(o);
+    });
+    var ss = document.getElementById('modalShift'); ss.innerHTML = '';
+    var o0 = document.createElement('option'); o0.value = ''; o0.textContent = '休息'; ss.appendChild(o0);
+    Object.keys(rd.shift_times).forEach(function(sh) {
+        var o = document.createElement('option'); o.value = sh; o.textContent = sh + ' (' + rd.shift_times[sh] + ')';
+        if (sh===oldShift) o.selected = true; ss.appendChild(o);
+    });
+    document.getElementById('modalReason').value = '';
+    document.getElementById('modalOverlay').classList.add('active');
+}
+
+function closeModal() { document.getElementById('modalOverlay').classList.remove('active'); editContext = null; }
+function clearShift() { document.getElementById('modalShift').value = ''; }
+
+async function saveModification() {
+    if (!editContext) return;
+    var newPerson = document.getElementById('modalPerson').value;
+    var newShift = document.getElementById('modalShift').value;
+    var reason = document.getElementById('modalReason').value;
+    try {
+        var resp = await fetch('/api/save', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({role:editContext.role, staff_name:editContext.staffName, date:editContext.date, new_shift:newShift, new_person:(newPerson!==editContext.staffName)?newPerson:'', modifier:'同事', reason:reason})
+        });
+        var json = await resp.json();
+        if (!json.success) throw new Error(json.error);
+        applyLocalChange(editContext.role, editContext.staffName, editContext.date, newShift, newPerson);
+        closeModal(); renderTable();
+        showToast('✅ 已保存: ' + editContext.date + ' ' + editContext.staffName + ' → ' + (newShift||'休息'));
+    } catch(e) { showToast('❌ 保存失败: ' + e.message, true); }
+}
+
+function applyLocalChange(role, staffName, date, newShift, newPerson) {
+    var rd = SCHEDULE_DATA.roles[role];
+    if (newPerson && newPerson!==staffName) {
+        rd.staff.forEach(function(s) {
+            if (s.name===staffName && s.schedule[date]!==undefined) { s.schedule[date]=''; if(s.category) s.category[date]=''; }
+            if (s.name===newPerson && s.schedule[date]!==undefined) { s.schedule[date]=newShift; if(s.category) s.category[date]='人工修改'; }
+        });
+    } else {
+        rd.staff.forEach(function(s) {
+            if (s.name===staffName && s.schedule[date]!==undefined) { s.schedule[date]=newShift; if(s.category) s.category[date]=newShift?'人工修改':''; }
+        });
+    }
+}
+
+function showToast(msg, isError) {
+    var t = document.getElementById('toast'); t.textContent = msg; t.className = 'toast show' + (isError?' error':'');
+    setTimeout(function() { t.className = 'toast'; }, 2500);
+}
+
+function exportExcel() {
+    var rd = SCHEDULE_DATA.roles[currentRole]; if (!rd) return;
+    var dates = rd.dates, staff = rd.staff;
+    var csv = '﻿人员,总工时,80%,20%,L/N,备班,' + dates.join(',') + '\n';
+    staff.forEach(function(s) {
+        var row = [s.name, s.hours, s.hours_80, s.hours_20, s.hours_ln, s.hours_backup];
+        dates.forEach(function(d) { row.push(s.schedule[d]||'休息'); });
+        csv += row.join(',') + '\n';
+    });
+    var blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a'); a.href = url; a.download = currentRole + '_排班_' + new Date().toISOString().slice(0,10) + '.csv';
+    a.click(); URL.revokeObjectURL(url);
+}
+
+document.addEventListener('keydown', function(e) { if (e.key==='Escape') closeModal(); });
+init();
+</script>
+</body>
+</html>

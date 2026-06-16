@@ -11,7 +11,7 @@ import numpy as np
 from datetime import date, timedelta
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-OUTPUT_DIR = os.path.join(SCRIPT_DIR, "forecast_output")
+OUTPUT_DIR = os.path.join(SCRIPT_DIR, "pipeline_output")
 
 HOURLY_CSV = os.path.join(OUTPUT_DIR, "Demand_Forecast_Hourly.csv")
 DAILY_CSV = os.path.join(OUTPUT_DIR, "Demand_Forecast_Daily.csv")

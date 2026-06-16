@@ -1,22 +1,32 @@
+# 虚拟环境
+venv/
+.venv/
+env/
+
 # Python
 __pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
+*.pyc
+*.pyo
 *.egg-info/
 dist/
-build/
+
+# 凭据文件
+.env
+deploy_package/.env
+
+# 产物（全部集中在 pipeline_output/）
+pipeline_output/
+
+# 部署包（同事侧的排班数据和日志）
+deploy_package/schedule_data.json
+deploy_package/modification_log.json
+deploy_package/__pycache__/
+
+# Claude Code (个人配置)
+.claude/settings.local.json
 
 # IDE
 .vscode/
 .idea/
-*.swp
-*.swo
-
-# 缓存
-.ruff_cache/
-
-# 数据文件（大文件可选）
-# *.csv
-# *.json
+Thumbs.db
+Desktop.ini

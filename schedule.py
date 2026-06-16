@@ -2440,8 +2440,11 @@ table.schedule .shift-cell.cell-oncall::after{content:"📞";position:absolute;t
 /* === Shift Reference === */
 .shift-ref{margin:0 20px 16px}
 .shift-ref .section-title{font-size:14px;font-weight:700;color:#1a73e8;padding:8px 12px;background:#e8f0fe;border-radius:8px;margin-bottom:8px;border-left:4px solid #1a73e8}
-.shift-table{width:100%;font-size:11px;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden}
-.shift-table td,.shift-table th{padding:5px 8px;border-bottom:1px solid #eee}
+.shift-grid{display:flex;flex-wrap:wrap;gap:6px}
+.shift-chip{display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:8px;font-size:11px;font-weight:600;min-width:100px;box-shadow:0 1px 2px rgba(0,0,0,0.06)}
+.shift-chip .chip-name{color:#fff;padding:2px 7px;border-radius:4px;font-size:12px;min-width:36px;text-align:center}
+.shift-chip .chip-time{color:#555;font-size:10px}
+.shift-chip.chip-off{background:#f5f5f5}
 
 /* === Notes / Requirements === */
 .section-title{font-size:14px;font-weight:700;color:#1a73e8;padding:8px 12px;background:#e8f0fe;border-radius:8px;margin-bottom:8px;border-left:4px solid #1a73e8}
@@ -2729,17 +2732,18 @@ function renderRoster(){
 
 function renderShiftRef(){
     var rd = SCHEDULE_DATA.roles[currentRole];
-    var h = '<table class="shift-table"><thead><tr><th>班次</th><th>时间</th><th>说明</th></tr></thead><tbody>';
+    var h = '<div class="shift-grid">';
     var shiftNames = ['D','D1','D2','D3','D4','D5','D6','C','C1','L','N','N1','N2','N3','L/N','T','T1','H','H1','H2','H3'];
     for(var i=0; i<shiftNames.length; i++){
         var s = shiftNames[i];
         var time = rd.shift_times[s];
         var color = rd.shift_colors[s];
-        if(time || color){
-            h += '<tr><td style="font-weight:600;background:' + (color||'#f5f5f5') + (color?'">':';color:#666">') + s + '</td><td>' + (time||'-') + '</td><td style="font-size:10px;color:#888">' + getShiftDesc(s) + '</td></tr>';
-        }
+        if(!time && !color) continue;
+        var bg = color || '#9e9e9e';
+        h += '<div class="shift-chip"><span class="chip-name" style="background:' + bg + '">' + s + '</span><span class="chip-time">' + (time||'-') + '</span></div>';
     }
-    h += '</tbody></table>';
+    h += '<div class="shift-chip chip-off"><span class="chip-name" style="background:#eee;color:#999">OFF</span><span class="chip-time">休息</span></div>';
+    h += '</div>';
     document.getElementById('shiftRef').innerHTML = h;
 }
 function getShiftDesc(s){

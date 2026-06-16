@@ -1,0 +1,736 @@
+{
+  "fields": [
+    {
+      "field_id": "fldr38xaCu",
+      "field_name": "登记编号",
+      "is_extend": false,
+      "is_primary": true,
+      "is_synced": false,
+      "property": {
+        "auto_serial": {
+          "type": "auto_increment_number"
+        }
+      },
+      "type": 1005,
+      "ui_type": "AutoNumber"
+    },
+    {
+      "field_id": "fldxN5NwL6",
+      "field_name": "姓名",
+      "is_extend": false,
+      "is_primary": false,
+      "is_synced": false,
+      "property": null,
+      "type": 1,
+      "ui_type": "Text"
+    },
+    {
+      "field_id": "fldKaaq2IH",
+      "field_name": "年龄",
+      "is_extend": false,
+      "is_primary": false,
+      "is_synced": false,
+      "property": null,
+      "type": 1,
+      "ui_type": "Text"
+    },
+    {
+      "field_id": "fld9z2E07p",
+      "field_name": "性别",
+      "is_extend": false,
+      "is_primary": false,
+      "is_synced": false,
+      "property": {
+        "options": [
+          {
+            "color": 0,
+            "id": "optdc8YUdz",
+            "name": "男"
+          },
+          {
+            "color": 1,
+            "id": "optQJM0Ftr",
+            "name": "女"
+          },
+          {
+            "color": 2,
+            "id": "optwGaUvpq",
+            "name": "其他"
+          }
+        ]
+      },
+      "type": 3,
+      "ui_type": "SingleSelect"
+    },
+    {
+      "field_id": "fld6L1iaaJ",
+      "field_name": "年级",
+      "is_extend": false,
+      "is_primary": false,
+      "is_synced": false,
+      "property": null,
+      "type": 1,
+      "ui_type": "Text"
+    },
+    {
+      "field_id": "fldal6R7bA",
+      "field_name": "联系人",
+      "is_extend": false,
+      "is_primary": false,
+      "is_synced": false,
+      "property": null,
+      "type": 1,
+      "ui_type": "Text"
+    },
+    {
+      "field_id": "fld3NFXRZf",
+      "field_name": "联系人联系方式",
+      "is_extend": false,
+      "is_primary": false,
+      "is_synced": false,
+      "property": null,
+      "type": 13,
+      "ui_type": "Phone"
+    },
+    {
+      "field_id": "fldq6lO12p",
+      "field_name": "报名日期",
+      "is_extend": false,
+      "is_primary": false,
+      "is_synced": false,
+      "property": {
+        "auto_fill": false,
+        "date_formatter": "yyyy/MM/dd"
+      },
+      "type": 5,
+      "ui_type": "DateTime"
+    },
+    {
+      "field_id": "fldyXP6HYx",
+      "field_name": "报名状态",
+      "is_extend": false,
+      "is_primary": false,
+      "is_synced": false,
+      "property": {
+        "options": [
+          {
+            "color": 8,
+            "id": "optVp3vjtD",
+            "name": "已报名"
+          },
+          {
+            "color": 9,
+            "id": "optZy6aZDP",
+            "name": "意向咨询中"
+          },
+          {
+            "color": 0,
+            "id": "opt1GA681n",
+            "name": "已留位"
+          },
+          {
+            "color": 1,
+            "id": "optBFFk1Ut",
+            "name": "未报名"
+          }
+        ]
+      },
+      "type": 3,
+      "ui_type": "SingleSelect"
+    },
+    {
+      "field_id": "fldkKyvdzW",
+      "field_name": "缴费状态",
+      "is_extend": false,
+      "is_primary": false,
+      "is_synced": false,
+      "property": {
+        "options": [
+          {
+            "color": 0,
+            "id": "optVnM95Qd",
+            "name": "已缴费"
+          },
+          {
+            "color": 1,
+            "id": "optljg0s2b",
+            "name": "未缴费"
+          }
+        ]
+      },
+      "type": 3,
+      "ui_type": "SingleSelect"
+    },
+    {
+      "field_id": "fldpfjdJ89",
+      "field_name": "是否已核销并发送确认函",
+      "is_extend": false,
+      "is_primary": false,
+      "is_synced": false,
+      "property": {
+        "options": [
+          {
+            "color": 0,
+            "id": "optrYY30wU",
+            "name": "已签署"
+          },
+          {
+            "color": 1,
+            "id": "opt5MYRhl4",
+            "name": "未签署"
+          }
+        ]
+      },
+      "type": 3,
+      "ui_type": "SingleSelect"
+    },
+    {
+      "field_id": "fldV4WKlbB",
+      "field_name": "获知渠道",
+      "is_extend": false,
+      "is_primary": false,
+      "is_synced": false,
+      "property": {
+        "options": [
+          {
+            "color": 0,
+            "id": "optB9DZCkp",
+            "name": "微信宣传"
+          },
+          {
+            "color": 1,
+            "id": "optjqBtDFv",
+            "name": "朋友推荐"
+          }
+        ]
+      },
+      "type": 3,
+      "ui_type": "SingleSelect"
+    },
+    {
+      "field_id": "fldbcv8PbT",
+      "field_name": "价格类型",
+      "is_extend": false,
+      "is_primary": false,
+      "is_synced": false,
+      "property": {
+        "options": [
+          {
+            "color": 0,
+            "id": "opt8oLFH3f",
+            "name": "早鸟价6500"
+          },
+          {
+            "color": 1,
+            "id": "optFqcMhXa",
+            "name": "标准价7500/人"
+          },
+          {
+            "color": 2,
+            "id": "optfBC3zDa",
+            "name": "员工价4500/人"
+          },
+          {
+            "color": 3,
+            "id": "optBN6DGWV",
+            "name": "渠道价5500/人"
+          }
+        ]
+      },
+      "type": 3,
+      "ui_type": "SingleSelect"
+    },
+    {
+      "field_id": "fld8RphAC3",
+      "field_name": "文本 6",
+      "is_extend": false,
+      "is_primary": false,
+      "is_synced": false,
+      "property": null,
+      "type": 1,
+      "ui_type": "Text"
+    },
+    {
+      "field_id": "fldKtv2g2F",
+      "field_name": "备注",
+      "is_extend": false,
+      "is_primary": false,
+      "is_synced": false,
+      "property": null,
+      "type": 1,
+      "ui_type": "Text"
+    },
+    {
+      "field_id": "fldDmS0u8B",
+      "field_name": "实收金额",
+      "is_extend": false,
+      "is_primary": false,
+      "is_synced": false,
+      "property": {
+        "formatter": "",
+        "formula_expression": "SWITCH(bitable::$table[tblTs0JPD3l65xCz].$field[fldbcv8PbT],\"早鸟价6500\",6500,\"标准价7500/人\",7500,\"员工价4500/人\",4500,\"渠道价5500/人\",5500)",
+        "type": {
+          "data_type": 2,
+          "ui_property": {
+            "formatter": "1,000"
+          },
+          "ui_type": "Number"
+        }
+      },
+      "type": 20,
+      "ui_type": "Formula"
+    }
+  ],
+  "all_records": [
+    {
+      "fields": {
+        "价格类型": "早鸟价6500",
+        "姓名": "黄怡睿 ",
+        "实收金额": 6500,
+        "年级": "高二",
+        "年龄": "17",
+        "性别": "女",
+        "报名日期": 1779033600000,
+        "报名状态": "已报名",
+        "文本 6": "需要核销码",
+        "是否已核销并发送确认函": "未签署",
+        "登记编号": "22",
+        "缴费状态": "已缴费",
+        "联系人": "Tity",
+        "获知渠道": "微信宣传"
+      },
+      "id": "recvjWGGenBBc7",
+      "record_id": "recvjWGGenBBc7"
+    },
+    {
+      "fields": {
+        "价格类型": "早鸟价6500",
+        "备注": "香港，高一，家长比较关注细节",
+        "姓名": "施姚瑶",
+        "实收金额": 6500,
+        "年级": "高一",
+        "年龄": "16",
+        "性别": "女",
+        "报名日期": 1778947200000,
+        "报名状态": "已报名",
+        "文本 6": "已截图，待核销",
+        "是否已核销并发送确认函": "未签署",
+        "登记编号": "20",
+        "缴费状态": "已缴费",
+        "联系人": "Frank 施，kelly yao",
+        "获知渠道": "微信宣传"
+      },
+      "id": "recvjVLEHATVkU",
+      "record_id": "recvjVLEHATVkU"
+    },
+    {
+      "fields": {
+        "价格类型": "早鸟价6500",
+        "备注": "maybe会和考试时间冲突",
+        "姓名": "Florence",
+        "实收金额": 6500,
+        "性别": "女",
+        "报名日期": 1778947200000,
+        "报名状态": "已报名",
+        "文本 6": "需要核销码",
+        "是否已核销并发送确认函": "未签署",
+        "登记编号": "19",
+        "缴费状态": "已缴费",
+        "联系人": "yunxin（爸爸）",
+        "获知渠道": "微信宣传"
+      },
+      "id": "recvjVLd0JfhcN",
+      "record_id": "recvjVLd0JfhcN"
+    },
+    {
+      "fields": {
+        "备注": "确认不参加，孩子身体问题",
+        "年级": "初一",
+        "性别": "男",
+        "报名状态": "未报名",
+        "登记编号": "18",
+        "联系人": "leo chung",
+        "获知渠道": "微信宣传"
+      },
+      "id": "recvjVKeFeEKde",
+      "record_id": "recvjVKeFeEKde"
+    },
+    {
+      "fields": {
+        "价格类型": "早鸟价6500",
+        "备注": "香港，英文很好",
+        "姓名": "yueru shin",
+        "实收金额": 6500,
+        "年级": "高二",
+        "年龄": "17",
+        "性别": "女",
+        "报名日期": 1778947200000,
+        "报名状态": "已报名",
+        "文本 6": "需要核销码",
+        "是否已核销并发送确认函": "未签署",
+        "登记编号": "17",
+        "缴费状态": "已缴费",
+        "联系人": "王琪宇（爸爸）",
+        "获知渠道": "微信宣传"
+      },
+      "id": "recvjVIL86TNpA",
+      "record_id": "recvjVIL86TNpA"
+    },
+    {
+      "fields": {
+        "价格类型": "早鸟价6500",
+        "备注": "国际学校、对医学感兴趣注重实践，时间不行的话6.20前退款",
+        "姓名": "Holland",
+        "实收金额": 6500,
+        "年级": "高一",
+        "年龄": "16",
+        "性别": "男",
+        "报名日期": 1778428800000,
+        "报名状态": "已报名",
+        "文本 6": "需要核销码",
+        "是否已核销并发送确认函": "未签署",
+        "登记编号": "14",
+        "缴费状态": "已缴费",
+        "联系人": "刘女士",
+        "联系人联系方式": "13602725913",
+        "获知渠道": "朋友推荐"
+      },
+      "id": "recvjh9PBuJ2YI",
+      "record_id": "recvjh9PBuJ2YI"
+    },
+    {
+      "fields": {
+        "备注": "异地，北京，住宿问题，5.26最终回复",
+        "姓名": "潘沐恩",
+        "年级": "高二",
+        "年龄": "17",
+        "性别": "男",
+        "报名状态": "未报名",
+        "登记编号": "15",
+        "联系人": "家长",
+        "联系人联系方式": "13871060737",
+        "获知渠道": "朋友推荐"
+      },
+      "id": "recvjh9TMUXC78",
+      "record_id": "recvjh9TMUXC78"
+    },
+    {
+      "fields": {
+        "价格类型": "早鸟价6500",
+        "备注": "和睦家客户",
+        "姓名": "叶子扬",
+        "实收金额": 6500,
+        "年级": "初三",
+        "年龄": "15",
+        "性别": "男",
+        "报名日期": 1778774400000,
+        "报名状态": "已报名",
+        "文本 6": "已截图，待核销",
+        "是否已核销并发送确认函": "未签署",
+        "登记编号": "16",
+        "缴费状态": "已缴费",
+        "联系人": "Rong 家长",
+        "获知渠道": "微信宣传"
+      },
+      "id": "recvjEgKdxxxxW",
+      "record_id": "recvjEgKdxxxxW"
+    },
+    {
+      "fields": {
+        "价格类型": "早鸟价6500",
+        "姓名": "黎子铭",
+        "实收金额": 6500,
+        "年级": "高一",
+        "年龄": "16",
+        "性别": "男",
+        "报名日期": 1778860800000,
+        "报名状态": "已报名",
+        "文本 6": "已截图，待核销",
+        "是否已核销并发送确认函": "未签署",
+        "登记编号": "21",
+        "缴费状态": "已缴费",
+        "联系人": "CC",
+        "获知渠道": "微信宣传"
+      },
+      "id": "recvjVOUgUmu8m",
+      "record_id": "recvjVOUgUmu8m"
+    },
+    {
+      "fields": {
+        "价格类型": "渠道价5500/人",
+        "备注": "对价格敏感，未购买套餐，通过支付宝方式",
+        "姓名": "暂未告知",
+        "实收金额": 5500,
+        "年级": "初三",
+        "年龄": "15",
+        "性别": "女",
+        "报名日期": 1780156800000,
+        "报名状态": "已报名",
+        "文本 6": "通过支付宝",
+        "是否已核销并发送确认函": "未签署",
+        "登记编号": "23",
+        "缴费状态": "已缴费",
+        "联系人": "Gina ",
+        "获知渠道": "微信宣传"
+      },
+      "id": "recvkjl6Gd1Yuv",
+      "record_id": "recvkjl6Gd1Yuv"
+    },
+    {
+      "fields": {
+        "备注": "关注退款以及参加孩子群体",
+        "报名状态": "未报名",
+        "登记编号": "24",
+        "联系人": "yang",
+        "获知渠道": "微信宣传"
+      },
+      "id": "recvlDh9SjVvJ6",
+      "record_id": "recvlDh9SjVvJ6"
+    },
+    {
+      "fields": {
+        "备注": "关注急救证书",
+        "报名状态": "未报名",
+        "登记编号": "25",
+        "联系人": "T",
+        "获知渠道": "微信宣传"
+      },
+      "id": "recvlDhqknA6az",
+      "record_id": "recvlDhqknA6az"
+    },
+    {
+      "fields": {
+        "备注": "关注是否有shadowing",
+        "报名状态": "未报名",
+        "登记编号": "26",
+        "联系人": "晓ray",
+        "获知渠道": "微信宣传"
+      },
+      "id": "recvlDhux07uvO",
+      "record_id": "recvlDhux07uvO"
+    },
+    {
+      "fields": {
+        "备注": "加上未说话",
+        "报名状态": "未报名",
+        "登记编号": "27",
+        "联系人": "GXY",
+        "获知渠道": "微信宣传"
+      },
+      "id": "recvlDhLTe6ix6",
+      "record_id": "recvlDhLTe6ix6"
+    },
+    {
+      "fields": {
+        "备注": "孩子听不懂中文",
+        "报名状态": "未报名",
+        "登记编号": "28",
+        "联系人": "anastasiia",
+        "获知渠道": "微信宣传"
+      },
+      "id": "recvlDhSagNfMw",
+      "record_id": "recvlDhSagNfMw"
+    },
+    {
+      "fields": {
+        "备注": "参加意愿强，但时间不符合",
+        "报名状态": "未报名",
+        "登记编号": "29",
+        "联系人": "suey",
+        "获知渠道": "微信宣传"
+      },
+      "id": "recvlDi2AqUPNr",
+      "record_id": "recvlDi2AqUPNr"
+    },
+    {
+      "fields": {
+        "备注": "是否包住宿？",
+        "报名状态": "未报名",
+        "登记编号": "30",
+        "联系人": "carrie",
+        "联系人联系方式": "15920097200",
+        "获知渠道": "微信宣传"
+      },
+      "id": "recvlDidrMgxy6",
+      "record_id": "recvlDidrMgxy6"
+    },
+    {
+      "fields": {
+        "备注": "是佛说英文",
+        "报名状态": "未报名",
+        "登记编号": "31",
+        "联系人": "wei588835",
+        "获知渠道": "微信宣传"
+      },
+      "id": "recvlDikL56K9k",
+      "record_id": "recvlDikL56K9k"
+    }
+  ],
+  "registered_records": [
+    {
+      "fields": {
+        "价格类型": "早鸟价6500",
+        "姓名": "黄怡睿 ",
+        "实收金额": 6500,
+        "年级": "高二",
+        "年龄": "17",
+        "性别": "女",
+        "报名日期": 1779033600000,
+        "报名状态": "已报名",
+        "文本 6": "需要核销码",
+        "是否已核销并发送确认函": "未签署",
+        "登记编号": "22",
+        "缴费状态": "已缴费",
+        "联系人": "Tity",
+        "获知渠道": "微信宣传"
+      },
+      "id": "recvjWGGenBBc7",
+      "record_id": "recvjWGGenBBc7"
+    },
+    {
+      "fields": {
+        "价格类型": "早鸟价6500",
+        "备注": "香港，高一，家长比较关注细节",
+        "姓名": "施姚瑶",
+        "实收金额": 6500,
+        "年级": "高一",
+        "年龄": "16",
+        "性别": "女",
+        "报名日期": 1778947200000,
+        "报名状态": "已报名",
+        "文本 6": "已截图，待核销",
+        "是否已核销并发送确认函": "未签署",
+        "登记编号": "20",
+        "缴费状态": "已缴费",
+        "联系人": "Frank 施，kelly yao",
+        "获知渠道": "微信宣传"
+      },
+      "id": "recvjVLEHATVkU",
+      "record_id": "recvjVLEHATVkU"
+    },
+    {
+      "fields": {
+        "价格类型": "早鸟价6500",
+        "备注": "maybe会和考试时间冲突",
+        "姓名": "Florence",
+        "实收金额": 6500,
+        "性别": "女",
+        "报名日期": 1778947200000,
+        "报名状态": "已报名",
+        "文本 6": "需要核销码",
+        "是否已核销并发送确认函": "未签署",
+        "登记编号": "19",
+        "缴费状态": "已缴费",
+        "联系人": "yunxin（爸爸）",
+        "获知渠道": "微信宣传"
+      },
+      "id": "recvjVLd0JfhcN",
+      "record_id": "recvjVLd0JfhcN"
+    },
+    {
+      "fields": {
+        "价格类型": "早鸟价6500",
+        "备注": "香港，英文很好",
+        "姓名": "yueru shin",
+        "实收金额": 6500,
+        "年级": "高二",
+        "年龄": "17",
+        "性别": "女",
+        "报名日期": 1778947200000,
+        "报名状态": "已报名",
+        "文本 6": "需要核销码",
+        "是否已核销并发送确认函": "未签署",
+        "登记编号": "17",
+        "缴费状态": "已缴费",
+        "联系人": "王琪宇（爸爸）",
+        "获知渠道": "微信宣传"
+      },
+      "id": "recvjVIL86TNpA",
+      "record_id": "recvjVIL86TNpA"
+    },
+    {
+      "fields": {
+        "价格类型": "早鸟价6500",
+        "备注": "国际学校、对医学感兴趣注重实践，时间不行的话6.20前退款",
+        "姓名": "Holland",
+        "实收金额": 6500,
+        "年级": "高一",
+        "年龄": "16",
+        "性别": "男",
+        "报名日期": 1778428800000,
+        "报名状态": "已报名",
+        "文本 6": "需要核销码",
+        "是否已核销并发送确认函": "未签署",
+        "登记编号": "14",
+        "缴费状态": "已缴费",
+        "联系人": "刘女士",
+        "联系人联系方式": "13602725913",
+        "获知渠道": "朋友推荐"
+      },
+      "id": "recvjh9PBuJ2YI",
+      "record_id": "recvjh9PBuJ2YI"
+    },
+    {
+      "fields": {
+        "价格类型": "早鸟价6500",
+        "备注": "和睦家客户",
+        "姓名": "叶子扬",
+        "实收金额": 6500,
+        "年级": "初三",
+        "年龄": "15",
+        "性别": "男",
+        "报名日期": 1778774400000,
+        "报名状态": "已报名",
+        "文本 6": "已截图，待核销",
+        "是否已核销并发送确认函": "未签署",
+        "登记编号": "16",
+        "缴费状态": "已缴费",
+        "联系人": "Rong 家长",
+        "获知渠道": "微信宣传"
+      },
+      "id": "recvjEgKdxxxxW",
+      "record_id": "recvjEgKdxxxxW"
+    },
+    {
+      "fields": {
+        "价格类型": "早鸟价6500",
+        "姓名": "黎子铭",
+        "实收金额": 6500,
+        "年级": "高一",
+        "年龄": "16",
+        "性别": "男",
+        "报名日期": 1778860800000,
+        "报名状态": "已报名",
+        "文本 6": "已截图，待核销",
+        "是否已核销并发送确认函": "未签署",
+        "登记编号": "21",
+        "缴费状态": "已缴费",
+        "联系人": "CC",
+        "获知渠道": "微信宣传"
+      },
+      "id": "recvjVOUgUmu8m",
+      "record_id": "recvjVOUgUmu8m"
+    },
+    {
+      "fields": {
+        "价格类型": "渠道价5500/人",
+        "备注": "对价格敏感，未购买套餐，通过支付宝方式",
+        "姓名": "暂未告知",
+        "实收金额": 5500,
+        "年级": "初三",
+        "年龄": "15",
+        "性别": "女",
+        "报名日期": 1780156800000,
+        "报名状态": "已报名",
+        "文本 6": "通过支付宝",
+        "是否已核销并发送确认函": "未签署",
+        "登记编号": "23",
+        "缴费状态": "已缴费",
+        "联系人": "Gina ",
+        "获知渠道": "微信宣传"
+      },
+      "id": "recvkjl6Gd1Yuv",
+      "record_id": "recvkjl6Gd1Yuv"
+    }
+  ]
+}

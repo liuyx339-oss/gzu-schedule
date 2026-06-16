@@ -73,7 +73,7 @@ MODALITY_CN = {
     "Echo": "Echo",
 }
 
-OUTPUT_DIR = os.path.join(SCRIPT_DIR, "forecast_output")
+OUTPUT_DIR = os.path.join(SCRIPT_DIR, "pipeline_output")
 
 # =====================================================
 # HELPERS
