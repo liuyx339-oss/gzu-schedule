@@ -136,7 +136,8 @@ STAFF_FALLBACK = {
     "rad_techs_full": ["Zheng Xiaochun", "Zhang Meng", "Ma Linlin", "Yang Yongjun", "Yi Hong", "Liu Shuting"],
     "rad_techs_pt": ["ZHONG Minzhi", "LUO Hui", "CHEN Jiajun"],
     "us_docs_full": ["Xu Jing", "Liu Xiaoyan", "Lu Liyu", "doctor hou"],
-    "us_docs_pt": [],
+    "us_docs_pt": ["Tang Shengwen", "Wu yingheng", "Yan Can", "Zhou Huiling",
+                    "Liu Yuanyuan", "Wu yanling", "Wang Huimin"],
 }
 STAFF_FALLBACK_BACKUP = {
     "rad_docs": "放射医生备班",
@@ -2341,7 +2342,7 @@ def generate_excel(final_schedule, final_hours, category_hours, hourly_hc,
 
     rad_docs = staff['放射医生']['fulltime'] + staff['放射医生']['backup'] + staff['放射医生'].get('parttime', [])
     rad_techs = staff['放射技师']['fulltime'] + staff['放射技师'].get('parttime', []) + staff['放射技师']['backup']
-    us_docs = staff['B超医生']['fulltime'] + staff['B超医生']['backup']
+    us_docs = staff['B超医生']['fulltime'] + staff['B超医生'].get('parttime', []) + staff['B超医生']['backup']
     if DUSTIN_US in final_schedule and DUSTIN_US not in us_docs:
         us_docs.append(DUSTIN_US)
 
@@ -2596,7 +2597,7 @@ def generate_dashboard_html(final_schedule, final_hours, category_hours, hourly_
 
     rad_docs = staff['放射医生']['fulltime'] + staff['放射医生']['backup'] + staff['放射医生'].get('parttime', [])
     rad_techs = staff['放射技师']['fulltime'] + staff['放射技师'].get('parttime', []) + staff['放射技师']['backup']
-    us_docs = staff['B超医生']['fulltime'] + staff['B超医生']['backup']
+    us_docs = staff['B超医生']['fulltime'] + staff['B超医生'].get('parttime', []) + staff['B超医生']['backup']
     if DUSTIN_US in final_schedule and DUSTIN_US not in us_docs:
         us_docs.append(DUSTIN_US)
 
