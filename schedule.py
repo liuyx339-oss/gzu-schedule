@@ -2892,75 +2892,81 @@ function renderLegend(){
 function renderRoster(){
     var rd = SCHEDULE_DATA.roles[currentRole];
     var dates = rd.dates;
-    var h = '<h2>' + currentRole + ' 排班表</h2>';
-    h += '<table class="schedule"><thead><tr>';
-    h += '<th class="name-col">人员</th>';
-    h += '<th class="stats-col">工时</th><th class="stats-col">80%</th><th class="stats-col">20%</th>';
-    h += '<th class="stats-col">备班</th><th class="stats-col">L/N</th><th class="stats-col">目标</th><th class="stats-col">OnCall</th>';
-    for(var i=0; i<dates.length; i++){
-        h += '<th>' + dates[i].slice(3) + '</th>';
-    }
-    h += '</tr></thead><tbody>';
 
-    var staff = rd.staff;
-    var hasSeenBackup = false;
-    for(var si=0; si<staff.length; si++){
-        var person = staff[si];
-        // Insert separator before first backup/part-time row
-        if ((person.is_backup || ('' + person.name).indexOf('备班') >= 0 || ('' + person.name).indexOf('兼职') >= 0) && !hasSeenBackup) {
-            hasSeenBackup = true;
-            h += '<tr><td colspan="' + (9 + dates.length) + '" style="background:#FFF3E0;height:4px"></td></tr>';
+    // 拆分: 全职+兼职 (主表) vs 备班 (独立section)
+    var regular = [];
+    var backup = [];
+    for(var si=0; si<rd.staff.length; si++){
+        var p = rd.staff[si];
+        if(p.is_backup || (''+p.name).indexOf('备班') >= 0){
+            backup.push(p);
+        } else {
+            regular.push(p);
         }
-        h += '<tr>';
-        h += '<td class="name-col">' + person.name + (person.is_backup?' 🔄':'') + '</td>';
-        h += '<td class="stats-col" style="' + (person.hours > TARGET_80 && !person.is_backup?'color:#1a73e8;font-weight:600':'') + '">' + person.hours + 'h</td>';
-        h += '<td class="stats-col">' + person.hours_80 + 'h</td>';
-        h += '<td class="stats-col" style="color:#1a73e8">' + (person.hours_20>0?person.hours_20+'h':'-') + '</td>';
-        h += '<td class="stats-col" style="color:#F44336">' + (person.hours_backup>0?person.hours_backup+'h':'-') + '</td>';
-        h += '<td class="stats-col" style="color:#FF9800;font-weight:600">' + (person.hours_ln>0?person.hours_ln+'h':'-') + '</td>';
-        h += '<td class="stats-col">' + (person.target>0?person.target+'h':'-') + '</td>';
-        h += '<td class="stats-col">' + (person.oncall_count||'') + '</td>';
+    }
 
+    function staffRow(p){
+        var html = '<tr>';
+        html += '<td class="name-col">' + p.name + (p.is_backup?' 🔄':'') + '</td>';
+        html += '<td class="stats-col" style="' + (p.hours > TARGET_80 && !p.is_backup?'color:#1a73e8;font-weight:600':'') + '">' + p.hours + 'h</td>';
+        html += '<td class="stats-col">' + p.hours_80 + 'h</td>';
+        html += '<td class="stats-col" style="color:#1a73e8">' + (p.hours_20>0?p.hours_20+'h':'-') + '</td>';
+        html += '<td class="stats-col" style="color:#F44336">' + (p.hours_backup>0?p.hours_backup+'h':'-') + '</td>';
+        html += '<td class="stats-col" style="color:#FF9800;font-weight:600">' + (p.hours_ln>0?p.hours_ln+'h':'-') + '</td>';
+        html += '<td class="stats-col">' + (p.target>0?p.target+'h':'-') + '</td>';
+        html += '<td class="stats-col">' + (p.oncall_count||'') + '</td>';
         for(var di=0; di<dates.length; di++){
             var ds = dates[di];
-            var shiftVal = person.schedule[ds] || '';
-            var catVal = person.category[ds] || '';
-            var isOncall = person.is_oncall && person.is_oncall[ds];
-            var hasEdit = edits[person.internal_name] && edits[person.internal_name][ds] !== undefined;
-            var displayShift = hasEdit ? edits[person.internal_name][ds] : shiftVal;
+            var shiftVal = p.schedule[ds] || '';
+            var catVal = p.category[ds] || '';
+            var isOncall = p.is_oncall && p.is_oncall[ds];
+            var hasEdit = edits[p.internal_name] && edits[p.internal_name][ds] !== undefined;
+            var displayShift = hasEdit ? edits[p.internal_name][ds] : shiftVal;
             var text = displayShift || '-';
             var extraClass = editMode ? ' editable' : '';
             var bg = displayShift ? '#F8F8F8' : '#FFFFFF';
-
             if(displayShift){
                 if(catVal === '备班') extraClass += ' cat-backup';
                 else if(catVal === 'L/N') extraClass += ' cat-ln';
                 else if(catVal === '20%') extraClass += ' cat-20';
-
                 var badge = '';
                 if(catVal === '20%') badge = ' <sup style="background:#1a73e8;color:#fff;padding:1px 3px;border-radius:2px;font-size:8px">20%</sup>';
                 else if(catVal === '备班') badge = ' <sup style="background:#F44336;color:#fff;padding:1px 3px;border-radius:2px;font-size:8px">B</sup>';
                 else if(catVal === 'L/N') badge = ' <sup style="background:#FF9800;color:#fff;padding:1px 3px;border-radius:2px;font-size:8px">LN</sup>';
                 text = '<b>' + displayShift + '</b>' + badge;
             }
-            // PTO
-            if(person.pto && person.pto[ds]){
-                h += '<td class="shift-cell cell-pto" style="background:#FF4444;color:#fff;font-weight:bold"><span>PTO</span></td>';
+            if(p.pto && p.pto[ds]){
+                html += '<td class="shift-cell cell-pto" style="background:#FF4444;color:#fff;font-weight:bold"><span>PTO</span></td>';
                 continue;
             }
-            // OnCall
             if(isOncall){ text += ' 📞'; extraClass += ' cell-oncall'; }
-            // Floor notes
-            if(person.notes && person.notes[ds]){
-                text += ' [' + person.notes[ds] + ']';
+            if(p.notes && p.notes[ds]){
+                text += ' [' + p.notes[ds] + ']';
             }
-
-            var onclick = editMode ? ('onclick="openEditPopup(\'' + person.internal_name + '\',\'' + ds + '\')"') : ('onclick="showDayDetail(\'' + ds + '\')"');
-            h += '<td class="shift-cell' + extraClass + '" style="background:' + bg + '" ' + onclick + ' title="' + ds + ': ' + (displayShift||'休息') + ' [' + (catVal||'-') + ']">' + text + '</td>';
+            var onclick = editMode ? ('onclick="openEditPopup(\'' + p.internal_name + '\',\'' + ds + '\')"') : ('onclick="showDayDetail(\'' + ds + '\')"');
+            html += '<td class="shift-cell' + extraClass + '" style="background:' + bg + '" ' + onclick + ' title="' + ds + ': ' + (displayShift||'休息') + ' [' + (catVal||'-') + ']">' + text + '</td>';
         }
-        h += '</tr>';
+        html += '</tr>';
+        return html;
     }
+
+    var header = '<th class="name-col">人员</th><th class="stats-col">工时</th><th class="stats-col">80%</th><th class="stats-col">20%</th><th class="stats-col">备班</th><th class="stats-col">L/N</th><th class="stats-col">目标</th><th class="stats-col">OnCall</th>';
+    for(var di=0; di<dates.length; di++){ header += '<th>' + dates[di].slice(3) + '</th>'; }
+
+    var h = '<h2>' + currentRole + ' 排班表</h2>';
+    h += '<table class="schedule"><thead><tr>' + header + '</tr></thead><tbody>';
+    for(var si=0; si<regular.length; si++){ h += staffRow(regular[si]); }
     h += '</tbody></table>';
+
+    // === 备班独立 Section ===
+    if(backup.length > 0){
+        h += '<div class="roster-grid" style="margin-top:20px;border-top:3px solid #F44336">';
+        h += '<h2 style="color:#F44336">' + currentRole + ' — 备班</h2>';
+        h += '<table class="schedule"><thead><tr>' + header + '</tr></thead><tbody>';
+        for(var si=0; si<backup.length; si++){ h += staffRow(backup[si]); }
+        h += '</tbody></table></div>';
+    }
+
     document.getElementById('roster').innerHTML = h;
 }
 
