@@ -131,8 +131,11 @@ S3_BACKUP_MINIMIZE = 1_000
 # --- Staff fallback ---
 STAFF_FALLBACK = {
     "rad_docs_full": ["li zhenhuan", "Dustin Huang"],
+    "rad_docs_pt": ["放射兼职医生"],
     "rad_techs_full": ["Zheng Xiaochun", "Zhang Meng", "Ma Linlin", "Yang Yongjun", "Yi Hong", "Liu Shuting"],
+    "rad_techs_pt": [],
     "us_docs_full": ["Xu Jing", "Liu Xiaoyan", "Lu Liyu", "doctor hou"],
+    "us_docs_pt": [],
 }
 STAFF_FALLBACK_BACKUP = {
     "rad_docs": "放射医生备班",
@@ -197,50 +200,55 @@ def load_staff_from_feishu():
             if not data.get("data", {}).get("has_more"): break
             page_token = data.get("data", {}).get("page_token")
 
-        staff = {"rad_docs_full": [], "rad_docs_pt": [], "rad_techs_full": [],
-                 "rad_techs_pt": [], "us_docs_full": [], "us_docs_pt": []}
+        staff = {"rad_docs_full": [], "rad_docs_pt": [], "rad_docs_backup": [],
+                 "rad_techs_full": [], "rad_techs_pt": [], "rad_techs_backup": [],
+                 "us_docs_full": [], "us_docs_pt": [], "us_docs_backup": []}
         for rec in all_records:
             fields = rec.get("fields", {})
-            name, dept, position, is_fulltime = "", "", "", True
+            name, dept, position, emp_type = "", "", "", "全职"
             for key in fields:
                 val = fields[key]
-                kl = key.lower()
-                # 姓名: "姓名" / "医生姓名" / "name"
-                if "姓名" in key or "name" in kl:
+                if "姓名" in key:
                     if not name:
                         name = str(val[0]["text"]) if isinstance(val, list) else str(val)
                 elif "科室" in key:
-                    # 新表: "超声" / "放射"
-                    dept = str(val) if not isinstance(val, list) else str(val[0] if val else "")
-                elif "职位" in key or "类型" in key:
-                    # 新表: "医生" / "技师"  (兼容旧表 "类型")
-                    position = str(val) if not isinstance(val, list) else str(val[0] if val else "")
-                elif "角色" in key or "role" in kl:
-                    # 旧表兼容: "放射医生" / "超声医生" / "放射技师"
-                    role_str = str(val) if not isinstance(val, list) else str(val[0] if val else "")
+                    dept = str(val).strip() if not isinstance(val, list) else str(val[0] if val else "").strip()
+                elif key.strip() == "类型":
+                    position = str(val).strip() if not isinstance(val, list) else str(val[0] if val else "").strip()
+                elif "雇佣形式" in key:
+                    v = str(val).strip() if not isinstance(val, list) else str(val[0] if val else "").strip()
+                    emp_type = v
+                elif "角色" in key:  # 旧表兼容
+                    role_str = str(val).strip() if not isinstance(val, list) else str(val[0] if val else "").strip()
                     if "超声" in role_str or "B超" in role_str:
                         dept, position = "超声", "医生"
                     elif "放射医生" in role_str:
                         dept, position = "放射", "医生"
                     elif "放射技师" in role_str:
                         dept, position = "放射", "技师"
-                elif "雇佣形式" in key:
-                    v = str(val) if not isinstance(val, list) else str(val[0] if val else "")
-                    is_fulltime = v in ("全职",)
-                elif "全职" in key or "fulltime" in kl or "full_time" in kl:
-                    # 旧表兼容
-                    is_fulltime = str(val).lower() in ("true", "是", "1", "yes")
-            if not name: continue
-            # 科室分类: 优先用新表 科室+职位，其次用旧表 dept+position
+            if not name:
+                continue
+            # 科室+职位 → staff key prefix
             if dept == "超声":
-                staff_key = "us_docs_full" if is_fulltime else "us_docs_pt"
+                prefix = "us_docs"
             elif dept == "放射" and position == "医生":
-                staff_key = "rad_docs_full" if is_fulltime else "rad_docs_pt"
+                prefix = "rad_docs"
             elif dept == "放射" and position == "技师":
-                staff_key = "rad_techs_full" if is_fulltime else "rad_techs_pt"
+                prefix = "rad_techs"
             else:
                 continue
-            if name not in staff[staff_key]: staff[staff_key].append(name)
+            # 雇佣形式 → suffix
+            if emp_type == "兼职":
+                key_suffix = "pt"
+            elif emp_type == "备班":
+                key_suffix = "backup"
+            else:
+                key_suffix = "full"
+            staff_key = f"{prefix}_{key_suffix}"
+            if staff_key not in staff:
+                staff_key = f"{prefix}_full"  # fallback
+            if name not in staff.get(staff_key, []):
+                staff.setdefault(staff_key, []).append(name)
         total = sum(len(v) for v in staff.values())
         if total == 0: print("⚠️ 飞书返回空数据，使用fallback人员列表"); return None
         print(f"✅ 从飞书加载 {total} 名人员"); return staff
@@ -253,13 +261,13 @@ def build_staff(staff_raw=None):
     staff = {
         "放射医生": {"fulltime": list(staff_raw.get("rad_docs_full", [])),
                       "parttime": list(staff_raw.get("rad_docs_pt", [])),
-                      "backup": [STAFF_FALLBACK_BACKUP["rad_docs"]]},
+                      "backup": list(staff_raw.get("rad_docs_backup", [])) or [STAFF_FALLBACK_BACKUP["rad_docs"]]},
         "放射技师": {"fulltime": list(staff_raw.get("rad_techs_full", [])),
                       "parttime": list(staff_raw.get("rad_techs_pt", [])),
-                      "backup": [STAFF_FALLBACK_BACKUP["rad_techs"]]},
+                      "backup": list(staff_raw.get("rad_techs_backup", [])) or [STAFF_FALLBACK_BACKUP["rad_techs"]]},
         "B超医生": {"fulltime": list(staff_raw.get("us_docs_full", [])),
                       "parttime": list(staff_raw.get("us_docs_pt", [])),
-                      "backup": [STAFF_FALLBACK_BACKUP["us_docs"]]},
+                      "backup": list(staff_raw.get("us_docs_backup", [])) or [STAFF_FALLBACK_BACKUP["us_docs"]]},
     }
     staff["Dustin_US"] = DUSTIN_US
     return staff
@@ -835,17 +843,19 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                 else:
                     model.Add(sum(x[p, d, s] for s in range(n_shifts)) <= 1)
 
-        # C2: 月工时 ≤ TARGET_HOURS_FULL (含L/N) — 100%目标
+        # C2: 月工时 = TARGET_HOURS_FULL (±0.5h 容忍度, 含L/N)
         cap_target = TARGET_HOURS_FULL
+        TOL_DECIHOURS = 5  # 0.5h tolerance
         for p in range(n_staff):
             person = all_staff[p]
             base_hrs = existing_hours.get(person, 0)
             total_dec = sum(x[p, d, s] * int(shift_hours[s] * 10)
                           for d in range(n_days) for s in range(n_shifts))
-            cap_dec = int((cap_target - base_hrs) * 10)
-            if cap_dec < 0:
-                cap_dec = 0
-            model.Add(total_dec <= cap_dec)
+            total_with_base = total_dec + int(base_hrs * 10)
+            target_dec = int(cap_target * 10)
+            # 全职必须用完工时: 176h ± 0.5h
+            model.Add(total_with_base <= target_dec)
+            model.Add(total_with_base >= target_dec - TOL_DECIHOURS)
 
         # C3: L/N限制 (每人每月 ≤ 2, 含已分配)
         for p in range(n_staff):
@@ -878,17 +888,52 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                     model.Add(supp_night + supp_day_next <= 1)
 
         # ================================================================
-        # 放射医生: 简化轮替模型（与其他角色不同的逻辑）
-        # - 每天恰好1个全职上全天白班 (li/Dustin交替)
-        # - 全职不上夜班 (夜班全由备班覆盖)
+        # 放射医生: 简化轮替模型
+        # - 全职: 每天恰好1个全天白班(交替), Dustin Wed+Fri, L/N, 0夜班, 176h
+        # - 兼职: 每天1人夜班(轮转), 公平性
         # - 不考虑需求覆盖 (需求由备班满足)
-        # - L/N 照常
         # ================================================================
         if role_name == '放射医生':
             full_day_is = [1 if s in FULL_DAY_SHIFTS else 0 for s in shifts_list]
 
+            # 兼职人员 (独立的 night-only pool)
+            parttime = staff[role_name].get('parttime', [])
+            n_pt = len(parttime)
+            pt_hours_target = 140.0  # 兼职月目标工时
+            pt_slack_vars = {}
+
+            # 为兼职创建独立的夜班变量 (y[pt_idx, d, s])
+            y = {}
+            night_shifts_list = [s for s in shifts_list if s in NIGHT_SHIFTS]
+            night_s_indices = [i for i, s in enumerate(shifts_list) if s in NIGHT_SHIFTS]
+            if n_pt > 0:
+                for pt in range(n_pt):
+                    for d in range(n_days):
+                        for si in night_s_indices:
+                            y[pt, d, si] = model.NewBoolVar(f's1_pt_{pt}_{d}_{si}')
+
+                # 兼职约束: 每人每天最多1个夜班
+                for pt in range(n_pt):
+                    for d in range(n_days):
+                        pt_day_vars = [y[pt, d, si] for si in night_s_indices]
+                        if pt_day_vars:
+                            model.Add(sum(pt_day_vars) <= 1)
+
+                # 兼职月工时上限
+                for pt in range(n_pt):
+                    pt_total = sum(y[pt, d, si] * int(SHIFT_DICT[night_shifts_list[i]][2] * 10)
+                                  for d in range(n_days) for i, si in enumerate(night_s_indices))
+                    model.Add(pt_total <= int(pt_hours_target * 10))
+
+                # 不连续夜班 (兼职)
+                for pt in range(n_pt):
+                    for d in range(n_days - 1):
+                        pt_n1 = sum(y[pt, d, si] for si in night_s_indices)
+                        pt_n2 = sum(y[pt, d + 1, si] for si in night_s_indices)
+                        model.Add(pt_n1 + pt_n2 <= 1)
+
+            # --- 全职工时约束 ---
             for d, ds in enumerate(date_strs):
-                # 计算这天 L/N 是否已经覆盖
                 ln_covers = 0
                 for p in range(n_staff):
                     person = all_staff[p]
@@ -896,24 +941,29 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                         ln_covers = 1
                         break
 
-                # 全天白班变量
                 day_vars = [x[p, d, s] for p in range(n_staff) for s in range(n_shifts) if full_day_is[s]]
 
                 if ln_covers:
-                    # L/N 已覆盖这天 → 不需要额外白班
                     if day_vars:
                         model.Add(sum(day_vars) == 0)
                 else:
-                    # 恰好1个全职上全天白班
                     if day_vars:
                         model.Add(sum(day_vars) == 1)
 
-                # 硬约束: 0个全职上夜班 (夜班全由备班覆盖)
-                night_vars = [x[p, d, s] for p in range(n_staff) for s in range(n_shifts) if shift_is_night[s]]
-                if night_vars:
-                    model.Add(sum(night_vars) == 0)
+                # 全职0夜班
+                ft_night_vars = [x[p, d, s] for p in range(n_staff) for s in range(n_shifts) if shift_is_night[s]]
+                if ft_night_vars:
+                    model.Add(sum(ft_night_vars) == 0)
 
-            # Dustin Wed+Fri 硬约束 (L/N当天或次日除外)
+                # 兼职夜班: 每天1个 (极高惩罚slack, 兼职不够→备班补)
+                if n_pt > 0 and not ln_covers:
+                    pt_night_vars_d = [y[pt, d, si] for pt in range(n_pt) for si in night_s_indices]
+                    if pt_night_vars_d:
+                        ptsl = model.NewIntVar(0, 1, f's1_ptsl_{d}')
+                        pt_slack_vars[d] = ptsl
+                        model.Add(sum(pt_night_vars_d) + ptsl == 1)
+
+            # Dustin Wed+Fri 硬约束
             if DUSTIN_RAD in fulltime:
                 dustin_p = all_staff.index(DUSTIN_RAD)
                 for d, ds in enumerate(date_strs):
@@ -926,14 +976,14 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                             if dv:
                                 model.Add(sum(dv) == 1)
 
-            # --- Objective: 最大化总工时（填到176h）+ 工时均衡 ---
+            # --- Objective ---
             objective_terms = []
             for p in range(n_staff):
                 total_dec = sum(x[p, d, s] * int(shift_hours[s] * 10)
                               for d in range(n_days) for s in range(n_shifts))
-                objective_terms.append(total_dec)  # 奖励多排班
+                objective_terms.append(total_dec)
 
-            # 工时均衡
+            # 全职工时均衡
             if len(fulltime) >= 2:
                 for p in range(n_staff):
                     person = all_staff[p]
@@ -945,6 +995,21 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                     model.Add(dev >= total_dec + base_h - avg_target)
                     model.Add(dev >= avg_target - (total_dec + base_h))
                     objective_terms.append(dev * (-S1_BALANCE_WEIGHT))
+
+            # 兼职夜班缺口惩罚 (鼓励用兼职，少用备班)
+            for sl in pt_slack_vars.values():
+                objective_terms.append(sl * (-S1_COVERAGE_WEIGHT * 5))
+
+            # 兼职夜班均衡
+            if n_pt >= 2:
+                for pt in range(n_pt):
+                    pt_total = sum(y[pt, d, si] * int(SHIFT_DICT[night_shifts_list[i]][2] * 10)
+                                  for d in range(n_days) for i, si in enumerate(night_s_indices))
+                    avg_pt = int(pt_hours_target * 10)
+                    pt_dev = model.NewIntVar(0, int(pt_hours_target * 10), f's1_ptdev_{pt}')
+                    model.Add(pt_dev >= pt_total - avg_pt)
+                    model.Add(pt_dev >= avg_pt - pt_total)
+                    objective_terms.append(pt_dev * (-S1_BALANCE_WEIGHT * 10))
 
             model.Maximize(sum(objective_terms))
 
@@ -969,6 +1034,22 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                                 result_hours[person] += shift_hours[s]
                 for p in fulltime:
                     result_hours[p] = result_hours.get(p, 0) + ln_hours.get(p, 0)
+
+                # 提取兼职夜班结果
+                if n_pt > 0:
+                    for pt in range(n_pt):
+                        pt_name = parttime[pt]
+                        for d, ds in enumerate(date_strs):
+                            for i, si in enumerate(night_s_indices):
+                                if solver.Value(y[pt, d, si]):
+                                    role_result.setdefault(pt_name, {})[ds] = night_shifts_list[i]
+                                    result_hours[pt_name] += SHIFT_DICT[night_shifts_list[i]][2]
+                    # 打印兼职统计
+                    for pt in range(n_pt):
+                        pt_name = parttime[pt]
+                        pt_hrs = result_hours.get(pt_name, 0)
+                        pt_days = sum(1 for ds in date_strs if ds in role_result.get(pt_name, {}))
+                        print(f"   兼职 {pt_name}: {pt_hrs:.1f}h (夜班 {pt_days} 天)")
 
             all_results[role_name] = role_result
             continue  # 放射医生已处理，跳过后续逻辑
@@ -1027,10 +1108,12 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                         day_slack_vars[d] = dslack2
                         model.Add(sum(supp_full_day) + sum(supp_ln_vars_d) + base_full_day_count + dslack2 >= 1)
                 else:
-                    # 放射技师: 硬约束≥2个全天白班 (比放射医生更严)
+                    # 放射技师: 硬约束恰好=2 (无slack)
                     if role_name == '放射技师':
-                        # 无slack: 硬性保证每天2人白天全覆盖
                         model.Add(sum(supp_full_day) + sum(supp_ln_vars_d) + base_full_day_count >= day_target)
+                    elif role_name == 'B超医生':
+                        # B超医生: 硬约束恰好=2个全天白班 (周日=1)
+                        model.Add(sum(supp_full_day) + sum(supp_ln_vars_d) + base_full_day_count == day_target)
                     else:
                         dslack = model.NewIntVar(0, day_target, f's1_dslack_{d}')
                         day_slack_vars[d] = dslack
@@ -1046,12 +1129,13 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                         night_slack_vars[d] = nslack
                         model.Add(sum(supp_night_vars) + sum(supp_ln_vars_d) + base_night_count + nslack >= cfg['night_shifts'])
                 else:
-                    nslack = model.NewIntVar(0, cfg['night_shifts'], f's1_nslack_{d}')
-                    night_slack_vars[d] = nslack
-                    model.Add(sum(supp_night_vars) + sum(supp_ln_vars_d) + base_night_count + nslack >= cfg['night_shifts'])
-                    # 放射技师严格上限: 每天≤1个夜班 (硬约束!)
+                    # 放射技师: 硬约束每天恰好1个夜班 (无slack)
                     if role_name == '放射技师':
-                        model.Add(sum(supp_night_vars) + sum(supp_ln_vars_d) + base_night_count <= 1)
+                        model.Add(sum(supp_night_vars) + sum(supp_ln_vars_d) + base_night_count == cfg['night_shifts'])
+                    else:
+                        nslack = model.NewIntVar(0, cfg['night_shifts'], f's1_nslack_{d}')
+                        night_slack_vars[d] = nslack
+                        model.Add(sum(supp_night_vars) + sum(supp_ln_vars_d) + base_night_count + nslack >= cfg['night_shifts'])
 
             # 24h覆盖 (仅放射技师，极高惩罚slack)
             if cfg['coverage_24h']:
@@ -1064,7 +1148,18 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                         h24_slack_vars[d, h] = h24slack
                         model.Add(sum(coverage_vars) + total_base + h24slack >= 1)
 
-        # C8: B超医生固定配对约束 (仅Stage 1 80%池)
+        # C8: B超医生 Wed+Fri 下午恰好2人
+        if role_name == 'B超医生':
+            # 覆盖下午(13-17h)的班次: H3 + 全天白班
+            pm_is = [1 if (s in FULL_DAY_SHIFTS or s == 'H3') else 0 for s in shifts_list]
+            for d, ds in enumerate(date_strs):
+                wd = _get_date_weekday(ds, all_dates, date_strs)
+                if wd in (2, 4):  # 周三、周五
+                    pm_vars = [x[p, d, s] for p in range(n_staff) for s in range(n_shifts) if pm_is[s]]
+                    if pm_vars:
+                        model.Add(sum(pm_vars) == 2)
+
+        # C9: B超医生固定配对约束 (仅Stage 1 80%池)
         # 合法配对: Liu+Xu, Xu+Hou, Xu+Lu, Lu+Hou (禁止 Liu+Lu, Liu+Hou)
         if role_name == 'B超医生':
             liu_idx = next((i for i, p in enumerate(fulltime) if 'Liu' in p), None)
@@ -1247,6 +1342,7 @@ def solve_stage2_20pct(hourly_hc, date_strs, staff, stage1_schedule, stage1_hour
         shift_is_ln = [1 if s == 'L/N' else 0 for s in shifts_list]
         shift_is_day = [1 if s in DAY_SHIFTS else 0 for s in shifts_list]
         full_day_is = [1 if s in FULL_DAY_SHIFTS else 0 for s in shifts_list]
+        TOL_DECIHOURS = 5  # 0.5h tolerance
 
         # 计算Stage1每天的覆盖和每人已用工时
         s1_hours = {p: stage1_hours.get(p, 0) for p in fulltime}
@@ -1298,7 +1394,10 @@ def solve_stage2_20pct(hourly_hc, date_strs, staff, stage1_schedule, stage1_hour
             cap_dec = int((TARGET_HOURS_FULL - base_hrs) * 10)
             if cap_dec < 0:
                 cap_dec = 0
-            model.Add(total_dec <= cap_dec)
+            total_with_base = total_dec + int(base_hrs * 10)
+            target_dec = int(TARGET_HOURS_FULL * 10)
+            model.Add(total_with_base <= target_dec)
+            model.Add(total_with_base >= target_dec - TOL_DECIHOURS)
 
         # C3: L/N限制
         for p in range(n_staff):
@@ -3210,9 +3309,9 @@ def main():
         staff_raw.setdefault("rad_docs_full", []).append("Dustin Huang")
     staff = build_staff(staff_raw)
     print(f"\n👥 人员配置:")
-    print(f"   放射医生 (全职): {staff['放射医生']['fulltime']}")
-    print(f"   放射技师 (全职): {staff['放射技师']['fulltime']}")
-    print(f"   B超医生  (全职): {staff['B超医生']['fulltime']}")
+    print(f"   放射医生: 全职{staff['放射医生']['fulltime']}  兼职{staff['放射医生']['parttime']}  备班{staff['放射医生']['backup']}")
+    print(f"   放射技师: 全职{staff['放射技师']['fulltime']}  兼职{staff['放射技师']['parttime']}  备班{staff['放射技师']['backup']}")
+    print(f"   B超医生:  全职{staff['B超医生']['fulltime']}  兼职{staff['B超医生']['parttime']}  备班{staff['B超医生']['backup']}")
 
     # --- Phase 1: 数据预处理 ---
     hourly_hc, date_strs, all_dates = load_and_preprocess_demand(data_path, month_year)
