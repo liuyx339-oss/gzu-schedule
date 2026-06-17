@@ -1167,14 +1167,17 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
 
         # C8: B超医生 Wed+Fri 下午恰好2人
         if role_name == 'B超医生':
-            # 覆盖下午(13-17h)的班次: H3 + 全天白班
             pm_is = [1 if (s in FULL_DAY_SHIFTS or s == 'H3') else 0 for s in shifts_list]
+            pm_dates = 0
             for d, ds in enumerate(date_strs):
                 wd = _get_date_weekday(ds, all_dates, date_strs)
                 if wd in (2, 4):  # 周三、周五
                     pm_vars = [x[p, d, s] for p in range(n_staff) for s in range(n_shifts) if pm_is[s]]
                     if pm_vars:
                         model.Add(sum(pm_vars) == 2)
+                        pm_dates += 1
+            if pm_dates > 0:
+                print(f"   [B超] Wed+Fri PM=2 约束已添加 ({pm_dates}天)")
 
         # C9: B超医生固定配对约束 (仅Stage 1 80%池)
         # 合法配对: Liu+Xu, Xu+Hou, Xu+Lu, Lu+Hou (禁止 Liu+Lu, Liu+Hou)
@@ -1477,6 +1480,19 @@ def solve_stage2_20pct(hourly_hc, date_strs, staff, stage1_schedule, stage1_hour
                 supp_night_d = sum(x[p, d, s] for p in range(n_staff) for s in range(n_shifts)
                                   if shift_is_night[s] or shift_is_ln[s])
                 model.Add(supp_night_d + s1_night_d <= 1)
+
+        # C8: B超医生 Wed+Fri 下午=2 (Stage2也遵守)
+        if role_name == 'B超医生':
+            pm_is = [1 if (s in FULL_DAY_SHIFTS or s == 'H3') else 0 for s in shifts_list]
+            for d, ds in enumerate(date_strs):
+                wd = _get_date_weekday(ds, all_dates, date_strs)
+                if wd in (2, 4):
+                    s1_pm = sum(1 for p in range(n_staff)
+                               if s1_shift_d.get(fulltime[p], {}).get(d, '') in FULL_DAY_SHIFTS or
+                               s1_shift_d.get(fulltime[p], {}).get(d, '') == 'H3')
+                    s2_pm = [x[p, d, s] for p in range(n_staff) for s in range(n_shifts) if pm_is[s]]
+                    if s2_pm:
+                        model.Add(sum(s2_pm) + s1_pm <= 2)
 
         # --- Objective: 最大化全职工时使用 ---
         objective_terms = []
@@ -1963,6 +1979,24 @@ def merge_and_oncall(stage1_schedule, stage1_hours,
                     else:
                         del final_schedule[pt_name][ds]
 
+    
+
+
+    # B超 Wed+Fri 下午=2: 硬切多余为H2
+    us_ft = [p for p in staff['B超医生']['fulltime'] if 'US' not in p]
+    for d, ds in enumerate(date_strs):
+        if all_dates[d].weekday() in (2, 4):
+            pm_list = [(p, final_schedule[p][ds]) for p in us_ft
+                      if p in final_schedule and ds in final_schedule[p]
+                      and any(s.strip() in FULL_DAY_SHIFTS or s.strip() == 'H3'
+                           for s in str(final_schedule[p][ds][0] if isinstance(final_schedule[p][ds], tuple) else final_schedule[p][ds]).split(' + '))]
+            while len(pm_list) > 2:
+                p_to_move = pm_list[-1][0]
+                old_val = final_schedule[p_to_move][ds]
+                old_cat = old_val[1] if isinstance(old_val, tuple) else '80%'
+                final_schedule[p_to_move][ds] = ('H2', old_cat)
+                pm_list.pop()
+
     # 重新算全部工时（已清理兼职）
     final_hours.clear()
     for person in list(category_hours.keys()):
@@ -2003,6 +2037,8 @@ def merge_and_oncall(stage1_schedule, stage1_hours,
             cat = value[1] if isinstance(value, tuple) else "80%"
             hrs = _get_shift_hours(shift_str)
             category_hours[person][cat] += hrs
+
+
 
     # --- OnCall分配 ---
     for role_name in ['放射技师', 'B超医生']:
