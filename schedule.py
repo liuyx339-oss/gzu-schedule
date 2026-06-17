@@ -2016,6 +2016,20 @@ def merge_and_oncall(stage1_schedule, stage1_hours,
             category_hours[person][cat] += hrs
         final_hours[person] = total
 
+    for d_check, ds_check in enumerate(date_strs):
+        wd_check = all_dates[d_check].weekday()
+        if wd_check in (2,4):
+            pm_left = 0
+            for p_check in us_ft:
+                if p_check in final_schedule and ds_check in final_schedule[p_check]:
+                    sv = final_schedule[p_check][ds_check][0] if isinstance(final_schedule[p_check][ds_check], tuple) else final_schedule[p_check][ds_check]
+                    parts = set(s.strip() for s in sv.split(' + '))
+                    if parts & FULL_DAY_SHIFTS or 'H3' in parts:
+                        pm_left += 1
+            if pm_left != 2:
+                names = [(p, final_schedule[p][ds_check]) for p in us_ft if p in final_schedule and ds_check in final_schedule[p]]
+                print(f'   [PM verify] {ds_check}: STILL {pm_left} PM! {names}')
+
     # 80/20 显示分离: 超140.8h的工时重新标记为20%
     for person in list(final_schedule.keys()):
         if person not in final_schedule: continue
@@ -2514,6 +2528,7 @@ def _apply_v3_excel_styling(worksheet, df, sheet_name, date_strs, category_hours
 # 9. Dashboard Web 仪表盘 (Phase 9)
 # ==========================================
 
+
 def generate_dashboard_html(final_schedule, final_hours, category_hours, hourly_hc,
                              date_strs, staff, oncall_schedule, us_notes,
                              pto_dates, output_path):
@@ -2588,7 +2603,7 @@ def generate_dashboard_html(final_schedule, final_hours, category_hours, hourly_
 
         return {
             "staff": staff_list,
-            "dates": date_strs,
+            "dates": date_strs_w_wd,
             "shift_colors": shift_colors,
             "shift_times": SHIFT_TIME_STR,
             "demand_samples": demand_samples,
@@ -2600,6 +2615,28 @@ def generate_dashboard_html(final_schedule, final_hours, category_hours, hourly_
     us_docs = staff['B超医生']['fulltime'] + staff['B超医生'].get('parttime', []) + staff['B超医生']['backup']
     if DUSTIN_US in final_schedule and DUSTIN_US not in us_docs:
         us_docs.append(DUSTIN_US)
+
+    # B超 Wed+Fri PM=2: 最终硬切（在生成HTML前最后执行）
+    us_ft_names = staff['B超医生']['fulltime']
+    for d, ds in enumerate(date_strs):
+        wd = d % 7  # date_strs[0] = 06月01日 = Monday(0)
+        if wd in (2, 4):
+            pm_people = []
+            for p_name in us_ft_names:
+                if p_name in final_schedule and ds in final_schedule[p_name]:
+                    entry = final_schedule[p_name][ds]
+                    sv = entry[0] if isinstance(entry, tuple) else str(entry)
+                    cat = entry[1] if isinstance(entry, tuple) else '80%'
+                    parts = set(s.strip() for s in sv.split(' + '))
+                    if parts & FULL_DAY_SHIFTS or 'H3' in parts:
+                        pm_people.append((p_name, sv, cat))
+            # Cut excess to H2
+            for p_name, sv, cat in pm_people[2:]:
+                final_schedule[p_name][ds] = ('H2', cat)
+
+    # 日期加星期: 06月01日 → 06月01日 一
+    wd_names = ['一','二','三','四','五','六','日']
+    date_strs_w_wd = [ds + ' ' + wd_names[i % 7] for i, ds in enumerate(date_strs)]
 
     data = {
         "month": f"{date_strs[0]} ~ {date_strs[-1]}",
@@ -3132,7 +3169,7 @@ function toggleEdit(){
     renderRoster();
 }
 
-var ALLOWED_SHIFTS = ['C','C1','D1','D2','D3','D4','D5','D6','N','N1','N2','N3','L','L/N','T','T1','H','H1','H2','H3','OFF'];
+var ALLOWED_SHIFTS = ['C','C1','D1','D2','D3','D4','D5','D6','N','N1','N2','N3','L','L/N','T','T1','H','H1','H2','H3','PTO','CTO','OFF',''];
 var SHIFT_LABELS = {OFF:'休息'};
 
 function openEditPopup(personName, dateStr){
