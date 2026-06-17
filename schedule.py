@@ -881,6 +881,7 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
         day_slack_vars = {}
         night_slack_vars = {}
         h24_slack_vars = {}
+        dustin_wf_slack = {}
         full_day_is = [1 if s in FULL_DAY_SHIFTS else 0 for s in shifts_list]
 
         for d, ds in enumerate(date_strs):
@@ -1007,6 +1008,18 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                     coverage_slack_vars[d, h] = sl
                     model.Add(sum(coverage_vars) + int(base_coverage[h]) + sl >= needed)
 
+        # Dustin Wed+Fri: 极高惩罚——强制周三周五上放射全天白班
+        if role_name == '放射医生' and DUSTIN_RAD in fulltime:
+            dustin_p = all_staff.index(DUSTIN_RAD)
+            for d, ds in enumerate(date_strs):
+                wd = _get_date_weekday(ds, all_dates, date_strs)
+                if wd in (2, 4):  # 周三(2)、周五(4)
+                    dustin_day_vars = [x[dustin_p, d, s] for s in range(n_shifts)
+                                      if full_day_is[s] or shift_is_ln[s]]
+                    dustin_slack = model.NewIntVar(0, 1, f's1_dustinWFs_{d}')
+                    dustin_wf_slack[d] = dustin_slack
+                    model.Add(sum(dustin_day_vars) + dustin_slack >= 1)
+
         # --- Objective ---
         objective_terms = []
 
@@ -1022,14 +1035,9 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
         for sl in h24_slack_vars.values():
             objective_terms.append(sl * (-S1_COVERAGE_WEIGHT * 5))
 
-        # Dustin Wed+Fri: Stage 1 奖励，Stage 2 硬约束
-        if role_name == '放射医生' and DUSTIN_RAD in fulltime:
-            dustin_p = all_staff.index(DUSTIN_RAD)
-            for d, ds in enumerate(date_strs):
-                wd = _get_date_weekday(ds, all_dates, date_strs)
-                if wd in (2, 4):  # 周三(2)、周五(4)
-                    dustin_day = sum(x[dustin_p, d, s] for s in range(n_shifts))
-                    objective_terms.append(dustin_day * S1_DUSTIN_MWF_WEIGHT)
+        # Dustin Wed+Fri 缺口 → 极高惩罚 (P0级别)
+        for sl in dustin_wf_slack.values():
+            objective_terms.append(sl * (-S1_COVERAGE_WEIGHT * 10))
 
         # 放射医生: 全职上夜班 → 惩罚 (鼓励用备班覆盖夜班)
         if cfg.get('night_prefer_backup'):
