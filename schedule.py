@@ -2707,7 +2707,7 @@ table.schedule .shift-cell.editable{cursor:pointer}
 table.schedule .shift-cell.editable:hover{transform:scale(1.1);z-index:3;box-shadow:0 2px 8px rgba(0,0,0,0.25)}
 table.schedule .shift-cell.cat-backup{border:2px dashed #F44336!important}
 table.schedule .shift-cell.cat-ln{border:3px solid #FF9800!important;font-weight:bold}
-table.schedule .shift-cell.cat-20{border:2px solid #1a73e8!important}
+table.schedule .shift-cell.cat-20{background:#E3F2FD!important;border:2px solid #1565C0!important;font-weight:bold}
 table.schedule .shift-cell.cell-oncall::after{content:"📞";position:absolute;top:0;right:1px;font-size:7px;line-height:1}
 
 /* === PTO === */
@@ -2995,7 +2995,7 @@ function renderRoster(){
                 else if(catVal === 'L/N') extraClass += ' cat-ln';
                 else if(catVal === '20%') extraClass += ' cat-20';
                 var badge = '';
-                if(catVal === '20%') badge = ' <sup style="background:#1a73e8;color:#fff;padding:1px 3px;border-radius:2px;font-size:8px">20%</sup>';
+                if(catVal === '20%') badge = ' <sup style="background:#1565C0;color:#fff;padding:2px 4px;border-radius:3px;font-size:10px;font-weight:bold">20%</sup>';
                 else if(catVal === '备班') badge = ' <sup style="background:#F44336;color:#fff;padding:1px 3px;border-radius:2px;font-size:8px">B</sup>';
                 else if(catVal === 'L/N') badge = ' <sup style="background:#FF9800;color:#fff;padding:1px 3px;border-radius:2px;font-size:8px">LN</sup>';
                 text = '<b>' + displayShift + '</b>' + badge;
