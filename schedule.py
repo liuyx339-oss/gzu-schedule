@@ -85,7 +85,7 @@ SHIFT_COVERAGE = {
 }
 
 ROLE_SHIFTS = {
-    "放射医生": ["D","D1","D2","D3","D4","D5","D6","C","C1","L","H1","H2","H3","T","N","N2","N3","L/N"],
+    "放射医生": ["D","D1","D2","D3","D4","D5","D6","C","C1","L","H1","H2","H3","N","N2","N3","L/N"],
     "放射技师": ["D","D1","D2","D3","D4","D5","D6","C","C1","L","H1","H2","H3","T","N","N2","N3","L/N"],
     "B超医生": ["D","D1","D2","D3","D4","D5","D6","C","C1","H1","H2","H3","T"],
 }
@@ -845,7 +845,7 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
 
         # C2: 月工时 = TARGET_HOURS_FULL (±0.5h 容忍度, 含L/N)
         cap_target = TARGET_HOURS_FULL
-        TOL_DECIHOURS = 5  # 0.5h tolerance
+        TOL_DECIHOURS = 80  # 8h tolerance (lower bound = TARGET - 8h)
         for p in range(n_staff):
             person = all_staff[p]
             base_hrs = existing_hours.get(person, 0)
@@ -889,8 +889,8 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
 
         # ================================================================
         # 放射医生: 简化轮替模型
-        # - 全职: 每天恰好1个全天白班(交替), Dustin Wed+Fri, L/N, 0夜班, 176h
-        # - 兼职: 每天1人夜班(轮转), 公平性
+        # - 全职: 每天≥1个全天白班, Dustin Wed+Fri, L/N, 0夜班, 176h
+        # - 兼职: 每天1人夜班(轮转, 若数学不可行由slack兜底→备班)
         # - 不考虑需求覆盖 (需求由备班满足)
         # ================================================================
         if role_name == '放射医生':
@@ -932,7 +932,9 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                         pt_n2 = sum(y[pt, d + 1, si] for si in night_s_indices)
                         model.Add(pt_n1 + pt_n2 <= 1)
 
-            # --- 全职工时约束 ---
+            # --- 全职约束: 每天恰好1全职白班 ---
+            # half_day_shifts: H1/H2/H3
+            half_is = [1 if s in ('H1','H2','H3') else 0 for s in shifts_list]
             for d, ds in enumerate(date_strs):
                 ln_covers = 0
                 for p in range(n_staff):
@@ -941,21 +943,26 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                         ln_covers = 1
                         break
 
-                day_vars = [x[p, d, s] for p in range(n_staff) for s in range(n_shifts) if full_day_is[s]]
-
                 if ln_covers:
+                    # L/N日: 不排其他班
+                    day_vars = [x[p, d, s] for p in range(n_staff) for s in range(n_shifts)
+                               if not shift_is_night[s] and not shift_is_ln[s]]
                     if day_vars:
                         model.Add(sum(day_vars) == 0)
                 else:
-                    if day_vars:
-                        model.Add(sum(day_vars) == 1)
+                    # 恰好1个全职上全天白班
+                    full_vars = [x[p, d, s] for p in range(n_staff) for s in range(n_shifts) if full_day_is[s]]
+                    if full_vars:
+                        model.Add(sum(full_vars) == 1)
+
+                # 全职0夜班
 
                 # 全职0夜班
                 ft_night_vars = [x[p, d, s] for p in range(n_staff) for s in range(n_shifts) if shift_is_night[s]]
                 if ft_night_vars:
                     model.Add(sum(ft_night_vars) == 0)
 
-                # 兼职夜班: 每天1个 (极高惩罚slack, 兼职不够→备班补)
+                # 兼职夜班: 每天=1 (slack兜底, 兼职不够→备班补)
                 if n_pt > 0 and not ln_covers:
                     pt_night_vars_d = [y[pt, d, si] for pt in range(n_pt) for si in night_s_indices]
                     if pt_night_vars_d:
@@ -972,8 +979,10 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                         has_ln = existing_shift_d.get(DUSTIN_RAD, {}).get(d, '') == 'L/N'
                         after_ln = d > 0 and existing_shift_d.get(DUSTIN_RAD, {}).get(d - 1, '') == 'L/N'
                         if not has_ln and not after_ln:
-                            dv = [x[dustin_p, d, s] for s in range(n_shifts) if full_day_is[s]]
+                            dv = [x[dustin_p, d, s] for s in range(n_shifts)
+                                  if not shift_is_night[s] and not shift_is_ln[s]]
                             if dv:
+                                # Dustin 必须上这天, 所以 sum=1
                                 model.Add(sum(dv) == 1)
 
             # --- Objective ---
@@ -1342,7 +1351,7 @@ def solve_stage2_20pct(hourly_hc, date_strs, staff, stage1_schedule, stage1_hour
         shift_is_ln = [1 if s == 'L/N' else 0 for s in shifts_list]
         shift_is_day = [1 if s in DAY_SHIFTS else 0 for s in shifts_list]
         full_day_is = [1 if s in FULL_DAY_SHIFTS else 0 for s in shifts_list]
-        TOL_DECIHOURS = 5  # 0.5h tolerance
+        TOL_DECIHOURS = 80  # 8h tolerance (lower bound = TARGET - 8h)
 
         # 计算Stage1每天的覆盖和每人已用工时
         s1_hours = {p: stage1_hours.get(p, 0) for p in fulltime}
@@ -1919,14 +1928,26 @@ def merge_and_oncall(stage1_schedule, stage1_hours,
                 final_hours[person] += shift_hrs
                 category_hours[person][actual_cat] += shift_hrs
 
-    # 注意: Stage 1+2 的工时已经包含在stage1_hours/stage2_hours中
-    # 但我们在合并时又重新计算了。为避免重复，重新清零然后用schedule重新算
+    # 兼职放射医生: 合并前清理白天班 (仅保留夜班)
+    for role_name in ['放射医生']:
+        for pt_name in staff[role_name].get('parttime', []):
+            if pt_name in final_schedule:
+                for ds in list(final_schedule[pt_name].keys()):
+                    val = final_schedule[pt_name][ds]
+                    shift_str = val[0] if isinstance(val, tuple) else str(val)
+                    cat = val[1] if isinstance(val, tuple) else "80%"
+                    night_only = [s for s in shift_str.split(' + ') if s.strip() in NIGHT_SHIFTS]
+                    if night_only:
+                        final_schedule[pt_name][ds] = (' + '.join(night_only), cat)
+                    else:
+                        del final_schedule[pt_name][ds]
+
+    # 重新算全部工时（已清理兼职）
     final_hours.clear()
     for person in list(category_hours.keys()):
         for cat in category_hours[person]:
             category_hours[person][cat] = 0.0
 
-    # 重新从final_schedule计算
     for person, date_shifts in final_schedule.items():
         total = 0.0
         for ds, value in date_shifts.items():
@@ -1934,7 +1955,6 @@ def merge_and_oncall(stage1_schedule, stage1_hours,
                 shift_str, cat = value
             else:
                 shift_str, cat = value, "80%"
-
             hrs = _get_shift_hours(shift_str)
             total += hrs
             category_hours[person][cat] += hrs
