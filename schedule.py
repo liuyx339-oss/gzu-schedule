@@ -85,7 +85,7 @@ SHIFT_COVERAGE = {
 }
 
 ROLE_SHIFTS = {
-    "放射医生": ["D","D1","D2","D3","D4","D5","D6","C","C1","L","N","N2","N3","L/N"],
+    "放射医生": ["D", "L", "L/N", "N", "N2", "N3"],
     "放射技师": ["D","D1","D2","D3","D4","D5","D6","C","C1","L","H1","H2","H3","T","N","N2","N3","L/N"],
     "B超医生": ["D","D1","D2","D3","D4","D5","D6","C","C1","H1","H2","H3","T"],
 }
@@ -131,7 +131,7 @@ S3_BACKUP_MINIMIZE = 1_000
 # --- Staff fallback ---
 STAFF_FALLBACK = {
     "rad_docs_full": ["li zhenhuan", "Dustin Huang"],
-    "rad_docs_pt": ["放射兼职医生"],
+    "rad_docs_pt": ["放射兼职夜班"],
     "rad_techs_full": ["Zheng Xiaochun", "Zhang Meng", "Ma Linlin", "Yang Yongjun", "Yi Hong", "Liu Shuting"],
     "rad_techs_pt": [],
     "us_docs_full": ["Xu Jing", "Liu Xiaoyan", "Lu Liyu", "doctor hou"],
@@ -744,7 +744,7 @@ def _build_shift_list(role_name, demand_by_date, date_strs):
                     used.add(s)
     # 确保常用班次
     defaults = {
-        '放射医生': ['D', 'N', 'N2', 'L/N', 'H1', 'H3'],
+        '放射医生': ['D', 'L', 'L/N', 'N'],
         '放射技师': ['D', 'D2', 'D6', 'N', 'N2', 'L/N', 'H1', 'H3'],
         'B超医生': ['D', 'D5', 'D2', 'H1', 'H2', 'H3', 'T'],
     }
@@ -845,7 +845,7 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
 
         # C2: 月工时 = TARGET_HOURS_FULL (±0.5h 容忍度, 含L/N)
         cap_target = TARGET_HOURS_FULL
-        TOL_DECIHOURS = 80  # 8h tolerance (lower bound = TARGET - 8h)
+        TOL_DECIHOURS = 0  # 8h tolerance (lower bound = TARGET - 8h)
         for p in range(n_staff):
             person = all_staff[p]
             base_hrs = existing_hours.get(person, 0)
@@ -904,8 +904,9 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
 
             # 为兼职创建独立的夜班变量 (y[pt_idx, d, s])
             y = {}
-            night_shifts_list = [s for s in shifts_list if s in NIGHT_SHIFTS]
-            night_s_indices = [i for i, s in enumerate(shifts_list) if s in NIGHT_SHIFTS]
+            # 兼职只用 N (17:30-08:00, 14.5h)
+            night_shifts_list = ['N']
+            night_s_indices = [i for i, s in enumerate(shifts_list) if s == 'N']
             if n_pt > 0:
                 for pt in range(n_pt):
                     for d in range(n_days):
@@ -1351,7 +1352,7 @@ def solve_stage2_20pct(hourly_hc, date_strs, staff, stage1_schedule, stage1_hour
         shift_is_ln = [1 if s == 'L/N' else 0 for s in shifts_list]
         shift_is_day = [1 if s in DAY_SHIFTS else 0 for s in shifts_list]
         full_day_is = [1 if s in FULL_DAY_SHIFTS else 0 for s in shifts_list]
-        TOL_DECIHOURS = 80  # 8h tolerance (lower bound = TARGET - 8h)
+        TOL_DECIHOURS = 0  # 8h tolerance (lower bound = TARGET - 8h)
 
         # 计算Stage1每天的覆盖和每人已用工时
         s1_hours = {p: stage1_hours.get(p, 0) for p in fulltime}
@@ -2887,8 +2888,14 @@ function renderRoster(){
     h += '</tr></thead><tbody>';
 
     var staff = rd.staff;
+    var hasSeenBackup = false;
     for(var si=0; si<staff.length; si++){
         var person = staff[si];
+        // Insert separator before first backup/part-time row
+        if ((person.is_backup || ('' + person.name).indexOf('备班') >= 0 || ('' + person.name).indexOf('兼职') >= 0) && !hasSeenBackup) {
+            hasSeenBackup = true;
+            h += '<tr><td colspan="' + (9 + dates.length) + '" style="background:#FFF3E0;height:4px"></td></tr>';
+        }
         h += '<tr>';
         h += '<td class="name-col">' + person.name + (person.is_backup?' 🔄':'') + '</td>';
         h += '<td class="stats-col" style="' + (person.hours > TARGET_80 && !person.is_backup?'color:#1a73e8;font-weight:600':'') + '">' + person.hours + 'h</td>';
