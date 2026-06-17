@@ -131,10 +131,11 @@ S3_BACKUP_MINIMIZE = 1_000
 # --- Staff fallback ---
 STAFF_FALLBACK = {
     "rad_docs_full": ["li zhenhuan", "Dustin Huang"],
-    "rad_docs_pt": ["放射兼职夜班"],
+    "rad_docs_pt": ["Zhou ChunXiang", "Liang ZhiYing", "Ling Jian", "Liang Ruiyun",
+                     "Liu Zengwei", "Chen Yingqian", "zhujun", "wangshuai"],
     "rad_techs_full": ["Zheng Xiaochun", "Zhang Meng", "Ma Linlin", "Yang Yongjun", "Yi Hong", "Liu Shuting"],
-    "rad_techs_pt": [],
-    "us_docs_full": ["Xu Jing", "Liu Xiaoyan", "Lu Liyu", "doctor hou"],
+    "rad_techs_pt": ["ZHONG Minzhi", "LUO Hui", "CHEN Jiajun"],
+    "us_docs_full": ["Xu Jing", "Liu Xiaoyan", "Lu Liyu", "doctor hou", "new ultrasound"],
     "us_docs_pt": [],
 }
 STAFF_FALLBACK_BACKUP = {
@@ -184,7 +185,7 @@ def load_staff_from_feishu():
             print("⚠️ 飞书token获取失败，使用fallback人员列表")
             return None
         headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
-        app_token, table_id = "MiRrw2dILig6I2k7wU7ceV0on9e", "tblLJA5NzbqzZg3v"
+        app_token, table_id = "MiRrw2dILig6I2k7wU7ceV0on9e", "tbl8f0tku6yPwc2V"
         all_records, page_token = [], None
         while True:
             url = f"https://open.feishu.cn/open-apis/bitable/v1/apps/{app_token}/tables/{table_id}/records"
@@ -900,7 +901,6 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
             parttime = staff[role_name].get('parttime', [])
             n_pt = len(parttime)
             pt_hours_target = 140.0  # 兼职月目标工时
-            pt_slack_vars = {}
 
             # 为兼职创建独立的夜班变量 (y[pt_idx, d, s])
             y = {}
@@ -963,13 +963,11 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                 if ft_night_vars:
                     model.Add(sum(ft_night_vars) == 0)
 
-                # 兼职夜班: 每天=1 (slack兜底, 兼职不够→备班补)
+                # 兼职夜班: 每天=1 (硬约束, 8人足够覆盖)
                 if n_pt > 0 and not ln_covers:
                     pt_night_vars_d = [y[pt, d, si] for pt in range(n_pt) for si in night_s_indices]
                     if pt_night_vars_d:
-                        ptsl = model.NewIntVar(0, 1, f's1_ptsl_{d}')
-                        pt_slack_vars[d] = ptsl
-                        model.Add(sum(pt_night_vars_d) + ptsl == 1)
+                        model.Add(sum(pt_night_vars_d) == 1)
 
             # Dustin Wed+Fri 硬约束
             if DUSTIN_RAD in fulltime:
@@ -1005,10 +1003,6 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                     model.Add(dev >= total_dec + base_h - avg_target)
                     model.Add(dev >= avg_target - (total_dec + base_h))
                     objective_terms.append(dev * (-S1_BALANCE_WEIGHT))
-
-            # 兼职夜班缺口惩罚 (鼓励用兼职，少用备班)
-            for sl in pt_slack_vars.values():
-                objective_terms.append(sl * (-S1_COVERAGE_WEIGHT * 5))
 
             # 兼职夜班均衡
             if n_pt >= 2:
