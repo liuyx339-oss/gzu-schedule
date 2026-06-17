@@ -1120,10 +1120,14 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                         day_slack_vars[d] = dslack2
                         model.Add(sum(supp_full_day) + sum(supp_ln_vars_d) + base_full_day_count + dslack2 >= 1)
                 else:
-                    # 放射技师: 硬约束恰好=2个全天白班 (L/N日除外)
+                    # 放射技师: 硬约束=2个全天白班, ≤3人(仪器限制), L/N日除外
                     if role_name == '放射技师':
+                        # 白天总数 ≤3 (含L/N覆盖)
+                        all_day = [x[p, d, s] for p in range(n_staff) for s in range(n_shifts)
+                                  if not shift_is_night[s] and not shift_is_ln[s]]
+                        model.Add(sum(all_day) + base_full_day_count <= 3)
+                        # 恰好2个全天白班
                         if base_full_day_count >= day_target:
-                            # L/N已覆盖全部白天需求 → 不排额外白班
                             model.Add(sum(supp_full_day) + sum(supp_ln_vars_d) == 0)
                         else:
                             model.Add(sum(supp_full_day) + sum(supp_ln_vars_d) + base_full_day_count == day_target)
@@ -2280,7 +2284,7 @@ def generate_excel(final_schedule, final_hours, category_hours, hourly_hc,
     print("="*60)
 
     rad_docs = staff['放射医生']['fulltime'] + staff['放射医生']['backup'] + staff['放射医生'].get('parttime', [])
-    rad_techs = staff['放射技师']['fulltime'] + staff['放射技师']['backup']
+    rad_techs = staff['放射技师']['fulltime'] + staff['放射技师'].get('parttime', []) + staff['放射技师']['backup']
     us_docs = staff['B超医生']['fulltime'] + staff['B超医生']['backup']
     if DUSTIN_US in final_schedule and DUSTIN_US not in us_docs:
         us_docs.append(DUSTIN_US)
@@ -2535,7 +2539,7 @@ def generate_dashboard_html(final_schedule, final_hours, category_hours, hourly_
         }
 
     rad_docs = staff['放射医生']['fulltime'] + staff['放射医生']['backup'] + staff['放射医生'].get('parttime', [])
-    rad_techs = staff['放射技师']['fulltime'] + staff['放射技师']['backup']
+    rad_techs = staff['放射技师']['fulltime'] + staff['放射技师'].get('parttime', []) + staff['放射技师']['backup']
     us_docs = staff['B超医生']['fulltime'] + staff['B超医生']['backup']
     if DUSTIN_US in final_schedule and DUSTIN_US not in us_docs:
         us_docs.append(DUSTIN_US)
