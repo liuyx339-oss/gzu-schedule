@@ -2867,7 +2867,7 @@ table.schedule .shift-cell.cell-oncall::after{content:"📞";position:absolute;t
 
 </div><!-- end mainContent -->
 
-<div class="footer">数据来源：schedule.py CP-SAT排班引擎 | 由 GitHub Actions 每月25日自动更新</div>
+<div class="footer">数据来源：schedule.py CP-SAT排班引擎 | 本地手动运行，月底推送更新</div>
 
 <div class="overlay" id="overlay" onclick="closePopup()"></div>
 <div class="popup" id="popup"></div>
