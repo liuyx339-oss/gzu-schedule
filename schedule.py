@@ -2603,7 +2603,7 @@ def generate_dashboard_html(final_schedule, final_hours, category_hours, hourly_
 
         return {
             "staff": staff_list,
-            "dates": date_strs_w_wd,
+            "dates": date_strs,
             "shift_colors": shift_colors,
             "shift_times": SHIFT_TIME_STR,
             "demand_samples": demand_samples,
@@ -2634,9 +2634,8 @@ def generate_dashboard_html(final_schedule, final_hours, category_hours, hourly_
             for p_name, sv, cat in pm_people[2:]:
                 final_schedule[p_name][ds] = ('H2', cat)
 
-    # 日期加星期: 06月01日 → 06月01日 一
+    # 星期后缀 (JS渲染时附加)
     wd_names = ['一','二','三','四','五','六','日']
-    date_strs_w_wd = [ds + ' ' + wd_names[i % 7] for i, ds in enumerate(date_strs)]
 
     data = {
         "month": f"{date_strs[0]} ~ {date_strs[-1]}",
@@ -3053,7 +3052,8 @@ function renderRoster(){
     }
 
     var header = '<th class="name-col">人员</th><th class="stats-col">工时</th><th class="stats-col">80%</th><th class="stats-col">20%</th><th class="stats-col">备班</th><th class="stats-col">L/N</th><th class="stats-col">目标</th><th class="stats-col">OnCall</th>';
-    for(var di=0; di<dates.length; di++){ header += '<th>' + dates[di].slice(3) + '</th>'; }
+    var wk=['一','二','三','四','五','六','日'];
+    for(var di=0; di<dates.length; di++){ header += '<th>' + dates[di].slice(3) + '<br><small>' + wk[di%7] + '</small></th>'; }
 
     var h = '<h2>' + currentRole + ' 排班表</h2>';
     h += '<table class="schedule"><thead><tr>' + header + '</tr></thead><tbody>';
