@@ -2,9 +2,11 @@ name: Daily Report + Deploy
 
 on:
   schedule:
-    - cron: '30 8 * * *'    # 8:30 UTC (= 16:30 Beijing)
-    - cron: '30 20 * * *'   # 20:30 UTC (= 04:30 Beijing) — fallback for timezone bugs
+    - cron: '30 8 * * *'
+    - cron: '30 20 * * *'
   workflow_dispatch:
+  repository_dispatch:
+    types: [daily-trigger]
 
 jobs:
   daily:
@@ -14,40 +16,17 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-
       - run: pip install pandas numpy requests
-
-      - name: Time gate — only run 16:00-17:00 Beijing (08:00-09:00 UTC)
-        id: gate
-        run: |
-          HOUR=$(date -u +%H)
-          if [ "$HOUR" -ge 8 ] && [ "$HOUR" -lt 9 ]; then
-            echo "✅ Time gate passed (UTC $HOUR = Beijing $(($HOUR+8)))"
-            echo "proceed=true" >> $GITHUB_OUTPUT
-          else
-            echo "⏭️ Skipping — UTC $HOUR outside 16:00-17:00 Beijing window"
-            echo "proceed=false" >> $GITHUB_OUTPUT
-          fi
-
       - name: Send bot messages + generate daily data
-        if: steps.gate.outputs.proceed == 'true'
         env:
           FEISHU_APP_ID: ${{ secrets.FEISHU_APP_ID }}
           FEISHU_APP_SECRET: ${{ secrets.FEISHU_APP_SECRET }}
           FEISHU_CHAT_ID: ${{ secrets.FEISHU_CHAT_ID }}
-        run: |
-          python feishu_bot.py --output-data publish/daily_data.json
-
-      - name: Run daily comparison (bot vs forecast)
-        if: steps.gate.outputs.proceed == 'true'
-        run: python daily_compare.py
-
+        run: python feishu_bot.py --output-data publish/daily_data.json
       - name: Deploy to GitHub Pages
-        if: steps.gate.outputs.proceed == 'true'
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
