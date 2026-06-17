@@ -844,19 +844,15 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                 else:
                     model.Add(sum(x[p, d, s] for s in range(n_shifts)) <= 1)
 
-        # C2: 月工时 = TARGET_HOURS_FULL (±0.5h 容忍度, 含L/N)
-        cap_target = TARGET_HOURS_FULL
-        TOL_DECIHOURS = 0  # 8h tolerance (lower bound = TARGET - 8h)
+        # C2: 月工时 ≤ TARGET_HOURS_FULL (共享上限, 放射医生单独控制=176h)
+        TOL_DECIHOURS = 0
         for p in range(n_staff):
             person = all_staff[p]
             base_hrs = existing_hours.get(person, 0)
             total_dec = sum(x[p, d, s] * int(shift_hours[s] * 10)
                           for d in range(n_days) for s in range(n_shifts))
             total_with_base = total_dec + int(base_hrs * 10)
-            target_dec = int(cap_target * 10)
-            # 全职必须用完工时: 176h ± 0.5h
-            model.Add(total_with_base <= target_dec)
-            model.Add(total_with_base >= target_dec - TOL_DECIHOURS)
+            model.Add(total_with_base <= int(TARGET_HOURS_FULL * 10))
 
         # C3: L/N限制 (每人每月 ≤ 2, 含已分配)
         for p in range(n_staff):
@@ -1067,7 +1063,8 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
             continue  # 放射医生已处理，跳过后续逻辑
 
         # ================================================================
-        # 放射技师 / B超医生: 原有多约束模型
+        # ================================================================
+        # 放射技师 / B超医生: 先硬需求→再80%池→再20%池→备班
         # ================================================================
         day_slack_vars = {}
         night_slack_vars = {}
@@ -1983,6 +1980,29 @@ def merge_and_oncall(stage1_schedule, stage1_hours,
             total += hrs
             category_hours[person][cat] += hrs
         final_hours[person] = total
+
+    # 80/20 显示分离: 超140.8h的工时重新标记为20%
+    for person in list(final_schedule.keys()):
+        if person not in final_schedule: continue
+        accumulated = 0.0
+        for ds, value in sorted(final_schedule[person].items()):
+            shift_str = value[0] if isinstance(value, tuple) else str(value)
+            hrs = _get_shift_hours(shift_str)
+            accumulated += hrs
+            old_cat = value[1] if isinstance(value, tuple) else "80%"
+            if accumulated > TARGET_HOURS_80 and old_cat == "80%":
+                final_schedule[person][ds] = (shift_str, "20%")
+
+    # 重新算工时(反映20%分离)
+    for person in list(category_hours.keys()):
+        for cat in category_hours[person]:
+            category_hours[person][cat] = 0.0
+    for person, date_shifts in final_schedule.items():
+        for ds, value in date_shifts.items():
+            shift_str = value[0] if isinstance(value, tuple) else str(value)
+            cat = value[1] if isinstance(value, tuple) else "80%"
+            hrs = _get_shift_hours(shift_str)
+            category_hours[person][cat] += hrs
 
     # --- OnCall分配 ---
     for role_name in ['放射技师', 'B超医生']:
