@@ -86,7 +86,7 @@ SHIFT_COVERAGE = {
 
 ROLE_SHIFTS = {
     "放射医生": ["D", "L", "L/N", "N", "N2", "N3"],
-    "放射技师": ["D","D1","D2","D3","D4","D5","D6","C","C1","L","H1","H2","H3","T","N","N2","N3","L/N"],
+    "放射技师": ["D","D1","D2","D3","D4","D5","D6","C","C1","L","H1","H2","H3","N","N2","N3","L/N"],
     "B超医生": ["D","D1","D2","D3","D4","D5","D6","C","C1","H1","H2","H3","T"],
 }
 
@@ -2280,7 +2280,7 @@ def generate_excel(final_schedule, final_hours, category_hours, hourly_hc,
     print("="*60)
 
     rad_docs = staff['放射医生']['fulltime'] + staff['放射医生']['backup'] + staff['放射医生'].get('parttime', [])
-    rad_techs = staff['放射技师']['fulltime'] + staff['放射技师'].get('parttime', []) + staff['放射技师']['backup']
+    rad_techs = staff['放射技师']['fulltime'] + staff['放射技师']['backup']
     us_docs = staff['B超医生']['fulltime'] + staff['B超医生']['backup']
     if DUSTIN_US in final_schedule and DUSTIN_US not in us_docs:
         us_docs.append(DUSTIN_US)
@@ -2535,7 +2535,7 @@ def generate_dashboard_html(final_schedule, final_hours, category_hours, hourly_
         }
 
     rad_docs = staff['放射医生']['fulltime'] + staff['放射医生']['backup'] + staff['放射医生'].get('parttime', [])
-    rad_techs = staff['放射技师']['fulltime'] + staff['放射技师'].get('parttime', []) + staff['放射技师']['backup']
+    rad_techs = staff['放射技师']['fulltime'] + staff['放射技师']['backup']
     us_docs = staff['B超医生']['fulltime'] + staff['B超医生']['backup']
     if DUSTIN_US in final_schedule and DUSTIN_US not in us_docs:
         us_docs.append(DUSTIN_US)
