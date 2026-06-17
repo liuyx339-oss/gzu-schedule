@@ -121,7 +121,7 @@ ROLE_CONFIG = {
 S1_COVERAGE_WEIGHT = 1_000_000
 S1_DAILY_REQ_WEIGHT = 500_000
 S1_NIGHT_REQ_WEIGHT = 800_000
-S1_DUSTIN_MWF_WEIGHT = 15_000
+S1_DUSTIN_MWF_WEIGHT = 150_000  # Dustin 周三周五强激励
 S1_BALANCE_WEIGHT = 500
 
 S2_COVERAGE_WEIGHT = 1_000_000
@@ -835,11 +835,8 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                 else:
                     model.Add(sum(x[p, d, s] for s in range(n_shifts)) <= 1)
 
-        # C2: 月工时 ≤ target (含L/N)
-        # 放射技师放宽至82% — 保证每天2人白天+1人夜班的硬约束有容量
-        cap_target = TARGET_HOURS_80
-        if role_name == '放射技师':
-            cap_target = round(TARGET_HOURS_FULL * 0.82, 1)
+        # C2: 月工时 ≤ TARGET_HOURS_FULL (含L/N) — 100%目标
+        cap_target = TARGET_HOURS_FULL
         for p in range(n_staff):
             person = all_staff[p]
             base_hrs = existing_hours.get(person, 0)
@@ -924,11 +921,9 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
             if day_target > 0:
                 supp_full_day = [x[p, d, s] for p in range(n_staff) for s in range(n_shifts)
                                 if full_day_is[s]]
-                # 放射医生: 硬约束≥1个全天白班 (L/N也算; slack fallback if infeasible)
+                # 放射医生: 硬约束≥1全天白班 (L/N也算)，极小 slack 兜底仅2人情况
                 if cfg.get('night_prefer_backup'):
-                    if base_full_day_count >= 1:
-                        pass  # L/N already covers it
-                    else:
+                    if base_full_day_count < 1:
                         dslack2 = model.NewIntVar(0, 1, f's1_rddslack_{d}')
                         day_slack_vars[d] = dslack2
                         model.Add(sum(supp_full_day) + sum(supp_ln_vars_d) + base_full_day_count + dslack2 >= 1)
@@ -946,10 +941,8 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
             if cfg['night_shifts'] > 0:
                 supp_night_vars = [x[p, d, s] for p in range(n_staff) for s in range(n_shifts) if shift_is_night[s]]
                 if cfg.get('night_prefer_backup'):
-                    # 放射医生: 硬约束≥1夜班(L/N也算), 若不可行则slack
-                    if base_night_count >= 1:
-                        pass  # L/N already covers night
-                    else:
+                    # 放射医生: 夜班优先由备班覆盖，保持软约束
+                    if base_night_count < 1:
                         nslack = model.NewIntVar(0, 1, f's1_rdnslack_{d}')
                         night_slack_vars[d] = nslack
                         model.Add(sum(supp_night_vars) + sum(supp_ln_vars_d) + base_night_count + nslack >= cfg['night_shifts'])
@@ -961,7 +954,7 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                     if role_name == '放射技师':
                         model.Add(sum(supp_night_vars) + sum(supp_ln_vars_d) + base_night_count <= 1)
 
-            # 24h覆盖 (仅放射技师，高惩罚slack)
+            # 24h覆盖 (仅放射技师，极高惩罚slack)
             if cfg['coverage_24h']:
                 for h in range(24):
                     coverage_vars = [x[p, d, s] for p in range(n_staff) for s, shift in enumerate(shifts_list)
@@ -990,7 +983,7 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                 if liu_idx is not None and hou_idx is not None:
                     model.Add(full_day_vars[liu_idx] + full_day_vars[hou_idx] <= 1)
 
-        # C7: 覆盖需求 (软约束)
+        # C7: 覆盖需求 (极高惩罚软约束 — 优先用全职，不够的留给备班)
         coverage_slack_vars = {}
         for d, ds in enumerate(date_strs):
             demand = hourly_hc.get(ds, {}).get(role_key, np.zeros(24))
@@ -1017,42 +1010,35 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
         # --- Objective ---
         objective_terms = []
 
-        # 覆盖缺口惩罚
+        # 需求覆盖缺口 → 极高惩罚 (P0: 优先全职覆盖)
         for sl in coverage_slack_vars.values():
-            objective_terms.append(sl * (-S1_COVERAGE_WEIGHT))
+            objective_terms.append(sl * (-S1_COVERAGE_WEIGHT * 10))
 
-        # 基础保障缺口极高惩罚 (P1级别)
+        # 基础保障缺口 → 高惩罚 (P1: 日间/夜班人数)
         for sl in day_slack_vars.values():
-            objective_terms.append(sl * (-S1_COVERAGE_WEIGHT * 2))
+            objective_terms.append(sl * (-S1_COVERAGE_WEIGHT * 5))
         for sl in night_slack_vars.values():
-            objective_terms.append(sl * (-S1_COVERAGE_WEIGHT * 2))
+            objective_terms.append(sl * (-S1_COVERAGE_WEIGHT * 5))
         for sl in h24_slack_vars.values():
-            objective_terms.append(sl * (-S1_COVERAGE_WEIGHT * 2))
+            objective_terms.append(sl * (-S1_COVERAGE_WEIGHT * 5))
 
-        # 放射医生: 全职优先全天白班，备班优先夜班
-        if cfg.get('night_prefer_backup'):
-            for p, person in enumerate(all_staff):
-                if person in fulltime:
-                    # 全职上夜班 → 高惩罚 (鼓励用备班覆盖夜班，但硬约束下允许)
-                    for d in range(n_days):
-                        for s in range(n_shifts):
-                            if shift_is_night[s]:
-                                objective_terms.append(x[p, d, s] * (-S1_COVERAGE_WEIGHT * 3))
-                    # 全职上全天白班 → 奖励
-                    for d in range(n_days):
-                        for s in range(n_shifts):
-                            if shifts_list[s] in FULL_DAY_SHIFTS:
-                                objective_terms.append(x[p, d, s] * (S1_DUSTIN_MWF_WEIGHT * 3))
-
-        # Dustin一三五优先上放射班
+        # Dustin Wed+Fri: Stage 1 奖励，Stage 2 硬约束
         if role_name == '放射医生' and DUSTIN_RAD in fulltime:
             dustin_p = all_staff.index(DUSTIN_RAD)
             for d, ds in enumerate(date_strs):
                 wd = _get_date_weekday(ds, all_dates, date_strs)
-                if wd in (0, 2, 4):  # 周一(0)、周三(2)、周五(4)
-                    # 奖励Dustin在周一三五上任何放射班次
+                if wd in (2, 4):  # 周三(2)、周五(4)
                     dustin_day = sum(x[dustin_p, d, s] for s in range(n_shifts))
                     objective_terms.append(dustin_day * S1_DUSTIN_MWF_WEIGHT)
+
+        # 放射医生: 全职上夜班 → 惩罚 (鼓励用备班覆盖夜班)
+        if cfg.get('night_prefer_backup'):
+            for p, person in enumerate(all_staff):
+                if person in fulltime:
+                    for d in range(n_days):
+                        for s in range(n_shifts):
+                            if shift_is_night[s]:
+                                objective_terms.append(x[p, d, s] * (-S1_COVERAGE_WEIGHT * 3))
 
         # 工时均衡
         if len(fulltime) >= 2:
@@ -1062,7 +1048,7 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                 total_dec = sum(x[p, d, s] * int(shift_hours[s])
                               for d in range(n_days) for s in range(n_shifts))
                 base_h = int(existing_hours.get(person, 0) * 10)
-                avg_target = int(TARGET_HOURS_80 * 10)
+                avg_target = int(TARGET_HOURS_FULL * 10)
                 dev = model.NewIntVar(0, int(TARGET_HOURS_FULL * 10), f's1_dev_{p}')
                 model.Add(dev >= total_dec + base_h - avg_target)
                 model.Add(dev >= avg_target - (total_dec + base_h))
@@ -1154,6 +1140,7 @@ def solve_stage2_20pct(hourly_hc, date_strs, staff, stage1_schedule, stage1_hour
         shift_is_night = [1 if s in NIGHT_SHIFTS else 0 for s in shifts_list]
         shift_is_ln = [1 if s == 'L/N' else 0 for s in shifts_list]
         shift_is_day = [1 if s in DAY_SHIFTS else 0 for s in shifts_list]
+        full_day_is = [1 if s in FULL_DAY_SHIFTS else 0 for s in shifts_list]
 
         # 计算Stage1每天的覆盖和每人已用工时
         s1_hours = {p: stage1_hours.get(p, 0) for p in fulltime}
