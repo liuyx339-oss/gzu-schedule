@@ -85,7 +85,7 @@ SHIFT_COVERAGE = {
 }
 
 ROLE_SHIFTS = {
-    "放射医生": ["D","D1","D2","D3","D4","D5","D6","C","C1","L","H1","H2","H3","N","N2","N3","L/N"],
+    "放射医生": ["D","D1","D2","D3","D4","D5","D6","C","C1","L","N","N2","N3","L/N"],
     "放射技师": ["D","D1","D2","D3","D4","D5","D6","C","C1","L","H1","H2","H3","T","N","N2","N3","L/N"],
     "B超医生": ["D","D1","D2","D3","D4","D5","D6","C","C1","H1","H2","H3","T"],
 }
@@ -985,12 +985,12 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                                 # Dustin 必须上这天, 所以 sum=1
                                 model.Add(sum(dv) == 1)
 
-            # --- Objective ---
+            # --- Objective: 最大化工时 ---
             objective_terms = []
             for p in range(n_staff):
                 total_dec = sum(x[p, d, s] * int(shift_hours[s] * 10)
                               for d in range(n_days) for s in range(n_shifts))
-                objective_terms.append(total_dec)
+                objective_terms.append(total_dec * 1000)  # 强奖励多排长班
 
             # 全职工时均衡
             if len(fulltime) >= 2:
@@ -2259,7 +2259,7 @@ def generate_excel(final_schedule, final_hours, category_hours, hourly_hc,
     print("📝 Phase 8: 生成Excel输出 (V3 分类标注)")
     print("="*60)
 
-    rad_docs = staff['放射医生']['fulltime'] + staff['放射医生']['backup']
+    rad_docs = staff['放射医生']['fulltime'] + staff['放射医生']['backup'] + staff['放射医生'].get('parttime', [])
     rad_techs = staff['放射技师']['fulltime'] + staff['放射技师']['backup']
     us_docs = staff['B超医生']['fulltime'] + staff['B超医生']['backup']
     if DUSTIN_US in final_schedule and DUSTIN_US not in us_docs:
@@ -2514,7 +2514,7 @@ def generate_dashboard_html(final_schedule, final_hours, category_hours, hourly_
             "total_days": len(date_strs),
         }
 
-    rad_docs = staff['放射医生']['fulltime'] + staff['放射医生']['backup']
+    rad_docs = staff['放射医生']['fulltime'] + staff['放射医生']['backup'] + staff['放射医生'].get('parttime', [])
     rad_techs = staff['放射技师']['fulltime'] + staff['放射技师']['backup']
     us_docs = staff['B超医生']['fulltime'] + staff['B超医生']['backup']
     if DUSTIN_US in final_schedule and DUSTIN_US not in us_docs:
