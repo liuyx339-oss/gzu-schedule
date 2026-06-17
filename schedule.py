@@ -122,7 +122,7 @@ S1_COVERAGE_WEIGHT = 1_000_000
 S1_DAILY_REQ_WEIGHT = 500_000
 S1_NIGHT_REQ_WEIGHT = 800_000
 S1_DUSTIN_MWF_WEIGHT = 150_000  # Dustin 周三周五强激励
-S1_BALANCE_WEIGHT = 500
+S1_BALANCE_WEIGHT = 50_000
 
 S2_COVERAGE_WEIGHT = 1_000_000
 
@@ -135,7 +135,7 @@ STAFF_FALLBACK = {
                      "Liu Zengwei", "Chen Yingqian", "zhujun", "wangshuai"],
     "rad_techs_full": ["Zheng Xiaochun", "Zhang Meng", "Ma Linlin", "Yang Yongjun", "Yi Hong", "Liu Shuting"],
     "rad_techs_pt": ["ZHONG Minzhi", "LUO Hui", "CHEN Jiajun"],
-    "us_docs_full": ["Xu Jing", "Liu Xiaoyan", "Lu Liyu", "doctor hou", "new ultrasound"],
+    "us_docs_full": ["Xu Jing", "Liu Xiaoyan", "Lu Liyu", "doctor hou"],
     "us_docs_pt": [],
 }
 STAFF_FALLBACK_BACKUP = {
@@ -900,7 +900,7 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
             # 兼职人员 (独立的 night-only pool)
             parttime = staff[role_name].get('parttime', [])
             n_pt = len(parttime)
-            pt_hours_target = 140.0  # 兼职月目标工时
+            pt_hours_target = 80.0  # 兼职月夜班上限 (~5.5个N班, 28天÷8人≈3.5)
 
             # 为兼职创建独立的夜班变量 (y[pt_idx, d, s])
             y = {}
@@ -925,6 +925,8 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                     pt_total = sum(y[pt, d, si] * int(SHIFT_DICT[night_shifts_list[i]][2] * 10)
                                   for d in range(n_days) for i, si in enumerate(night_s_indices))
                     model.Add(pt_total <= int(pt_hours_target * 10))
+                    # 每人至少2个夜班（公平轮转，28天÷8人≈3.5）
+                    model.Add(pt_total >= 2 * int(SHIFT_DICT[night_shifts_list[0]][2] * 10) - 5)
 
                 # 不连续夜班 (兼职)
                 for pt in range(n_pt):
@@ -963,11 +965,17 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                 if ft_night_vars:
                     model.Add(sum(ft_night_vars) == 0)
 
-                # 兼职夜班: 每天=1 (硬约束, 8人足够覆盖)
-                if n_pt > 0 and not ln_covers:
+                # 兼职夜班: 每天=1 (硬约束, 8人足够覆盖), L/N日不排
+                if n_pt > 0:
                     pt_night_vars_d = [y[pt, d, si] for pt in range(n_pt) for si in night_s_indices]
-                    if pt_night_vars_d:
-                        model.Add(sum(pt_night_vars_d) == 1)
+                    if ln_covers:
+                        # L/N覆盖夜班 → 兼职不排
+                        if pt_night_vars_d:
+                            model.Add(sum(pt_night_vars_d) == 0)
+                    else:
+                        # 非L/N日: 恰好1个兼职夜班
+                        if pt_night_vars_d:
+                            model.Add(sum(pt_night_vars_d) == 1)
 
             # Dustin Wed+Fri 硬约束
             if DUSTIN_RAD in fulltime:
@@ -1116,8 +1124,8 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                     if role_name == '放射技师':
                         model.Add(sum(supp_full_day) + sum(supp_ln_vars_d) + base_full_day_count >= day_target)
                     elif role_name == 'B超医生':
-                        # B超医生: 硬约束恰好=2个全天白班 (周日=1)
-                        model.Add(sum(supp_full_day) + sum(supp_ln_vars_d) + base_full_day_count == day_target)
+                        # B超医生: ≥2个全天白班 (周日=1), 4人足够
+                        model.Add(sum(supp_full_day) + sum(supp_ln_vars_d) + base_full_day_count >= day_target)
                     else:
                         dslack = model.NewIntVar(0, day_target, f's1_dslack_{d}')
                         day_slack_vars[d] = dslack
@@ -1923,9 +1931,11 @@ def merge_and_oncall(stage1_schedule, stage1_hours,
                 final_hours[person] += shift_hrs
                 category_hours[person][actual_cat] += shift_hrs
 
-    # 兼职放射医生: 合并前清理白天班 (仅保留夜班)
+    # 兼职放射医生: 合并前清理白天班 + 备班清理重复夜班
     for role_name in ['放射医生']:
-        for pt_name in staff[role_name].get('parttime', []):
+        parttime = staff[role_name].get('parttime', [])
+        backup_names = staff[role_name].get('backup', [])
+        for pt_name in parttime:
             if pt_name in final_schedule:
                 for ds in list(final_schedule[pt_name].keys()):
                     val = final_schedule[pt_name][ds]
@@ -1934,6 +1944,17 @@ def merge_and_oncall(stage1_schedule, stage1_hours,
                     night_only = [s for s in shift_str.split(' + ') if s.strip() in NIGHT_SHIFTS]
                     if night_only:
                         final_schedule[pt_name][ds] = (' + '.join(night_only), cat)
+                        # 当天已有兼职夜班 → 备班不排夜班
+                        for bk_name in backup_names:
+                            if bk_name in final_schedule and ds in final_schedule[bk_name]:
+                                bk_val = final_schedule[bk_name][ds]
+                                bk_shift = bk_val[0] if isinstance(bk_val, tuple) else str(bk_val)
+                                bk_cat = bk_val[1] if isinstance(bk_val, tuple) else "备班"
+                                bk_day = [s for s in bk_shift.split(' + ') if s.strip() not in NIGHT_SHIFTS]
+                                if bk_day:
+                                    final_schedule[bk_name][ds] = (' + '.join(bk_day), bk_cat)
+                                else:
+                                    del final_schedule[bk_name][ds]
                     else:
                         del final_schedule[pt_name][ds]
 
