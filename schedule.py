@@ -877,7 +877,105 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                 else:
                     model.Add(supp_night + supp_day_next <= 1)
 
-        # C6: 基础保障 — 全天白班、夜班、24h覆盖 (高惩罚软约束，让80%池尽力覆盖)
+        # ================================================================
+        # 放射医生: 简化轮替模型（与其他角色不同的逻辑）
+        # - 每天恰好1个全职上全天白班 (li/Dustin交替)
+        # - 全职不上夜班 (夜班全由备班覆盖)
+        # - 不考虑需求覆盖 (需求由备班满足)
+        # - L/N 照常
+        # ================================================================
+        if role_name == '放射医生':
+            full_day_is = [1 if s in FULL_DAY_SHIFTS else 0 for s in shifts_list]
+
+            for d, ds in enumerate(date_strs):
+                # 计算这天 L/N 是否已经覆盖
+                ln_covers = 0
+                for p in range(n_staff):
+                    person = all_staff[p]
+                    if existing_shift_d.get(person, {}).get(d, '') == 'L/N':
+                        ln_covers = 1
+                        break
+
+                # 全天白班变量
+                day_vars = [x[p, d, s] for p in range(n_staff) for s in range(n_shifts) if full_day_is[s]]
+
+                if ln_covers:
+                    # L/N 已覆盖这天 → 不需要额外白班
+                    if day_vars:
+                        model.Add(sum(day_vars) == 0)
+                else:
+                    # 恰好1个全职上全天白班
+                    if day_vars:
+                        model.Add(sum(day_vars) == 1)
+
+                # 硬约束: 0个全职上夜班 (夜班全由备班覆盖)
+                night_vars = [x[p, d, s] for p in range(n_staff) for s in range(n_shifts) if shift_is_night[s]]
+                if night_vars:
+                    model.Add(sum(night_vars) == 0)
+
+            # Dustin Wed+Fri 硬约束 (L/N当天或次日除外)
+            if DUSTIN_RAD in fulltime:
+                dustin_p = all_staff.index(DUSTIN_RAD)
+                for d, ds in enumerate(date_strs):
+                    wd = _get_date_weekday(ds, all_dates, date_strs)
+                    if wd in (2, 4):
+                        has_ln = existing_shift_d.get(DUSTIN_RAD, {}).get(d, '') == 'L/N'
+                        after_ln = d > 0 and existing_shift_d.get(DUSTIN_RAD, {}).get(d - 1, '') == 'L/N'
+                        if not has_ln and not after_ln:
+                            dv = [x[dustin_p, d, s] for s in range(n_shifts) if full_day_is[s]]
+                            if dv:
+                                model.Add(sum(dv) == 1)
+
+            # --- Objective: 最大化总工时（填到176h）+ 工时均衡 ---
+            objective_terms = []
+            for p in range(n_staff):
+                total_dec = sum(x[p, d, s] * int(shift_hours[s] * 10)
+                              for d in range(n_days) for s in range(n_shifts))
+                objective_terms.append(total_dec)  # 奖励多排班
+
+            # 工时均衡
+            if len(fulltime) >= 2:
+                for p in range(n_staff):
+                    person = all_staff[p]
+                    total_dec = sum(x[p, d, s] * int(shift_hours[s] * 10)
+                                  for d in range(n_days) for s in range(n_shifts))
+                    base_h = int(existing_hours.get(person, 0) * 10)
+                    avg_target = int(TARGET_HOURS_FULL * 10)
+                    dev = model.NewIntVar(0, int(TARGET_HOURS_FULL * 10), f's1_dev_{p}')
+                    model.Add(dev >= total_dec + base_h - avg_target)
+                    model.Add(dev >= avg_target - (total_dec + base_h))
+                    objective_terms.append(dev * (-S1_BALANCE_WEIGHT))
+
+            model.Maximize(sum(objective_terms))
+
+            # Solve for radiologists
+            solver = cp_model.CpSolver()
+            solver.parameters.max_time_in_seconds = 120
+            solver.parameters.num_search_workers = 8
+            status = solver.Solve(model)
+            print(f"   {role_name} Stage1 求解: {solver.StatusName(status)}")
+
+            role_result = {}
+            if status in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+                for p, person in enumerate(all_staff):
+                    for d, ds in enumerate(date_strs):
+                        for s, shift in enumerate(shifts_list):
+                            if solver.Value(x[p, d, s]):
+                                existing = role_result.get(person, {}).get(ds, '')
+                                if existing:
+                                    role_result.setdefault(person, {})[ds] = existing + ' + ' + shift
+                                else:
+                                    role_result.setdefault(person, {})[ds] = shift
+                                result_hours[person] += shift_hours[s]
+                for p in fulltime:
+                    result_hours[p] = result_hours.get(p, 0) + ln_hours.get(p, 0)
+
+            all_results[role_name] = role_result
+            continue  # 放射医生已处理，跳过后续逻辑
+
+        # ================================================================
+        # 放射技师 / B超医生: 原有多约束模型
+        # ================================================================
         day_slack_vars = {}
         night_slack_vars = {}
         h24_slack_vars = {}
