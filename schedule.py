@@ -1106,7 +1106,9 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
             if role_name == 'B超医生':
                 wd = _get_date_weekday(ds, all_dates, date_strs)
                 if wd == 6:
-                    day_target = 2  # 周日同样2个白班
+                    day_target = 2  # 周日2个白班
+                elif wd in (1, 3):
+                    day_target = 3  # 周二周四≥3人(保证PM=3)
 
             if day_target > 0:
                 supp_full_day = [x[p, d, s] for p in range(n_staff) for s in range(n_shifts)
@@ -1171,6 +1173,7 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                         model.Add(sum(coverage_vars) + total_base + h24slack >= 1)
 
         # C8: B超医生 下午约束 (Wed+Fri=2人, Tue+Thu=3人))
+        pm_slack_vars = {}
         if role_name == 'B超医生':
             pm_is = [1 if (s in FULL_DAY_SHIFTS or s == 'H3') else 0 for s in shifts_list]
             pm_dates_wf = pm_dates_tt = 0
@@ -1179,11 +1182,15 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                 pm_vars = [x[p, d, s] for p in range(n_staff) for s in range(n_shifts) if pm_is[s]]
                 if not pm_vars:
                     continue
-                if wd in (2, 4):  # 周三、周五
-                    model.Add(sum(pm_vars) == 2)
+                if wd in (2, 4):
+                    psl = model.NewIntVar(0, 1, f's1_pmsl_{d}')
+                    model.Add(sum(pm_vars) + psl >= 2)
+                    pm_slack_vars[d] = (psl, 1)
                     pm_dates_wf += 1
-                elif wd in (1, 3):  # 周二、周四
-                    model.Add(sum(pm_vars) == 3)
+                elif wd in (1, 3):
+                    psl = model.NewIntVar(0, 2, f's1_pmsl_{d}')
+                    model.Add(sum(pm_vars) + psl >= 3)
+                    pm_slack_vars[d] = (psl, 2)
                     pm_dates_tt += 1
             if pm_dates_wf > 0 or pm_dates_tt > 0:
                 print(f"   [B超] PM约束: Wed+Fri=2人({pm_dates_wf}天), Tue+Thu=3人({pm_dates_tt}天)")
@@ -1244,6 +1251,10 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
 
         # --- Objective ---
         objective_terms = []
+
+        # PM缺口 → 极高惩罚 (P0级别)
+        for psl, _ in pm_slack_vars.values():
+            objective_terms.append(psl * (-S1_COVERAGE_WEIGHT * 10))
 
         # 需求覆盖缺口 → 极高惩罚 (P0: 优先全职覆盖)
         for sl in coverage_slack_vars.values():
@@ -1490,18 +1501,7 @@ def solve_stage2_20pct(hourly_hc, date_strs, staff, stage1_schedule, stage1_hour
                                   if shift_is_night[s] or shift_is_ln[s])
                 model.Add(supp_night_d + s1_night_d <= 1)
 
-        # C8: B超医生 Wed+Fri 下午=2 (Stage2也遵守)
-        if role_name == 'B超医生':
-            pm_is = [1 if (s in FULL_DAY_SHIFTS or s == 'H3') else 0 for s in shifts_list]
-            for d, ds in enumerate(date_strs):
-                wd = _get_date_weekday(ds, all_dates, date_strs)
-                if wd in (2, 4):
-                    s1_pm = sum(1 for p in range(n_staff)
-                               if s1_shift_d.get(fulltime[p], {}).get(d, '') in FULL_DAY_SHIFTS or
-                               s1_shift_d.get(fulltime[p], {}).get(d, '') == 'H3')
-                    s2_pm = [x[p, d, s] for p in range(n_staff) for s in range(n_shifts) if pm_is[s]]
-                    if s2_pm:
-                        model.Add(sum(s2_pm) + s1_pm <= 2)
+        # B超 PM约束: Stage1已保证, Stage2不限制(merge时硬切)
 
         # --- Objective: 最大化全职工时使用 ---
         objective_terms = []
@@ -2064,24 +2064,27 @@ def merge_and_oncall(stage1_schedule, stage1_hours,
 
         if role_name == 'B超医生':
             oc_count = {p: 0 for p in fulltime + [DUSTIN_RAD]}
+            oc_cap = (len(date_strs) + 4) // 5  # ceil(30/5)=6
             for ds in date_strs:
                 dustin_ok = ds in final_schedule.get(DUSTIN_RAD, {})
                 off_today = [p for p in fulltime if not final_schedule.get(p, {}).get(ds)]
-                if off_today:
-                    # 休息的US医生 → 选OnCall最少者
-                    best = min(off_today, key=lambda p: oc_count[p])
-                elif dustin_ok:
-                    # 全都上班 + Dustin在放射 → Dustin
-                    best = min(fulltime + [DUSTIN_RAD], key=lambda p: oc_count[p])
-                else:
-                    # 全都上班 + Dustin不在 → US中选最少
-                    best = min(fulltime, key=lambda p: oc_count[p])
-                oncall_schedule[best][ds] = True
-                oc_count[best] += 1
+                # 候选人: 休息医生 → US全池(含Dustin仅当上放射班)
+                candidates = off_today[:] if off_today else fulltime[:]
+                if dustin_ok:
+                    candidates.append(DUSTIN_RAD)
+                eligible = [p for p in candidates if oc_count.get(p, 0) < oc_cap]
+                if not eligible:
+                    eligible = candidates
+                best = min(eligible, key=lambda p: oc_count.get(p, 0))
+                # 存到超声侧名字 (Dustin)
+                save_name = DUSTIN_US if best == DUSTIN_RAD else best
+                oncall_schedule[save_name][ds] = True
+                oc_count[best] = oc_count.get(best, 0) + 1
             for p in [DUSTIN_RAD] + fulltime:
                 cnt = oc_count.get(p, 0)
                 if cnt > 0:
-                    print(f"    {DISPLAY_NAME.get(p, p):25} OnCall×{cnt}")
+                    dname = DUSTIN_US if p == DUSTIN_RAD else p
+                    print(f"    {DISPLAY_NAME.get(dname, dname):25} OnCall×{cnt}")
         else:
             # 放射技师 OnCall
             n_oc = len(fulltime)
@@ -2659,6 +2662,7 @@ def generate_dashboard_html(final_schedule, final_hours, category_hours, hourly_
         if pm_target is None:
             continue
         pm_people = []
+        h2_people = []
         for p_name in us_ft_names:
             if p_name in final_schedule and ds in final_schedule[p_name]:
                 entry = final_schedule[p_name][ds]
@@ -2667,9 +2671,15 @@ def generate_dashboard_html(final_schedule, final_hours, category_hours, hourly_
                 parts = set(s.strip() for s in sv.split(' + '))
                 if parts & FULL_DAY_SHIFTS or 'H3' in parts:
                     pm_people.append((p_name, sv, cat))
-        # Cut excess to H2
+                elif 'H2' in parts or 'H1' in parts:
+                    h2_people.append((p_name, sv, cat))
+        # Cut excess PM to H2
         for p_name, sv, cat in pm_people[pm_target:]:
             final_schedule[p_name][ds] = ('H2', cat)
+        # Promote H2 to full-day if PM too few
+        need = pm_target - len(pm_people[:pm_target])
+        for p_name, sv, cat in h2_people[:need]:
+            final_schedule[p_name][ds] = ('D', cat)
 
     # 星期后缀 (JS渲染时附加)
     wd_names = ['一','二','三','四','五','六','日']
