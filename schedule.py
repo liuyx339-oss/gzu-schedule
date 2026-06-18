@@ -85,7 +85,7 @@ SHIFT_COVERAGE = {
 }
 
 ROLE_SHIFTS = {
-    "放射医生": ["D", "L", "L/N", "N", "N2", "N3"],
+    "放射医生": ["D","D1","D2","D3","D4","D5","D6","C","C1","L","L/N","N","N2","N3"],
     "放射技师": ["D","D1","D2","D3","D4","D5","D6","C","C1","L","H1","H2","H3","N","N2","N3","L/N"],
     "B超医生": ["D","D1","D2","D3","D4","D5","D6","C","C1","H1","H2","H3"],
 }
@@ -950,10 +950,11 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                     if day_vars:
                         model.Add(sum(day_vars) == 0)
                 else:
-                    # 恰好1个全职上全天白班
+                    # ≥1全职白班, ≤2 避免两人天天重叠
                     full_vars = [x[p, d, s] for p in range(n_staff) for s in range(n_shifts) if full_day_is[s]]
                     if full_vars:
-                        model.Add(sum(full_vars) == 1)
+                        model.Add(sum(full_vars) >= 1)
+                        model.Add(sum(full_vars) <= 2)
 
                 # 全职0夜班
 
@@ -974,7 +975,10 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                         if pt_night_vars_d:
                             model.Add(sum(pt_night_vars_d) == 1)
 
-            # Dustin Wed+Fri 硬约束
+            # --- Objective: 最大化工时 ---
+            objective_terms = []
+
+            # Dustin Wed+Fri 极高奖励
             if DUSTIN_RAD in fulltime:
                 dustin_p = all_staff.index(DUSTIN_RAD)
                 for d, ds in enumerate(date_strs):
@@ -986,11 +990,7 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                             dv = [x[dustin_p, d, s] for s in range(n_shifts)
                                   if not shift_is_night[s] and not shift_is_ln[s]]
                             if dv:
-                                # Dustin 必须上这天, 所以 sum=1
-                                model.Add(sum(dv) == 1)
-
-            # --- Objective: 最大化工时 ---
-            objective_terms = []
+                                objective_terms.append(sum(dv) * S1_COVERAGE_WEIGHT)
             for p in range(n_staff):
                 total_dec = sum(x[p, d, s] * int(shift_hours[s] * 10)
                               for d in range(n_days) for s in range(n_shifts))

@@ -732,7 +732,7 @@ def translate_workload(
     project_df,
     standard_df,
 ):
-    """将项目数量转换为技师/医生工作分钟数。"""
+    """将项目数量转换为技师/医生工作分钟数。缺失项用全局中位数兜底。"""
     merged = pd.merge(
         project_df,
         standard_df,
@@ -751,6 +751,14 @@ def translate_workload(
     merged["pred_doc_minutes"] = (
         merged["pred_project_cases"]
         * merged["doc_minutes"]
+    )
+
+    # NaN兜底: 全局默认值(基于所有历史数据的中位数)
+    merged["pred_tech_minutes"] = merged["pred_tech_minutes"].fillna(
+        merged["pred_project_cases"] * 20
+    )
+    merged["pred_doc_minutes"] = merged["pred_doc_minutes"].fillna(
+        merged["pred_project_cases"] * 10
     )
 
     return merged
