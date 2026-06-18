@@ -108,6 +108,8 @@ def main():
     # ================================================================
     if not args.skip_forecast:
         prophet_cmd = [sys.executable, os.path.join(SCRIPT_DIR, "prophet_lightGBM.py")]
+        if args.month:
+            prophet_cmd.extend(["--month", args.month])
         run_step("Step 2/5: 需求预测 (Prophet + LightGBM)", prophet_cmd)
     else:
         print(f"\n[SKIP] Step 2/5: 需求预测")

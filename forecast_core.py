@@ -129,13 +129,14 @@ def build_prophet():
 # =====================================================
 
 
-def hybrid_forecast(hourly_df, forecast_days=FORECAST_DAYS):
+def hybrid_forecast(hourly_df, forecast_days=FORECAST_DAYS, forecast_start=None):
     """
     Prophet + LightGBM 混合预测。
 
     参数:
         hourly_df: DataFrame with columns [ds, cases]
         forecast_days: 预测未来多少天
+        forecast_start: 可选, 预测起始日期 (pd.Timestamp) — 直接从该日期开始预测，跳过中间空白
 
     返回:
         DataFrame with columns [ds, pred_cases, hour, weekday]
@@ -185,14 +186,29 @@ def hybrid_forecast(hourly_df, forecast_days=FORECAST_DAYS):
 
     prophet.fit(prophet_train, seed=SEED)
 
-    future_dates = pd.date_range(
-        start=hourly_df["ds"].min(),
-        periods=(
-            len(hourly_df)
-            + forecast_days * 24
-        ),
-        freq="h",
-    )
+    # 构建 future: 历史部分 + 预测部分
+    if forecast_start is not None:
+        # 历史部分: 全时间轴填充到预测起始日
+        history_range = pd.date_range(
+            start=hourly_df["ds"].min(),
+            end=forecast_start - pd.Timedelta(hours=1),
+            freq="h",
+        )
+        future_range = pd.date_range(
+            start=forecast_start,
+            periods=forecast_days * 24,
+            freq="h",
+        )
+        future_dates = history_range.append(future_range)
+    else:
+        future_dates = pd.date_range(
+            start=hourly_df["ds"].min(),
+            periods=(
+                len(hourly_df)
+                + forecast_days * 24
+            ),
+            freq="h",
+        )
 
     future_df = pd.DataFrame({
         "ds": future_dates
@@ -309,10 +325,11 @@ def hybrid_forecast(hourly_df, forecast_days=FORECAST_DAYS):
         ]
     ]
 
-    result = result[
-        result["ds"]
-        > hourly_df["ds"].max()
-    ]
+    # 只保留预测段
+    if forecast_start is not None:
+        result = result[result["ds"] >= forecast_start]
+    else:
+        result = result[result["ds"] > hourly_df["ds"].max()]
 
     return result
 
@@ -322,7 +339,7 @@ def hybrid_forecast(hourly_df, forecast_days=FORECAST_DAYS):
 # =====================================================
 
 
-def forecast_total_type(df, forecast_days=FORECAST_DAYS):
+def forecast_total_type(df, forecast_days=FORECAST_DAYS, forecast_start=None):
     """按 Type 分别预测总需求量。"""
     results = []
 
@@ -345,7 +362,7 @@ def forecast_total_type(df, forecast_days=FORECAST_DAYS):
         if len(hourly) < 48:
             continue
 
-        pred = hybrid_forecast(hourly, forecast_days=forecast_days)
+        pred = hybrid_forecast(hourly, forecast_days=forecast_days, forecast_start=forecast_start)
 
         pred["Type"] = type_name
 
@@ -366,6 +383,7 @@ def forecast_key_departments(
     df,
     category,
     forecast_days=FORECAST_DAYS,
+    forecast_start=None,
 ):
     """按关键科室细分预测。"""
     results = []
@@ -406,7 +424,7 @@ def forecast_key_departments(
             if len(hourly) < 48:
                 continue
 
-            pred = hybrid_forecast(hourly, forecast_days=forecast_days)
+            pred = hybrid_forecast(hourly, forecast_days=forecast_days, forecast_start=forecast_start)
 
             pred["eps_dept_desc"] = dept
             pred["Type"] = type_name
@@ -785,7 +803,7 @@ def _cleanup_hc_dept(forecast_df):
     return df
 
 
-def run_forecast_pipeline(df, forecast_days=FORECAST_DAYS):
+def run_forecast_pipeline(df, forecast_days=FORECAST_DAYS, forecast_start=None):
     """
     运行完整的分层预测流水线，返回 workload DataFrame。
 
@@ -793,6 +811,8 @@ def run_forecast_pipeline(df, forecast_days=FORECAST_DAYS):
         ds (datetime), hour, weekday,
         eps_dept_desc, Type, order_item_desc,
         大分类, 预估操作时长, 预估医生写报告时长
+
+    forecast_start: 可选, 预测起始日期 (pd.Timestamp) — 跳过中间日期直接从该日预测
 
     返回:
         forecast_only_df with columns:
@@ -815,12 +835,12 @@ def run_forecast_pipeline(df, forecast_days=FORECAST_DAYS):
 
         # STEP 1: Type Total Forecast
         total_forecast = forecast_total_type(
-            category_df, forecast_days=forecast_days
+            category_df, forecast_days=forecast_days, forecast_start=forecast_start
         )
 
         # STEP 2: Key Department Forecast
         key_forecast = forecast_key_departments(
-            category_df, category, forecast_days=forecast_days
+            category_df, category, forecast_days=forecast_days, forecast_start=forecast_start
         )
 
         # STEP 2.5: Scale key departments to total Type forecast
@@ -861,11 +881,12 @@ def run_forecast_pipeline(df, forecast_days=FORECAST_DAYS):
         ignore_index=True,
     )
 
-    # Only keep forecast period (after last historical data point)
-    forecast_start = df["ds"].max()
-    forecast_only_df = final_df[
-        final_df["ds"] > forecast_start
-    ].copy()
+    # Only keep forecast period (after last historical data point, or from target month start)
+    if forecast_start is None:
+        cut_point = df["ds"].max()
+        forecast_only_df = final_df[final_df["ds"] > cut_point].copy()
+    else:
+        forecast_only_df = final_df[final_df["ds"] >= forecast_start].copy()
 
     # Clean up: 按 weekday 过滤 HC 部门变体
     forecast_only_df = _cleanup_hc_dept(forecast_only_df)

@@ -624,6 +624,10 @@ def _generate_daily_report(target_date=None):
 # =====================================================
 
 def main():
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--month", type=str, default=None, help="Target month (YYYY-MM)")
+    args, _ = parser.parse_known_args()  # ignore unknown args from run_pipeline
 
     print("=" * 60)
     print("MEDICAL DEMAND FORECAST SYSTEM")
@@ -685,8 +689,25 @@ def main():
         "放射",
     )
 
+    # ---- 确定预测天数 + 预测起始点 ----
+    last_data_date = df["ds"].max()
+    forecast_start = None
+    if args.month:
+        parts = args.month.split("-")
+        target_year, target_month = int(parts[0]), int(parts[1])
+        import calendar
+        last_day = calendar.monthrange(target_year, target_month)[1]
+        forecast_days = last_day  # 目标月有多少天就预测多少天
+        # 预测起始 = 目标月1号0点
+        forecast_start = pd.Timestamp(year=target_year, month=target_month, day=1, hour=0)
+        print(f"[Target] month={args.month}, data_until={last_data_date}")
+        print(f"         forecast: {forecast_start} -> {target_year}-{target_month:02d}-{last_day:02d} ({forecast_days}d)")
+    else:
+        forecast_days = FORECAST_DAYS
+
     # ---- Run forecast pipeline (imported from forecast_core) ----
-    forecast_only_df = run_forecast_pipeline(df, forecast_days=FORECAST_DAYS)
+    forecast_only_df = run_forecast_pipeline(df, forecast_days=forecast_days,
+                                              forecast_start=forecast_start)
     # =================================================
     # OUTPUT
     # =================================================
