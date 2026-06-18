@@ -1106,7 +1106,7 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
             if role_name == 'B超医生':
                 wd = _get_date_weekday(ds, all_dates, date_strs)
                 if wd == 6:
-                    day_target = 1
+                    day_target = 2  # 周日同样2个白班
 
             if day_target > 0:
                 supp_full_day = [x[p, d, s] for p in range(n_staff) for s in range(n_shifts)
@@ -1130,8 +1130,12 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                         else:
                             model.Add(sum(supp_full_day) + sum(supp_ln_vars_d) + base_full_day_count == day_target)
                     elif role_name == 'B超医生':
-                        # B超医生: ≥2个全天白班 (周日=1), 4人足够
+                        # B超医生: ≥2个全天白班 (周日同), 每天≤4人
                         model.Add(sum(supp_full_day) + sum(supp_ln_vars_d) + base_full_day_count >= day_target)
+                        # 每天总人数≤4 (任何班型)
+                        all_us = [x[p, d, s] for p in range(n_staff) for s in range(n_shifts)
+                                 if not shift_is_night[s] and not shift_is_ln[s]]
+                        model.Add(sum(all_us) + base_full_day_count <= 4)
                     else:
                         dslack = model.NewIntVar(0, day_target, f's1_dslack_{d}')
                         day_slack_vars[d] = dslack
@@ -2016,21 +2020,9 @@ def merge_and_oncall(stage1_schedule, stage1_hours,
             category_hours[person][cat] += hrs
         final_hours[person] = total
 
-    for d_check, ds_check in enumerate(date_strs):
-        wd_check = all_dates[d_check].weekday()
-        if wd_check in (2,4):
-            pm_left = 0
-            for p_check in us_ft:
-                if p_check in final_schedule and ds_check in final_schedule[p_check]:
-                    sv = final_schedule[p_check][ds_check][0] if isinstance(final_schedule[p_check][ds_check], tuple) else final_schedule[p_check][ds_check]
-                    parts = set(s.strip() for s in sv.split(' + '))
-                    if parts & FULL_DAY_SHIFTS or 'H3' in parts:
-                        pm_left += 1
-            if pm_left != 2:
-                names = [(p, final_schedule[p][ds_check]) for p in us_ft if p in final_schedule and ds_check in final_schedule[p]]
-                print(f'   [PM verify] {ds_check}: STILL {pm_left} PM! {names}')
+    
 
-    # 80/20 显示分离: 超140.8h的工时重新标记为20%
+        # 80/20 显示分离: 超140.8h的工时重新标记为20%
     for person in list(final_schedule.keys()):
         if person not in final_schedule: continue
         accumulated = 0.0
@@ -2058,20 +2050,32 @@ def merge_and_oncall(stage1_schedule, stage1_hours,
     # --- OnCall分配 ---
     for role_name in ['放射技师', 'B超医生']:
         cfg = ROLE_CONFIG[role_name]
+        fulltime = staff[role_name]['fulltime']
         if not cfg['has_oncall']:
             continue
-        fulltime = staff[role_name]['fulltime']
         if not fulltime:
             continue
 
+        # OnCall pool: B超医生 include Dustin
+        if role_name == 'B超医生':
+            oc_pool = fulltime + ([DUSTIN_RAD] if DUSTIN_RAD not in fulltime else [])
+        else:
+            oc_pool = fulltime
+        n_oc = len(oc_pool)
+
         print(f"\n  [{role_name}] OnCall分配:")
         oncall_idx = 0
-        n_ft = len(fulltime)
         for ds in date_strs:
             assigned = False
+            # B超: Dustin上放射的日子他优先OnCall
+            dustin_rad_today = DUSTIN_RAD in final_schedule and ds in final_schedule.get(DUSTIN_RAD, {})
+            if role_name == 'B超医生' and dustin_rad_today and DUSTIN_RAD in oc_pool:
+                oncall_schedule[DUSTIN_RAD][ds] = True
+                assigned = True
+                continue
             # 优先没班的人
-            for _ in range(n_ft * 2):
-                person = fulltime[oncall_idx % n_ft]
+            for _ in range(n_oc * 2):
+                person = oc_pool[oncall_idx % n_oc]
                 oncall_idx += 1
                 has_shift = ds in final_schedule.get(person, {})
                 if not has_shift:
@@ -2080,14 +2084,14 @@ def merge_and_oncall(stage1_schedule, stage1_hours,
                     break
             # 所有人都有班，允许叠加
             if not assigned:
-                for _ in range(n_ft * 2):
-                    person = fulltime[oncall_idx % n_ft]
+                for _ in range(n_oc * 2):
+                    person = oc_pool[oncall_idx % n_oc]
                     oncall_idx += 1
                     oncall_schedule[person][ds] = True
                     assigned = True
                     break
 
-        for person in fulltime:
+        for person in oc_pool:
             cnt = len(oncall_schedule.get(person, {}))
             if cnt > 0:
                 print(f"    {DISPLAY_NAME.get(person, person):25} OnCall×{cnt}")
@@ -2097,7 +2101,22 @@ def merge_and_oncall(stage1_schedule, stage1_hours,
     final_schedule, final_hours, category_hours, ot_hours = _merge_half_shifts(
         final_schedule, final_hours, category_hours, date_strs, staff)
 
-    return dict(final_schedule), dict(final_hours), dict(category_hours), dict(oncall_schedule), dict(ot_hours)
+    # 全职工时硬帽（最后执行）
+    for role_name in ['放射医生','放射技师','B超医生']:
+        for p_name in staff[role_name]['fulltime']:
+            if p_name in final_hours and final_hours[p_name] > TARGET_HOURS_FULL:
+                if p_name not in final_schedule: continue
+                sorted_dates = sorted(final_schedule[p_name].keys(), reverse=True)
+                while final_hours[p_name] > TARGET_HOURS_FULL and sorted_dates:
+                    ds = sorted_dates.pop()
+                    val = final_schedule[p_name][ds]
+                    sv = val[0] if isinstance(val, tuple) else str(val)
+                    if 'L/N' in sv: continue
+                    hrs = _get_shift_hours(sv)
+                    final_hours[p_name] -= hrs
+                    del final_schedule[p_name][ds]
+    
+        return dict(final_schedule), dict(final_hours), dict(category_hours), dict(oncall_schedule), dict(ot_hours)
 
 
 def _merge_half_shifts(final_schedule, final_hours, category_hours, date_strs, staff):
@@ -2524,6 +2543,8 @@ def _apply_v3_excel_styling(worksheet, df, sheet_name, date_strs, category_hours
             # 80% → 默认黑色，不加样式
 
 
+# ==========================================
+# 9. Dashboard Web 仪表盘 (Phase 9)
 # ==========================================
 # 9. Dashboard Web 仪表盘 (Phase 9)
 # ==========================================
