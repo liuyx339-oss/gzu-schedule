@@ -87,7 +87,7 @@ SHIFT_COVERAGE = {
 ROLE_SHIFTS = {
     "放射医生": ["D", "L", "L/N", "N", "N2", "N3"],
     "放射技师": ["D","D1","D2","D3","D4","D5","D6","C","C1","L","H1","H2","H3","N","N2","N3","L/N"],
-    "B超医生": ["D","D1","D2","D3","D4","D5","D6","C","C1","H1","H2","H3","T"],
+    "B超医生": ["D","D1","D2","D3","D4","D5","D6","C","C1","H1","H2","H3"],
 }
 
 NIGHT_SHIFTS = {"N", "N2", "N3"}
@@ -1170,19 +1170,23 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                         h24_slack_vars[d, h] = h24slack
                         model.Add(sum(coverage_vars) + total_base + h24slack >= 1)
 
-        # C8: B超医生 Wed+Fri 下午恰好2人
+        # C8: B超医生 下午约束 (Wed+Fri=2人, Tue+Thu=3人))
         if role_name == 'B超医生':
             pm_is = [1 if (s in FULL_DAY_SHIFTS or s == 'H3') else 0 for s in shifts_list]
-            pm_dates = 0
+            pm_dates_wf = pm_dates_tt = 0
             for d, ds in enumerate(date_strs):
                 wd = _get_date_weekday(ds, all_dates, date_strs)
+                pm_vars = [x[p, d, s] for p in range(n_staff) for s in range(n_shifts) if pm_is[s]]
+                if not pm_vars:
+                    continue
                 if wd in (2, 4):  # 周三、周五
-                    pm_vars = [x[p, d, s] for p in range(n_staff) for s in range(n_shifts) if pm_is[s]]
-                    if pm_vars:
-                        model.Add(sum(pm_vars) == 2)
-                        pm_dates += 1
-            if pm_dates > 0:
-                print(f"   [B超] Wed+Fri PM=2 约束已添加 ({pm_dates}天)")
+                    model.Add(sum(pm_vars) == 2)
+                    pm_dates_wf += 1
+                elif wd in (1, 3):  # 周二、周四
+                    model.Add(sum(pm_vars) == 3)
+                    pm_dates_tt += 1
+            if pm_dates_wf > 0 or pm_dates_tt > 0:
+                print(f"   [B超] PM约束: Wed+Fri=2人({pm_dates_wf}天), Tue+Thu=3人({pm_dates_tt}天)")
 
         # C9: B超医生固定配对约束 (仅Stage 1 80%池)
         # 合法配对: Liu+Xu, Xu+Hou, Xu+Lu, Lu+Hou (禁止 Liu+Lu, Liu+Hou)
@@ -2056,45 +2060,49 @@ def merge_and_oncall(stage1_schedule, stage1_hours,
         if not fulltime:
             continue
 
-        # OnCall pool: B超医生 include Dustin
-        if role_name == 'B超医生':
-            oc_pool = fulltime + ([DUSTIN_RAD] if DUSTIN_RAD not in fulltime else [])
-        else:
-            oc_pool = fulltime
-        n_oc = len(oc_pool)
-
         print(f"\n  [{role_name}] OnCall分配:")
-        oncall_idx = 0
-        for ds in date_strs:
-            assigned = False
-            # B超: Dustin上放射的日子他优先OnCall
-            dustin_rad_today = DUSTIN_RAD in final_schedule and ds in final_schedule.get(DUSTIN_RAD, {})
-            if role_name == 'B超医生' and dustin_rad_today and DUSTIN_RAD in oc_pool:
-                oncall_schedule[DUSTIN_RAD][ds] = True
-                assigned = True
-                continue
-            # 优先没班的人
-            for _ in range(n_oc * 2):
-                person = oc_pool[oncall_idx % n_oc]
-                oncall_idx += 1
-                has_shift = ds in final_schedule.get(person, {})
-                if not has_shift:
-                    oncall_schedule[person][ds] = True
-                    assigned = True
-                    break
-            # 所有人都有班，允许叠加
-            if not assigned:
+
+        if role_name == 'B超医生':
+            oc_count = {p: 0 for p in fulltime + [DUSTIN_RAD]}
+            for ds in date_strs:
+                dustin_ok = ds in final_schedule.get(DUSTIN_RAD, {})
+                off_today = [p for p in fulltime if not final_schedule.get(p, {}).get(ds)]
+                if off_today:
+                    # 休息的US医生 → 选OnCall最少者
+                    best = min(off_today, key=lambda p: oc_count[p])
+                elif dustin_ok:
+                    # 全都上班 + Dustin在放射 → Dustin
+                    best = min(fulltime + [DUSTIN_RAD], key=lambda p: oc_count[p])
+                else:
+                    # 全都上班 + Dustin不在 → US中选最少
+                    best = min(fulltime, key=lambda p: oc_count[p])
+                oncall_schedule[best][ds] = True
+                oc_count[best] += 1
+            for p in [DUSTIN_RAD] + fulltime:
+                cnt = oc_count.get(p, 0)
+                if cnt > 0:
+                    print(f"    {DISPLAY_NAME.get(p, p):25} OnCall×{cnt}")
+        else:
+            # 放射技师 OnCall
+            n_oc = len(fulltime)
+            oncall_idx = 0
+            for ds in date_strs:
+                assigned = False
                 for _ in range(n_oc * 2):
-                    person = oc_pool[oncall_idx % n_oc]
+                    person = fulltime[oncall_idx % n_oc]
+                    oncall_idx += 1
+                    if not final_schedule.get(person, {}).get(ds):
+                        oncall_schedule[person][ds] = True
+                        assigned = True
+                        break
+                if not assigned:
+                    person = fulltime[oncall_idx % n_oc]
                     oncall_idx += 1
                     oncall_schedule[person][ds] = True
-                    assigned = True
-                    break
-
-        for person in oc_pool:
-            cnt = len(oncall_schedule.get(person, {}))
-            if cnt > 0:
-                print(f"    {DISPLAY_NAME.get(person, person):25} OnCall×{cnt}")
+            for person in fulltime:
+                cnt = sum(1 for v in oncall_schedule.get(person, {}).values() if v is True)
+                if cnt > 0:
+                    print(f"    {DISPLAY_NAME.get(person, person):25} OnCall×{cnt}")
 
     # --- 半天班合并 + OT计算 ---
     ot_hours = defaultdict(float)
@@ -2258,9 +2266,15 @@ def assign_ultrasound_notes(final_schedule, date_strs, staff):
         # 当天需要分配的note数量 = min(上班人数, 3)
         n_notes = min(len(working), len(NOTES))
 
-        # 贪婪分配: 每轮选一个缺该note最少的医生，保证长期公平
-        for ni in range(n_notes):
-            note = NOTES[ni]
+        # 先分配B1: 每天至少1人
+        b1_person = min(working, key=lambda p: note_counts[p]['2(B1)'])
+        result[b1_person][ds] = '2(B1)'
+        note_counts[b1_person]['2(B1)'] += 1
+        working.remove(b1_person)
+        # 再分配4和9 (剩余人数≤2人)
+        remaining_notes = ['4', '9']
+        for ni in range(min(len(working), 2)):
+            note = remaining_notes[ni]
             best_p = min(working, key=lambda p: note_counts[p][note])
             result[best_p][ds] = note
             note_counts[best_p][note] += 1
@@ -2599,7 +2613,7 @@ def generate_dashboard_html(final_schedule, final_hours, category_hours, hourly_
                 "hours_backup": round(cat.get("备班", 0), 1),
                 "hours_ln": round(cat.get("L/N", 0), 1),
                 "is_backup": name.startswith("备班"),
-                "oncall_count": len(oncall_schedule.get(name, {})),
+                "oncall_count": 0 if role_name == '放射医生' else len(oncall_schedule.get(name, {})),
                 "schedule": person_schedule,
                 "category": person_cat,
                 "notes": person_notes if role_name == 'B超医生' else {},
@@ -2637,23 +2651,25 @@ def generate_dashboard_html(final_schedule, final_hours, category_hours, hourly_
     if DUSTIN_US in final_schedule and DUSTIN_US not in us_docs:
         us_docs.append(DUSTIN_US)
 
-    # B超 Wed+Fri PM=2: 最终硬切（在生成HTML前最后执行）
+    # B超 PM最终硬切（在生成HTML前最后执行）
     us_ft_names = staff['B超医生']['fulltime']
     for d, ds in enumerate(date_strs):
         wd = d % 7  # date_strs[0] = 06月01日 = Monday(0)
-        if wd in (2, 4):
-            pm_people = []
-            for p_name in us_ft_names:
-                if p_name in final_schedule and ds in final_schedule[p_name]:
-                    entry = final_schedule[p_name][ds]
-                    sv = entry[0] if isinstance(entry, tuple) else str(entry)
-                    cat = entry[1] if isinstance(entry, tuple) else '80%'
-                    parts = set(s.strip() for s in sv.split(' + '))
-                    if parts & FULL_DAY_SHIFTS or 'H3' in parts:
-                        pm_people.append((p_name, sv, cat))
-            # Cut excess to H2
-            for p_name, sv, cat in pm_people[2:]:
-                final_schedule[p_name][ds] = ('H2', cat)
+        pm_target = 2 if wd in (2, 4) else (3 if wd in (1, 3) else None)
+        if pm_target is None:
+            continue
+        pm_people = []
+        for p_name in us_ft_names:
+            if p_name in final_schedule and ds in final_schedule[p_name]:
+                entry = final_schedule[p_name][ds]
+                sv = entry[0] if isinstance(entry, tuple) else str(entry)
+                cat = entry[1] if isinstance(entry, tuple) else '80%'
+                parts = set(s.strip() for s in sv.split(' + '))
+                if parts & FULL_DAY_SHIFTS or 'H3' in parts:
+                    pm_people.append((p_name, sv, cat))
+        # Cut excess to H2
+        for p_name, sv, cat in pm_people[pm_target:]:
+            final_schedule[p_name][ds] = ('H2', cat)
 
     # 星期后缀 (JS渲染时附加)
     wd_names = ['一','二','三','四','五','六','日']
