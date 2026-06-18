@@ -2102,24 +2102,9 @@ def merge_and_oncall(stage1_schedule, stage1_hours,
     final_schedule, final_hours, category_hours, ot_hours = _merge_half_shifts(
         final_schedule, final_hours, category_hours, date_strs, staff)
 
-    # 全职工时硬帽
-    for p_name, hrs in list(final_hours.items()):
-        if hrs > TARGET_HOURS_FULL:
-            if p_name not in final_schedule: continue
-            excess = hrs - TARGET_HOURS_FULL
-            sorted_dates = sorted(final_schedule[p_name].keys())  # earliest first — delete from front
-            while excess > 0 and sorted_dates:
-                ds = sorted_dates.pop(0)
-                if ds not in final_schedule[p_name]: continue
-                val = final_schedule[p_name][ds]
-                sv = val[0] if isinstance(val, tuple) else str(val)
-                if 'L/N' in sv: continue
-                sh = _get_shift_hours(sv)
-                excess -= sh
-                final_hours[p_name] -= sh
-                del final_schedule[p_name][ds]
+    # 工时已由 Stage 1+2 CP-SAT 约束保证 ≤176h，不做额外裁切
+
     
-        
     # Debug dump
     if DUSTIN_US in oncall_schedule:
         dus_count = sum(1 for v in oncall_schedule.get(DUSTIN_US, {}).values() if v is True)
@@ -2651,29 +2636,6 @@ def generate_dashboard_html(final_schedule, final_hours, category_hours, hourly_
     us_docs = staff['B超医生']['fulltime'] + staff['B超医生'].get('parttime', []) + staff['B超医生']['backup']
     if DUSTIN_US in final_schedule and DUSTIN_US not in us_docs:
         us_docs.append(DUSTIN_US)
-
-    # 全职工时硬帽（一刀切至176h）
-    for p_name, hrs in list(final_hours.items()):
-        if hrs > TARGET_HOURS_FULL and p_name in final_schedule:
-            excess = hrs - TARGET_HOURS_FULL
-            dates_list = sorted(final_schedule[p_name].keys())
-            while excess > 0 and dates_list:
-                ds = dates_list.pop()
-                if ds not in final_schedule[p_name]:
-                    continue
-                sv = final_schedule[p_name][ds][0] if isinstance(final_schedule[p_name][ds], tuple) else str(final_schedule[p_name][ds])
-                if 'L/N' in sv:
-                    continue
-                # Skip PM-critical days (Tue=1,Wed=2,Thu=3,Fri=4)
-                ds_idx = dates_list.index(ds) if ds in dates_list else -1
-                if ds_idx >= 0:
-                    wd = ds_idx % 7
-                    if wd in (1, 2, 3, 4):
-                        continue
-                sh = _get_shift_hours(sv)
-                excess -= sh
-                final_hours[p_name] -= sh
-                del final_schedule[p_name][ds]
 
     # B超 最终硬切（在生成HTML前最后执行）
     us_ft_names = [p for p in staff['B超医生']['fulltime'] if 'US' not in p]
