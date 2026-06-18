@@ -1132,10 +1132,11 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                         else:
                             model.Add(sum(supp_full_day) + sum(supp_ln_vars_d) + base_full_day_count == day_target)
                     elif role_name == 'B超医生':
-                        # B超: ≥day_target人(任何班都算, 含H1/H2/H3), ≤4人
+                        # 全天白班 ≥ day_target (硬)
+                        model.Add(sum(supp_full_day) + sum(supp_ln_vars_d) + base_full_day_count >= day_target)
+                        # 每天总人数 ≤4 (任何班型)
                         all_us = [x[p, d, s] for p in range(n_staff) for s in range(n_shifts)
                                  if not shift_is_night[s] and not shift_is_ln[s]]
-                        model.Add(sum(all_us) + base_full_day_count >= day_target)
                         model.Add(sum(all_us) + base_full_day_count <= 4)
                     else:
                         dslack = model.NewIntVar(0, day_target, f's1_dslack_{d}')
@@ -2674,39 +2675,65 @@ def generate_dashboard_html(final_schedule, final_hours, category_hours, hourly_
                 final_hours[p_name] -= sh
                 del final_schedule[p_name][ds]
 
-    # B超 PM最终硬切（在生成HTML前最后执行）
-    us_ft_names = staff['B超医生']['fulltime']
+    # B超 最终硬切（在生成HTML前最后执行）
+    us_ft_names = [p for p in staff['B超医生']['fulltime'] if 'US' not in p]
     for d, ds in enumerate(date_strs):
-        wd = d % 7  # date_strs[0] = 06月01日 = Monday(0)
+        wd = d % 7
+        day_target = 1 if wd == 6 else 2  # Sun=1, others=2 full_day minimum
         pm_target = 2 if wd in (2, 4) else (3 if wd in (1, 3) else None)
-        if pm_target is None:
-            continue
-        pm_people = []
-        h2_people = []
+
+        fd_people = []   # 全天白班 (D/C/L)
+        hx_people = []   # 半天班 (H1/H2/H3)
+        off_people = []  # 休息
         for p_name in us_ft_names:
-            if p_name in final_schedule and ds in final_schedule[p_name]:
-                entry = final_schedule[p_name][ds]
-                sv = entry[0] if isinstance(entry, tuple) else str(entry)
-                cat = entry[1] if isinstance(entry, tuple) else '80%'
-                parts = set(s.strip() for s in sv.split(' + '))
-                if parts & FULL_DAY_SHIFTS or 'H3' in parts:
-                    pm_people.append((p_name, sv, cat))
-                elif 'H2' in parts or 'H1' in parts:
-                    h2_people.append((p_name, sv, cat))
-        # Cut excess PM to H2
-        for p_name, sv, cat in pm_people[pm_target:]:
-            final_schedule[p_name][ds] = ('H2', cat)
-        # 不足: 先H2→D提拔, 再拉休班医生上D
-        current = len(pm_people[:pm_target])
-        need = pm_target - current
-        for p_name, sv, cat in h2_people[:need]:
-            final_schedule[p_name][ds] = ('D', cat)
-            current += 1
-        # 仍不足: 从全天休息的医生中拉人上D
-        if current < pm_target:
-            off_today = [p for p in us_ft_names if p not in final_schedule or ds not in final_schedule[p]]
-            for p_name in off_today[:pm_target - current]:
+            entry = final_schedule.get(p_name, {}).get(ds, None)
+            if not entry:
+                off_people.append(p_name)
+                continue
+            sv = entry[0] if isinstance(entry, tuple) else str(entry)
+            cat = entry[1] if isinstance(entry, tuple) else '80%'
+            parts = set(s.strip() for s in sv.split(' + '))
+            if parts & FULL_DAY_SHIFTS:
+                fd_people.append((p_name, sv, cat))
+            else:
+                hx_people.append((p_name, sv, cat))
+
+        # 1. 全天白班不足 → 从半天/休息中拉人
+        need_fd = day_target - len(fd_people)
+        if need_fd > 0:
+            # promote H1/H2 → D
+            for p_name, sv, cat in hx_people[:need_fd]:
                 final_schedule[p_name][ds] = ('D', cat)
+                fd_people.append((p_name, 'D', cat))
+            # still need → pull off doctors
+            need_fd = day_target - len(fd_people)
+            for p_name in off_people[:need_fd]:
+                final_schedule[p_name][ds] = ('D', '80%')
+                fd_people.append((p_name, 'D', '80%'))
+
+        # 2. PM 约束 (Tue-Fri)
+        if pm_target is not None:
+            # All full-day people are PM (they cover afternoon)
+            pm_people = list(fd_people)
+            # Also include H3 from half-day people
+            for p_name, sv, cat in hx_people:
+                if 'H3' in sv.split(' + '):
+                    pm_people.append((p_name, sv, cat))
+            # Cut excess PM to H2
+            for p_name, sv, cat in pm_people[pm_target:]:
+                final_schedule[p_name][ds] = ('H2', cat)
+                # Remove them from pm_people too
+                pm_people = pm_people[:pm_target]
+            # 不足: promote H2→D
+            need_pm = pm_target - len(pm_people[:pm_target])
+            remaining_h2 = [(n, s, c) for n, s, c in hx_people if n not in [x[0] for x in pm_people[:pm_target]]]
+            for p_name, sv, cat in remaining_h2[:need_pm]:
+                final_schedule[p_name][ds] = ('D', cat)
+            # still need → pull off
+            still_off = [p for p in off_people if p not in [x[0] for x in pm_people]]
+            need_pm = pm_target - len(pm_people[:pm_target])
+            for p_name in still_off[:need_pm]:
+                final_schedule[p_name][ds] = ('D', '80%')
 
     # 星期后缀 (JS渲染时附加)
     wd_names = ['一','二','三','四','五','六','日']
