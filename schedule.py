@@ -2063,28 +2063,27 @@ def merge_and_oncall(stage1_schedule, stage1_hours,
         print(f"\n  [{role_name}] OnCall分配:")
 
         if role_name == 'B超医生':
-            oc_count = {p: 0 for p in fulltime + [DUSTIN_RAD]}
-            oc_cap = (len(date_strs) + 4) // 5  # ceil(30/5)=6
+            # OnCall: 4 US doctors (excl DUSTIN_US) + Dustin (rad days only, max 6)
+            us_real = [p for p in fulltime if 'US' not in p and p != DUSTIN_US]
+            if DUSTIN_US in oncall_schedule: del oncall_schedule[DUSTIN_US]
+            oc_count = {p: 0 for p in us_real + [DUSTIN_RAD]}
+            dustin_max = 6
             for ds in date_strs:
-                dustin_ok = ds in final_schedule.get(DUSTIN_RAD, {})
-                off_today = [p for p in fulltime if not final_schedule.get(p, {}).get(ds)]
-                # 候选人: 休息医生 → US全池(含Dustin仅当上放射班)
-                candidates = off_today[:] if off_today else fulltime[:]
-                if dustin_ok:
-                    candidates.append(DUSTIN_RAD)
-                eligible = [p for p in candidates if oc_count.get(p, 0) < oc_cap]
-                if not eligible:
-                    eligible = candidates
-                best = min(eligible, key=lambda p: oc_count.get(p, 0))
-                # 存到超声侧名字 (Dustin)
+                dustin_ok = ds in final_schedule.get(DUSTIN_RAD, {}) and oc_count[DUSTIN_RAD] < dustin_max
+                off_today = [p for p in us_real if not final_schedule.get(p, {}).get(ds)]
+                if off_today:
+                    best = min(off_today, key=lambda p: oc_count[p])
+                elif dustin_ok:
+                    best = DUSTIN_RAD
+                else:
+                    best = min(us_real, key=lambda p: oc_count[p])
                 save_name = DUSTIN_US if best == DUSTIN_RAD else best
                 oncall_schedule[save_name][ds] = True
-                oc_count[best] = oc_count.get(best, 0) + 1
-            for p in [DUSTIN_RAD] + fulltime:
+                oc_count[best] += 1
+            for p in us_real + [DUSTIN_RAD]:
                 cnt = oc_count.get(p, 0)
                 if cnt > 0:
-                    dname = DUSTIN_US if p == DUSTIN_RAD else p
-                    print(f"    {DISPLAY_NAME.get(dname, dname):25} OnCall×{cnt}")
+                    print(f"    {DISPLAY_NAME.get(p, p):25} OnCall×{cnt}")
         else:
             # 放射技师 OnCall
             n_oc = len(fulltime)
@@ -2129,7 +2128,13 @@ def merge_and_oncall(stage1_schedule, stage1_hours,
                 final_hours[p_name] -= sh
                 del final_schedule[p_name][ds]
     
-        return dict(final_schedule), dict(final_hours), dict(category_hours), dict(oncall_schedule), dict(ot_hours)
+        
+    # Debug dump
+    if DUSTIN_US in oncall_schedule:
+        dus_count = sum(1 for v in oncall_schedule.get(DUSTIN_US, {}).values() if v is True)
+        dru_count = sum(1 for v in oncall_schedule.get(DUSTIN_RAD, {}).values() if v is True)
+        print(f"[ONCALL DUMP] DUSTIN_US={dus_count} DUSTIN_RAD={dru_count}")
+    return dict(final_schedule), dict(final_hours), dict(category_hours), dict(oncall_schedule), dict(ot_hours)
 
 
 def _merge_half_shifts(final_schedule, final_hours, category_hours, date_strs, staff):
