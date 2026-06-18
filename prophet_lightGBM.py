@@ -689,7 +689,7 @@ def main():
         "放射",
     )
 
-    # ---- 确定预测天数 + 预测起始点 ----
+    # ---- 确定预测天数 + 目标月过滤 ----
     last_data_date = df["ds"].max()
     forecast_start = None
     if args.month:
@@ -697,11 +697,15 @@ def main():
         target_year, target_month = int(parts[0]), int(parts[1])
         import calendar
         last_day = calendar.monthrange(target_year, target_month)[1]
-        forecast_days = last_day  # 目标月有多少天就预测多少天
-        # 预测起始 = 目标月1号0点
-        forecast_start = pd.Timestamp(year=target_year, month=target_month, day=1, hour=0)
+        target_start = pd.Timestamp(year=target_year, month=target_month, day=1, hour=0)
+        target_end   = pd.Timestamp(year=target_year, month=target_month, day=last_day, hour=23)
+        # Prophet须从last_data连续预测到target_end，天数 = gap + 目标月
+        gap_days = max(0, (target_start - last_data_date).days)
+        forecast_days = gap_days + last_day
+        forecast_start = target_start
         print(f"[Target] month={args.month}, data_until={last_data_date}")
-        print(f"         forecast: {forecast_start} -> {target_year}-{target_month:02d}-{last_day:02d} ({forecast_days}d)")
+        print(f"         gap={gap_days}d + target={last_day}d = {forecast_days}d total predict")
+        print(f"         output filter: {forecast_start} -> {target_end}")
     else:
         forecast_days = FORECAST_DAYS
 
