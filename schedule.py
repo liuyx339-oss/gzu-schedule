@@ -845,7 +845,7 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                 else:
                     model.Add(sum(x[p, d, s] for s in range(n_shifts)) <= 1)
 
-        # C2: 月工时 ≤ TARGET_HOURS_FULL (共享上限, 放射医生单独控制=176h)
+        # C2: 月工时 ≤ TARGET_HOURS_FULL (共享上限)
         TOL_DECIHOURS = 0
         for p in range(n_staff):
             person = all_staff[p]
@@ -2112,20 +2112,22 @@ def merge_and_oncall(stage1_schedule, stage1_hours,
     final_schedule, final_hours, category_hours, ot_hours = _merge_half_shifts(
         final_schedule, final_hours, category_hours, date_strs, staff)
 
-    # 全职工时硬帽（最后执行）
-    for role_name in ['放射医生','放射技师','B超医生']:
-        for p_name in staff[role_name]['fulltime']:
-            if p_name in final_hours and final_hours[p_name] > TARGET_HOURS_FULL:
-                if p_name not in final_schedule: continue
-                sorted_dates = sorted(final_schedule[p_name].keys(), reverse=True)
-                while final_hours[p_name] > TARGET_HOURS_FULL and sorted_dates:
-                    ds = sorted_dates.pop()
-                    val = final_schedule[p_name][ds]
-                    sv = val[0] if isinstance(val, tuple) else str(val)
-                    if 'L/N' in sv: continue
-                    hrs = _get_shift_hours(sv)
-                    final_hours[p_name] -= hrs
-                    del final_schedule[p_name][ds]
+    # 全职工时硬帽
+    for p_name, hrs in list(final_hours.items()):
+        if hrs > TARGET_HOURS_FULL:
+            if p_name not in final_schedule: continue
+            excess = hrs - TARGET_HOURS_FULL
+            sorted_dates = sorted(final_schedule[p_name].keys())  # earliest first — delete from front
+            while excess > 0 and sorted_dates:
+                ds = sorted_dates.pop(0)
+                if ds not in final_schedule[p_name]: continue
+                val = final_schedule[p_name][ds]
+                sv = val[0] if isinstance(val, tuple) else str(val)
+                if 'L/N' in sv: continue
+                sh = _get_shift_hours(sv)
+                excess -= sh
+                final_hours[p_name] -= sh
+                del final_schedule[p_name][ds]
     
         return dict(final_schedule), dict(final_hours), dict(category_hours), dict(oncall_schedule), dict(ot_hours)
 
@@ -2653,6 +2655,23 @@ def generate_dashboard_html(final_schedule, final_hours, category_hours, hourly_
     us_docs = staff['B超医生']['fulltime'] + staff['B超医生'].get('parttime', []) + staff['B超医生']['backup']
     if DUSTIN_US in final_schedule and DUSTIN_US not in us_docs:
         us_docs.append(DUSTIN_US)
+
+    # 全职工时硬帽（一刀切至176h）
+    for p_name, hrs in list(final_hours.items()):
+        if hrs > TARGET_HOURS_FULL and p_name in final_schedule:
+            excess = hrs - TARGET_HOURS_FULL
+            dates_list = sorted(final_schedule[p_name].keys())
+            while excess > 0 and dates_list:
+                ds = dates_list.pop()
+                if ds not in final_schedule[p_name]:
+                    continue
+                sv = final_schedule[p_name][ds][0] if isinstance(final_schedule[p_name][ds], tuple) else str(final_schedule[p_name][ds])
+                if 'L/N' in sv:
+                    continue
+                sh = _get_shift_hours(sv)
+                excess -= sh
+                final_hours[p_name] -= sh
+                del final_schedule[p_name][ds]
 
     # B超 PM最终硬切（在生成HTML前最后执行）
     us_ft_names = staff['B超医生']['fulltime']
