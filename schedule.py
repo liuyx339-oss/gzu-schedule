@@ -2876,7 +2876,12 @@ table.schedule .shift-cell.cell-oncall::after{content:"📞";position:absolute;t
 
 <div class="header">
     <h1>月度排班表 <span id="hdMonth"></span></h1>
-    <div class="nav"><a href="index.html">首页</a></div>
+    <div class="nav">
+        <select id="monthSelect" onchange="switchMonth(this.value)" style="padding:4px 8px;border-radius:4px;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.15);color:#fff;font-size:12px;margin-right:10px">
+            <option value="">切换月份...</option>
+        </select>
+        <a href="index.html">首页</a>
+    </div>
 </div>
 
 <!-- === TOOLBAR === -->
@@ -3004,6 +3009,7 @@ if(sessionStorage.getItem('_gzu_sched') === '1'){
 // ============ INIT ============
 function init(){
     document.getElementById('hdMonth').textContent = SCHEDULE_DATA.month || '';
+    loadMonthSelector();
     var tabs = document.getElementById('tabs');
     var roles = Object.keys(SCHEDULE_DATA.roles);
     for(var i=0; i<roles.length; i++){
@@ -3019,6 +3025,46 @@ function init(){
     renderAll();
     loadNotes();
     loadReqs();
+}
+
+function loadMonthSelector(){
+    var sel = document.getElementById('monthSelect');
+    if(!sel) return;
+    var now = new Date();
+    var year = now.getFullYear();
+    var month = now.getMonth() + 1; // 0-indexed
+    // Check last 12 months
+    var found = [];
+    var pending = 0;
+    for(var m = 0; m < 12; m++){
+        var ym = year + '-' + String(month).padStart(2, '0');
+        (function(ymLabel){
+            pending++;
+            var url = 'schedule_' + ymLabel + '.html';
+            fetch(url, {method: 'HEAD'}).then(function(r){
+                if(r.ok) found.push(ymLabel);
+            }).catch(function(){}).finally(function(){
+                pending--;
+                if(pending === 0) renderMonthOptions(found);
+            });
+        })(ym);
+        month--;
+        if(month === 0){ month = 12; year--; }
+    }
+}
+function renderMonthOptions(months){
+    var sel = document.getElementById('monthSelect');
+    if(!sel) return;
+    months.sort().reverse();
+    for(var i = 0; i < months.length; i++){
+        var opt = document.createElement('option');
+        opt.value = 'schedule_' + months[i] + '.html';
+        opt.textContent = months[i];
+        sel.appendChild(opt);
+    }
+}
+function switchMonth(url){
+    if(url) window.location.href = url;
 }
 
 function switchRole(){
@@ -3627,7 +3673,11 @@ def main():
     publish_schedule_path = os.path.join(base_dir, "publish", "schedule.html")
     import shutil
     shutil.copy2(html_path, publish_schedule_path)
+    # 归档副本: publish/schedule_2026-06.html (不覆盖历史月份)
+    archive_path = os.path.join(base_dir, "publish", f"schedule_{month_str}.html")
+    shutil.copy2(html_path, archive_path)
     print(f"   🌐 线上版本: {publish_schedule_path}")
+    print(f"   📁 归档副本: {archive_path}")
 
     # --- 总结 ---
     print("\n" + "="*60)
