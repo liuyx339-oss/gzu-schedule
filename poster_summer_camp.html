@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>广州和睦家 | 未来医疗领袖夏令营</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    background: #e8ecf1;
+    font-family: 'PingFang SC', 'Microsoft YaHei', 'Hiragino Sans GB', sans-serif;
+    padding: 20px 0;
+  }
+
+  .poster {
+    width: 1080px;
+    background: #ffffff;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+  }
+
+  .bg-pattern {
+    position: absolute; inset: 0;
+    opacity: 0.025;
+    background-image:
+      radial-gradient(circle at 20% 30%, #1a5276 1px, transparent 1px),
+      radial-gradient(circle at 80% 60%, #1a5276 1px, transparent 1px);
+    background-size: 300px 300px, 250px 250px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .top-accent {
+    position: relative;
+    height: 8px;
+    background: linear-gradient(90deg, #0d3b66, #1a6fa0, #c9a962);
+    z-index: 2;
+  }
+
+  /* ── Header ── */
+  .header {
+    position: relative;
+    padding: 48px 70px 32px;
+    text-align: center;
+    background: linear-gradient(180deg, #f0f4f8 0%, #ffffff 100%);
+    border-bottom: 1px solid #e8ecf1;
+    z-index: 1;
+  }
+  .brand-row {
+    display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 24px;
+  }
+  .brand-icon {
+    width: 44px; height: 44px;
+    background: linear-gradient(135deg, #0d3b66, #1a6fa0);
+    border-radius: 11px;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 20px; font-weight: 700;
+    box-shadow: 0 4px 10px rgba(13,59,102,0.2);
+  }
+  .brand-name {
+    font-size: 20px; font-weight: 600; color: #0d3b66; letter-spacing: 2px;
+  }
+  .brand-name .divider { color: #c9a962; margin: 0 6px; }
+
+  .title-main {
+    font-size: 54px; font-weight: 800; color: #0d3b66;
+    line-height: 1.15; letter-spacing: 5px; margin-bottom: 8px;
+  }
+  .title-sub {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 19px; font-weight: 500; color: #5a7d9a; letter-spacing: 3px;
+  }
+  .event-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    margin-top: 22px; padding: 9px 26px;
+    background: linear-gradient(135deg, #0d3b66, #1a5276);
+    border-radius: 50px; color: #fff;
+    font-size: 15px; font-weight: 500; letter-spacing: 1px;
+    box-shadow: 0 5px 16px rgba(13,59,102,0.22);
+  }
+  .event-badge .dot {
+    width: 7px; height: 7px; background: #c9a962; border-radius: 50%;
+  }
+
+  .info-strip {
+    display: flex; justify-content: center; gap: 70px;
+    margin: 28px 70px 0; padding: 20px 0;
+    border-top: 1px solid #e8ecf1;
+    position: relative; z-index: 1;
+  }
+  .info-item { display: flex; align-items: center; gap: 10px; }
+  .info-icon {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: #e8f0f8; display: flex; align-items: center; justify-content: center;
+    font-size: 18px; color: #1a6fa0; flex-shrink: 0;
+  }
+  .info-label { font-size: 12px; color: #8a9db0; letter-spacing: 1px; }
+  .info-value { font-size: 17px; font-weight: 600; color: #0d3b66; letter-spacing: 1px; }
+
+  .section-title {
+    text-align: center; padding: 36px 70px 18px;
+    position: relative; z-index: 1;
+  }
+  .section-title h2 {
+    font-size: 26px; font-weight: 700; color: #0d3b66;
+    letter-spacing: 3px; display: inline-block;
+  }
+  .section-title h2::after {
+    content: ''; position: absolute; bottom: -6px; left: 50%;
+    transform: translateX(-50%);
+    width: 50px; height: 3px; background: #c9a962; border-radius: 2px;
+  }
+
+  /* ── Day block ── */
+  .schedule {
+    padding: 0 65px;
+    position: relative; z-index: 1;
+  }
+
+  .day-block {
+    margin-bottom: 24px;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid #e4e9ef;
+    background: #fff;
+  }
+
+  .day-block-header {
+    display: flex; align-items: center;
+    padding: 18px 28px;
+    color: #fff;
+  }
+  .day-block-header.d1 { background: linear-gradient(135deg, #0d3b66, #134a73); }
+  .day-block-header.d2 { background: linear-gradient(135deg, #134a73, #1a6fa0); }
+  .day-block-header.d3 { background: linear-gradient(135deg, #1a6fa0, #1f85b6); }
+  .day-block-header.d4 { background: linear-gradient(135deg, #1f85b6, #289cc9); }
+  .day-block-header.d5 { background: linear-gradient(135deg, #289cc9, #2caad4); }
+
+  .day-num-badge {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: rgba(255,255,255,0.18);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    margin-right: 18px; flex-shrink: 0;
+  }
+  .day-num-badge .num { font-size: 24px; font-weight: 800; line-height: 1; }
+  .day-num-badge .unit { font-size: 10px; opacity: 0.8; }
+
+  .day-header-info { flex: 1; }
+  .day-header-info .day-date-en {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 13px; letter-spacing: 2px; opacity: 0.8;
+  }
+  .day-header-info .day-title {
+    font-size: 22px; font-weight: 700; letter-spacing: 2px; margin-top: 2px;
+  }
+
+  .day-body { padding: 6px 0; }
+
+  .time-row {
+    display: flex;
+    padding: 14px 28px;
+    border-bottom: 1px solid #f2f4f7;
+    align-items: flex-start;
+    gap: 14px;
+  }
+  .time-row:last-child { border-bottom: none; padding-bottom: 18px; }
+
+  .time-badge {
+    flex: 0 0 110px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 13px; font-weight: 600; color: #1a6fa0;
+    padding-top: 2px;
+    letter-spacing: 0.5px;
+  }
+
+  .time-body { flex: 1; min-width: 0; }
+  .time-body .act-name {
+    font-size: 15px; font-weight: 600; color: #1a1a2e;
+    letter-spacing: 0.5px; line-height: 1.5;
+  }
+  .time-body .act-name-en {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 12px; color: #8a9db0; font-weight: 400;
+    margin-top: 1px;
+  }
+  .time-body .act-desc {
+    font-size: 13px; color: #7a8ea0; margin-top: 4px; line-height: 1.6;
+  }
+  .time-body .tag {
+    display: inline-block;
+    margin-top: 4px;
+    padding: 1px 8px; border-radius: 4px;
+    font-size: 11px; font-weight: 600;
+    background: #fef9e7; color: #b7950b;
+    letter-spacing: 0.5px;
+  }
+  .time-body .tag.hot {
+    background: #fde8ec; color: #c0392b;
+  }
+
+  /* ── Parallel tracks (Day 3 A/B) ── */
+  .row-divider {
+    margin: 0 28px; border: none; border-top: 1px dashed #e4e9ef;
+  }
+  .parallel-tracks { display: flex; gap: 12px; }
+  .track {
+    flex: 1; border-radius: 10px; border: 1px solid #e4e9ef;
+    overflow: hidden; margin-top: 4px;
+  }
+  .track-label {
+    font-size: 12px; font-weight: 700; letter-spacing: 1px;
+    padding: 6px 14px; text-align: center; color: #fff;
+  }
+  .track-label.track-a { background: #0d3b66; }
+  .track-label.track-b { background: #1a6fa0; }
+  .track .time-row { padding: 10px 16px; }
+  .track .time-badge { flex: 0 0 90px; font-size: 12px; }
+
+  /* ── Highlight card ── */
+  .highlight-card {
+    margin: 10px 65px 20px;
+    padding: 20px 28px;
+    background: linear-gradient(135deg, #f9f6ee, #fefcf6);
+    border: 1px solid #e8dbb8; border-radius: 14px;
+    display: flex; align-items: center; gap: 18px;
+    position: relative; z-index: 1;
+  }
+  .highlight-icon {
+    width: 54px; height: 54px; border-radius: 50%;
+    background: linear-gradient(135deg, #c9a962, #d4b86a);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; flex-shrink: 0;
+    box-shadow: 0 4px 14px rgba(201,169,98,0.3);
+  }
+  .highlight-text h3 {
+    font-size: 17px; font-weight: 700; color: #5a3e1b;
+    margin-bottom: 2px; letter-spacing: 1px;
+  }
+  .highlight-text p {
+    font-size: 13px; color: #8a7a5e; letter-spacing: 0.5px;
+  }
+
+  .footer {
+    position: relative;
+    padding: 36px 70px 56px;
+    background: linear-gradient(0deg, #0d3b66 0%, #0d3b66 55%, transparent 100%);
+    text-align: center; color: #ffffff;
+    z-index: 1;
+  }
+  .footer .footer-brand {
+    font-size: 17px; font-weight: 600; letter-spacing: 3px; margin-bottom: 4px;
+  }
+  .footer .footer-sub {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 12px; letter-spacing: 2px; opacity: 0.65;
+  }
+</style>
+</head>
+<body>
+
+<div class="poster">
+  <div class="bg-pattern"></div>
+  <div class="top-accent"></div>
+
+  <!-- ═══════════ HEADER ═══════════ -->
+  <div class="header">
+    <div class="brand-row">
+      <div class="brand-icon">UFH</div>
+      <div class="brand-name">广州和睦家医院 <span class="divider">|</span> 未来医疗领袖夏令营</div>
+    </div>
+    <div class="title-main">未来医疗领袖夏令营</div>
+    <div class="title-sub">2026 Future Medical Leadership Summer Camp</div>
+    <div class="event-badge">
+      <span class="dot"></span> 5天沉浸式医疗职业体验 <span class="dot"></span>
+    </div>
+  </div>
+
+  <div class="info-strip">
+    <div class="info-item">
+      <div class="info-icon">📅</div>
+      <div>
+        <div class="info-label">Time 时间</div>
+        <div class="info-value">2026.7.20 – 7.24 · 9:00-16:30</div>
+      </div>
+    </div>
+    <div class="info-item">
+      <div class="info-icon">📍</div>
+      <div>
+        <div class="info-label">Venue 地点</div>
+        <div class="info-value">广州和睦家医院</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Disclaimer -->
+  <div style="text-align:center;padding:0 70px;position:relative;z-index:1;">
+    <p style="font-size:12px;color:#b0a080;background:#fefcf6;border:1px solid #e8dbb8;border-radius:8px;padding:8px 16px;display:inline-block;letter-spacing:0.5px;">
+      ⚠ 以上为当前日程安排，因临床工作可能存在突发状况，实际情况将根据当日情形适当调整
+    </p>
+  </div>
+
+  <div class="section-title"><h2>5天精彩日程</h2></div>
+
+  <!-- ═══════════ SCHEDULE ═══════════ -->
+  <div class="schedule">
+
+    <!-- ═══ DAY 1 ═══ -->
+    <div class="day-block">
+      <div class="day-block-header d1">
+        <div class="day-num-badge"><span class="num">01</span><span class="unit">DAY</span></div>
+        <div class="day-header-info">
+          <div class="day-date-en">July 20 · Sunday</div>
+          <div class="day-title">开营启航 · 医院全景探索</div>
+        </div>
+      </div>
+      <div class="day-body">
+        <div class="time-row">
+          <div class="time-badge">8:30 – 9:00</div>
+          <div class="time-body">
+            <div class="act-name">签到 Registration</div>
+            <div class="act-desc">领取开营物品：个人名牌、白大褂、AHA培训书</div>
+          </div>
+        </div>
+        <div class="time-row">
+          <div class="time-badge">9:00 – 9:15</div>
+          <div class="time-body"><div class="act-name">欢迎致辞 Welcoming Speech</div></div>
+        </div>
+        <div class="time-row">
+          <div class="time-badge">9:15 – 9:30</div>
+          <div class="time-body">
+            <div class="act-name">以患者为中心的医疗实践</div>
+            <div class="act-name-en">United Family Patient-Centered Practice</div>
+          </div>
+        </div>
+        <div class="time-row">
+          <div class="time-badge">9:30 – 9:45</div>
+          <div class="time-body"><div class="act-name">茶歇 Break</div></div>
+        </div>
+        <div class="time-row">
+          <div class="time-badge">9:45 – 10:00</div>
+          <div class="time-body"><div class="act-name">入营介绍：活动详情与注意事项 Program Orientation</div></div>
+        </div>
+        <div class="time-row">
+          <div class="time-badge">10:00 – 12:00</div>
+          <div class="time-body">
+            <div class="act-name">医院全景Tour与破冰 Grouping & Ice Breaking</div>
+            <div class="act-desc">打卡探索各科室功能布局，完成小组破冰任务</div>
+            <span class="tag hot">🔥 趣味打卡</span>
+          </div>
+        </div>
+        <div class="time-row">
+          <div class="time-badge">12:00 – 13:00</div>
+          <div class="time-body"><div class="act-name">午餐 Lunch</div></div>
+        </div>
+        <div class="time-row">
+          <div class="time-badge">13:00 – 14:30</div>
+          <div class="time-body">
+            <div class="act-name">医疗团队角色认知工作坊</div>
+            <div class="act-name-en">Medical Team Role Awareness Workshop</div>
+            <div class="act-desc">了解医生、护士、技师、药师等不同角色的职责与协作关系</div>
+          </div>
+        </div>
+        <div class="time-row">
+          <div class="time-badge">14:30 – 16:30</div>
+          <div class="time-body">
+            <div class="act-name">模拟问诊：扮演病人在医院问诊</div>
+            <div class="act-name-en">Patient Journey: As a Patient to Consult in Hospital</div>
+            <span class="tag hot">🔥 角色扮演</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ DAY 2 ═══ -->
+    <div class="day-block">
+      <div class="day-block-header d2">
+        <div class="day-num-badge"><span class="num">02</span><span class="unit">DAY</span></div>
+        <div class="day-header-info">
+          <div class="day-date-en">July 21 · Monday</div>
+          <div class="day-title">AHA国际急救培训 · 生命守护者</div>
+        </div>
+      </div>
+      <div class="day-body">
+        <div class="time-row">
+          <div class="time-badge">8:30 – 12:00</div>
+          <div class="time-body">
+            <div class="act-name">AHA Heartsaver 急救培训（上午场）</div>
+            <div class="act-name-en">First Aid, CPR, AED — Learning & Simulation</div>
+            <div class="act-desc">学习急救、心脏复苏（CPR）、自动体外除颤器（AED）的使用</div>
+            <span class="tag hot">📜 国际认证课程</span>
+          </div>
+        </div>
+        <div class="time-row">
+          <div class="time-badge">12:00 – 13:00</div>
+          <div class="time-body"><div class="act-name">医师午餐 Lunch with Staff</div></div>
+        </div>
+        <div class="time-row">
+          <div class="time-badge">13:00 – 17:30</div>
+          <div class="time-body">
+            <div class="act-name">AHA Heartsaver 急救培训（下午场）</div>
+            <div class="act-name-en">Resuscitation Q&A · Assessment · Summary</div>
+            <div class="act-desc">急救问答 · 实践考核 · 培训总结（培训证书将于夏令营结业后发放）</div>
+            <span class="tag hot">📜 考核颁证</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ DAY 3 ═══ -->
+    <div class="day-block">
+      <div class="day-block-header d3">
+        <div class="day-num-badge"><span class="num">03</span><span class="unit">DAY</span></div>
+        <div class="day-header-info">
+          <div class="day-date-en">July 22 · Tuesday</div>
+          <div class="day-title">科技&临床双线 · 分组深度学习</div>
+        </div>
+      </div>
+      <div class="day-body">
+        <div class="time-row">
+          <div class="time-badge">8:30 – 10:00</div>
+          <div class="time-body">
+            <div class="act-name">AI创新在医疗场景的应用</div>
+            <div class="act-name-en">AI Application in Medical Scenarios</div>
+          </div>
+        </div>
+        <div class="time-row">
+          <div class="time-badge">10:00 – 11:00</div>
+          <div class="time-body">
+            <div class="act-name">工作坊：医院应急演练模拟 Part 1</div>
+            <div class="act-name-en">Workshop: Simulation on External Disaster</div>
+            <span class="tag">🎽 运动休闲着装</span>
+          </div>
+        </div>
+        <div class="time-row">
+          <div class="time-badge">11:00 – 12:00</div>
+          <div class="time-body"><div class="act-name">医师午餐 Lunch with Staff</div></div>
+        </div>
+        <div class="time-row">
+          <div class="time-badge">12:00 – 13:30</div>
+          <div class="time-body">
+            <div class="act-name">工作坊：医院应急演练模拟 Part 2</div>
+            <div class="act-name-en">Workshop: Simulation on External Disaster (Continued)</div>
+          </div>
+        </div>
+
+        <!-- Parallel tracks A/B -->
+        <hr class="row-divider">
+        <div class="parallel-tracks">
+          <!-- Track A -->
+          <div class="track">
+            <div class="track-label track-a">A线 · 外科 / 骨科</div>
+            <div class="time-row">
+              <div class="time-badge">13:30 – 16:00</div>
+              <div class="time-body">
+                <div class="act-name">外科缝合 & 腹腔镜技术学习与实操</div>
+                <div class="act-name-en">Surgical Suture & Laparoscopic Techniques</div>
+              </div>
+            </div>
+            <div class="time-row">
+              <div class="time-badge">16:00 – 17:00</div>
+              <div class="time-body">
+                <div class="act-name">外科与骨科工作坊</div>
+                <div class="act-name-en">Orthopedics: Bone Structure, Instruments, X-Ray Reading</div>
+                <div class="act-desc">人体骨骼结构、器械耗材介绍、骨折手术类型、读取X光片</div>
+              </div>
+            </div>
+          </div>
+          <!-- Track B -->
+          <div class="track">
+            <div class="track-label track-b">B线 · 内科 / 神经</div>
+            <div class="time-row">
+              <div class="time-badge">13:30 – 15:00</div>
+              <div class="time-body">
+                <div class="act-name">内科与家庭健康管理</div>
+                <div class="act-name-en">Internal Medicine & Family Health Management</div>
+              </div>
+            </div>
+            <div class="time-row">
+              <div class="time-badge">15:00 – 17:00</div>
+              <div class="time-body">
+                <div class="act-name">脑健康管理与神经探秘</div>
+                <div class="act-name-en">Brain Health & Neurological Exploration</div>
+                <div class="act-desc">神经内科科普、脑健康中心参访、设备学习</div>
+                <span class="tag hot">🧠 rTMS体验</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="time-row">
+          <div class="time-badge">17:00 – 17:30</div>
+          <div class="time-body"><div class="act-name">AB组自由分享交流 Free Sharing</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ DAY 4 ═══ -->
+    <div class="day-block">
+      <div class="day-block-header d4">
+        <div class="day-num-badge"><span class="num">04</span><span class="unit">DAY</span></div>
+        <div class="day-header-info">
+          <div class="day-date-en">July 23 · Wednesday</div>
+          <div class="day-title">科室轮转 · 全流程实操体验</div>
+        </div>
+      </div>
+      <div class="day-body">
+        <div class="time-row">
+          <div class="time-badge">9:00 – 10:00</div>
+          <div class="time-body">
+            <div class="act-name">主题讲座：走进口腔科的神秘世界</div>
+            <div class="act-name-en">Lecture: Exploring the Mysterious World of Dentistry</div>
+          </div>
+        </div>
+        <div class="time-row">
+          <div class="time-badge">10:00 – 11:30</div>
+          <div class="time-body">
+            <div class="act-name">工作坊：药房实操体验</div>
+            <div class="act-name-en">Practical Experience in Pharmacy</div>
+          </div>
+        </div>
+        <div class="time-row">
+          <div class="time-badge">11:30 – 12:30</div>
+          <div class="time-body">
+            <div class="act-name">工作坊：实验室实操体验</div>
+            <div class="act-name-en">Practical Experience in Laboratory</div>
+          </div>
+        </div>
+        <div class="time-row">
+          <div class="time-badge">12:30 – 13:30</div>
+          <div class="time-body"><div class="act-name">医师午餐 Lunch with Staff</div></div>
+        </div>
+        <div class="time-row">
+          <div class="time-badge">13:30 – 14:30</div>
+          <div class="time-body">
+            <div class="act-name">工作坊：超声科实地体验 & 医学影像观摩</div>
+            <div class="act-name-en">Practical Experience in Imaging</div>
+          </div>
+        </div>
+        <div class="time-row">
+          <div class="time-badge">14:30 – 15:30</div>
+          <div class="time-body">
+            <div class="act-name">主题讲座：走进麻醉的神秘世界</div>
+            <div class="act-name-en">Lecture: Walk into the Mysterious World of Anesthesia</div>
+          </div>
+        </div>
+        <div class="time-row">
+          <div class="time-badge">15:30 – 16:30</div>
+          <div class="time-body">
+            <div class="act-name">游学参观：GZU手术室 Tour</div>
+            <div class="act-name-en">A Tour of GZU Operation Room</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ DAY 5 ═══ -->
+    <div class="day-block">
+      <div class="day-block-header d5">
+        <div class="day-num-badge"><span class="num">05</span><span class="unit">DAY</span></div>
+        <div class="day-header-info">
+          <div class="day-date-en">July 24 · Thursday</div>
+          <div class="day-title">心智成长 · 结营收获</div>
+        </div>
+      </div>
+      <div class="day-body">
+        <div class="time-row">
+          <div class="time-badge">9:00 – 11:00</div>
+          <div class="time-body">
+            <div class="act-name">工作坊：精神心理科咨询工具介绍与咨询模拟</div>
+            <div class="act-name-en">Psychiatric Counseling Tools Introduction & Simulation</div>
+          </div>
+        </div>
+        <div class="time-row">
+          <div class="time-badge">11:00 – 12:00</div>
+          <div class="time-body">
+            <div class="act-name">自由准备小组结营展示 Sharing Preparation</div>
+            <div class="act-desc">4人一组，准备感受、印象最深刻的部分、建议等</div>
+          </div>
+        </div>
+        <div class="time-row">
+          <div class="time-badge">12:00 – 13:00</div>
+          <div class="time-body"><div class="act-name">午餐 Lunch</div></div>
+        </div>
+        <div class="time-row">
+          <div class="time-badge">13:00 – 14:00</div>
+          <div class="time-body"><div class="act-name">学生小组分享准备 Preparation</div></div>
+        </div>
+        <div class="time-row">
+          <div class="time-badge">14:00 – 15:00</div>
+          <div class="time-body">
+            <div class="act-name">学生小组分享 & 医院代表交流</div>
+            <div class="act-name-en">Student Sharing & Comments（15 min / group）</div>
+          </div>
+        </div>
+        <div class="time-row">
+          <div class="time-badge">15:00 – 15:30</div>
+          <div class="time-body">
+            <div class="act-name"><strong>🎓 结营典礼 Closing Ceremony</strong></div>
+            <div class="act-name-en">结营致辞 · 颁奖典礼 · 个人证书颁发 · 毕业生合影</div>
+            <span class="tag hot">🎓 证书颁发</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══════════ HIGHLIGHT ═══════════ -->
+  <div class="highlight-card">
+    <div class="highlight-icon">🎓</div>
+    <div class="highlight-text">
+      <h3>完成全部课程，获得 AHA国际急救证书 + 夏令营结业证书</h3>
+      <p>AHA Heartsaver Certificate & Summer Camp Completion Certificate upon full participation</p>
+    </div>
+  </div>
+
+  <!-- ═══════════ FOOTER ═══════════ -->
+  <div class="footer">
+    <div class="footer-brand">广州和睦家医院 · 未来医疗领袖夏令营</div>
+    <div class="footer-sub">Guangzhou United Family Hospital · 2026 Future Medical Leadership Summer Camp</div>
+  </div>
+</div>
+
+</body>
+</html>
