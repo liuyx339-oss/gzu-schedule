@@ -2038,6 +2038,7 @@ def merge_and_oncall(stage1_schedule, stage1_hours,
     
 
         # 80/20 + OT 分离: ≤140.8→80%, >140.8→20%, >176→OT(不计入80/20)
+    ot_hours = defaultdict(float)
     for person in list(final_schedule.keys()):
         if person not in final_schedule: continue
         accumulated = 0.0
@@ -2126,9 +2127,11 @@ def merge_and_oncall(stage1_schedule, stage1_hours,
                     print(f"    {DISPLAY_NAME.get(person, person):25} OnCall×{cnt}")
 
     # --- 半天班合并 + OT计算 ---
-    ot_hours = defaultdict(float)
-    final_schedule, final_hours, category_hours, ot_hours = _merge_half_shifts(
+    # _merge_half_shifts 会把新增OT合并到传入的ot_hours中
+    final_schedule, final_hours, category_hours, merge_ot = _merge_half_shifts(
         final_schedule, final_hours, category_hours, date_strs, staff)
+    for k, v in merge_ot.items():
+        ot_hours[k] += v
 
     # 工时已由 Stage 1+2 CP-SAT 约束保证 ≤176h，不做额外裁切
 
@@ -3549,17 +3552,10 @@ def main():
     args = parser.parse_args()
 
     base_dir = args.output_dir or os.path.dirname(os.path.abspath(__file__))
-    data_path = os.path.join(base_dir, "pipeline_output", "Demand_Forecast_Hourly.csv")
-
-    if not os.path.exists(data_path):
-        print(f"❌ 数据文件不存在: {data_path}")
-        print("   请先运行 prophet_lightGBM.py 生成预测数据")
-        sys.exit(1)
 
     print("\n" + "="*60)
     print("🚀 放射/超声 排班优化系统 V3")
     print("   三阶段分层: 80%池 → 20%池 → 备班池 (全覆盖)")
-    print("   放射技师备班: 纯小时制 | Dustin: 放射优先(一三五)")
     print("="*60)
 
     # --- 确定月份 ---
@@ -3567,11 +3563,25 @@ def main():
         parts = args.month.split('-')
         month_year = (int(parts[0]), int(parts[1]))
     else:
-        df_tmp = pd.read_csv(data_path, encoding="utf-8-sig")
+        # fallback: 读通用 CSV 推断月份
+        fallback_csv = os.path.join(base_dir, "pipeline_output", "Demand_Forecast_Hourly.csv")
+        df_tmp = pd.read_csv(fallback_csv, encoding="utf-8-sig")
         df_tmp['ds'] = pd.to_datetime(df_tmp['ds'], errors='coerce')
         df_tmp = df_tmp.dropna(subset=['ds'])
         month_year = (int(df_tmp['ds'].dt.year.iloc[0]), int(df_tmp['ds'].dt.month.iloc[0]))
-    print(f"📅 排班月份: {month_year[0]}-{month_year[1]:02d}")
+
+    month_str = f"{month_year[0]}-{month_year[1]:02d}"
+    monthly_csv_name = f"Demand_Forecast_{month_str}_Hourly.csv"
+    data_path = os.path.join(base_dir, "pipeline_output", monthly_csv_name)
+    if not os.path.exists(data_path):
+        # fallback: 旧版通用文件名
+        data_path = os.path.join(base_dir, "pipeline_output", "Demand_Forecast_Hourly.csv")
+        if not os.path.exists(data_path):
+            print(f"❌ 数据文件不存在: {monthly_csv_name}")
+            print("   请先运行 prophet_lightGBM.py 生成预测数据")
+            sys.exit(1)
+
+    print(f"📅 排班月份: {month_str}")
 
     # --- 动态计算月目标工时 ---
     global TARGET_HOURS_FULL, TARGET_HOURS_80

@@ -726,11 +726,12 @@ def main():
         exist_ok=True,
     )
 
-    # Hourly CSV
-    hourly_path = os.path.join(
-        output_dir,
-        "Demand_Forecast_Hourly.csv",
-    )
+    # Hourly CSV — 按月命名
+    if args.month:
+        hourly_filename = f"Demand_Forecast_{args.month}_Hourly.csv"
+    else:
+        hourly_filename = "Demand_Forecast_Hourly.csv"
+    hourly_path = os.path.join(output_dir, hourly_filename)
 
     forecast_only_df.to_csv(
         hourly_path,
@@ -738,7 +739,13 @@ def main():
         encoding="utf-8-sig",
     )
 
-    # Daily CSV
+    # Daily CSV — 同理
+    if args.month:
+        daily_filename = f"Demand_Forecast_{args.month}_Daily.csv"
+    else:
+        daily_filename = "Demand_Forecast_Daily.csv"
+    daily_path = os.path.join(output_dir, daily_filename)
+
     daily_df = (
         forecast_only_df.groupby(
             [
