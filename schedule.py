@@ -983,12 +983,11 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                         has_ln = existing_shift_d.get(DUSTIN_RAD, {}).get(d, '') == 'L/N'
                         after_ln = d > 0 and existing_shift_d.get(DUSTIN_RAD, {}).get(d - 1, '') == 'L/N'
                         if not has_ln and not after_ln:
-                            dv = [x[dustin_p, d, s] for s in range(n_shifts)
-                                  if not shift_is_night[s] and not shift_is_ln[s]]
-                            if dv:
-                                dustin_sl = model.NewIntVar(0, 1, f's1_dwfsl_{d}')
-                                model.Add(sum(dv) + dustin_sl >= 1)
-                                objective_terms.append(dustin_sl * (-S1_COVERAGE_WEIGHT * 10))
+                                dv = [x[dustin_p, d, s] for s in range(n_shifts)
+                                      if not shift_is_night[s] and not shift_is_ln[s]]
+                                if dv:
+                                    dustin_day = sum(dv)
+                                    objective_terms.append(dustin_day * (S1_COVERAGE_WEIGHT * 5))
 
             # 强奖励多排班 + 严重惩罚超目标
             for p in range(n_staff):
@@ -2038,7 +2037,7 @@ def merge_and_oncall(stage1_schedule, stage1_hours,
 
     
 
-        # 80/20 显示分离: 累计到140.8h后标20%
+        # 80/20 + OT 分离: ≤140.8→80%, >140.8→20%, >176→OT(不计入80/20)
     for person in list(final_schedule.keys()):
         if person not in final_schedule: continue
         accumulated = 0.0
@@ -2047,7 +2046,11 @@ def merge_and_oncall(stage1_schedule, stage1_hours,
             hrs = _get_shift_hours(shift_str)
             accumulated += hrs
             old_cat = value[1] if isinstance(value, tuple) else "80%"
-            if accumulated > TARGET_HOURS_80 and old_cat == "80%":
+            if accumulated > TARGET_HOURS_FULL:
+                final_schedule[person][ds] = (shift_str, "OT")
+                ot_hours.setdefault(person, 0)
+                ot_hours[person] += hrs
+            elif accumulated > TARGET_HOURS_80 and old_cat == "80%":
                 final_schedule[person][ds] = (shift_str, "20%")
 
     # 重新算工时(反映20%分离)
@@ -2059,7 +2062,11 @@ def merge_and_oncall(stage1_schedule, stage1_hours,
             shift_str = value[0] if isinstance(value, tuple) else str(value)
             cat = value[1] if isinstance(value, tuple) else "80%"
             hrs = _get_shift_hours(shift_str)
-            category_hours[person][cat] += hrs
+            if cat == 'OT':
+                ot_hours.setdefault(person, 0)
+                ot_hours[person] += hrs
+            else:
+                category_hours[person][cat] += hrs
 
 
 
