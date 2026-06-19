@@ -898,6 +898,7 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
             parttime = staff[role_name].get('parttime', [])
             n_pt = len(parttime)
             pt_hours_target = 80.0  # 兼职月夜班上限 (~5.5个N班, 28天÷8人≈3.5)
+            pt_slack_vars = {}
 
             # 为兼职创建独立的夜班变量 (y[pt_idx, d, s])
             y = {}
@@ -932,9 +933,7 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                         pt_n2 = sum(y[pt, d + 1, si] for si in night_s_indices)
                         model.Add(pt_n1 + pt_n2 <= 1)
 
-            # --- 全职约束: 每天恰好1全职白班 ---
-            # half_day_shifts: H1/H2/H3
-            half_is = [1 if s in ('H1','H2','H3') else 0 for s in shifts_list]
+            # --- 全职约束 ---
             for d, ds in enumerate(date_strs):
                 ln_covers = 0
                 for p in range(n_staff):
@@ -944,38 +943,35 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                         break
 
                 if ln_covers:
-                    # L/N日: 不排其他班
                     day_vars = [x[p, d, s] for p in range(n_staff) for s in range(n_shifts)
                                if not shift_is_night[s] and not shift_is_ln[s]]
                     if day_vars:
                         model.Add(sum(day_vars) == 0)
                 else:
-                    # ≥1全职白班, ≤2 避免两人天天重叠
-                    full_vars = [x[p, d, s] for p in range(n_staff) for s in range(n_shifts) if full_day_is[s]]
-                    if full_vars:
-                        model.Add(sum(full_vars) >= 1)
-                        model.Add(sum(full_vars) <= 2)
-
-                # 全职0夜班
+                    # 软交替: ≥1白班, 两人同天→轻微惩罚
+                    all_day_vars = [x[p, d, s] for p in range(n_staff) for s in range(n_shifts)
+                                   if not shift_is_night[s] and not shift_is_ln[s]]
+                    if all_day_vars:
+                        model.Add(sum(all_day_vars) >= 1)
 
                 # 全职0夜班
                 ft_night_vars = [x[p, d, s] for p in range(n_staff) for s in range(n_shifts) if shift_is_night[s]]
                 if ft_night_vars:
                     model.Add(sum(ft_night_vars) == 0)
 
-                # 兼职夜班: 每天=1 (硬约束, 8人足够覆盖), L/N日不排
+                # 兼职夜班: 每天=1 (硬约束)
                 if n_pt > 0:
                     pt_night_vars_d = [y[pt, d, si] for pt in range(n_pt) for si in night_s_indices]
                     if ln_covers:
-                        # L/N覆盖夜班 → 兼职不排
                         if pt_night_vars_d:
                             model.Add(sum(pt_night_vars_d) == 0)
                     else:
-                        # 非L/N日: 恰好1个兼职夜班
                         if pt_night_vars_d:
-                            model.Add(sum(pt_night_vars_d) == 1)
+                            ptsl = model.NewIntVar(0, 1, f's1_ptsl_{d}')
+                            pt_slack_vars[d] = ptsl
+                            model.Add(sum(pt_night_vars_d) + ptsl == 1)
 
-            # --- Objective: 最大化工时 ---
+            # --- Objective ---
             objective_terms = []
 
             # Dustin Wed+Fri 硬约束
@@ -990,12 +986,32 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                             dv = [x[dustin_p, d, s] for s in range(n_shifts)
                                   if not shift_is_night[s] and not shift_is_ln[s]]
                             if dv:
-                                model.Add(sum(dv) >= 1)
+                                dustin_sl = model.NewIntVar(0, 1, f's1_dwfsl_{d}')
+                                model.Add(sum(dv) + dustin_sl >= 1)
+                                objective_terms.append(dustin_sl * (-S1_COVERAGE_WEIGHT * 10))
 
+            # 强奖励多排班 + 严重惩罚超目标
             for p in range(n_staff):
+                person = all_staff[p]
                 total_dec = sum(x[p, d, s] * int(shift_hours[s] * 10)
                               for d in range(n_days) for s in range(n_shifts))
-                objective_terms.append(total_dec * 1000)  # 强奖励多排长班
+                base_dec = int(existing_hours.get(person, 0) * 10)
+                target_dec = int(TARGET_HOURS_FULL * 10)
+                objective_terms.append(total_dec * 1000)
+                # 超过目标 → 极高惩罚
+                over = model.NewIntVar(0, target_dec * 2, f's1_over_{p}')
+                model.Add(over >= total_dec + base_dec - target_dec)
+                objective_terms.append(over * (-S1_COVERAGE_WEIGHT))
+
+            # 同天惩罚: 两人同时白班→惩罚
+            for d, ds in enumerate(date_strs):
+                li_var = sum(x[0, d, s] for s in range(n_shifts) if not shift_is_night[s] and not shift_is_ln[s])
+                du_var = sum(x[1, d, s] for s in range(n_shifts) if not shift_is_night[s] and not shift_is_ln[s])
+                both = model.NewIntVar(0, 1, f's1_both_{d}')
+                model.Add(both >= li_var + du_var - 1)
+                model.Add(both <= li_var)
+                model.Add(both <= du_var)
+                objective_terms.append(both * (-5000))
 
             # 全职工时均衡
             if len(fulltime) >= 2:
@@ -1008,7 +1024,11 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                     dev = model.NewIntVar(0, int(TARGET_HOURS_FULL * 10), f's1_dev_{p}')
                     model.Add(dev >= total_dec + base_h - avg_target)
                     model.Add(dev >= avg_target - (total_dec + base_h))
-                    objective_terms.append(dev * (-S1_BALANCE_WEIGHT))
+                    objective_terms.append(dev * (-S1_BALANCE_WEIGHT * 10))
+
+            # 兼职夜班缺口惩罚
+            for sl in pt_slack_vars.values():
+                objective_terms.append(sl * (-S1_COVERAGE_WEIGHT * 5))
 
             # 兼职夜班均衡
             if n_pt >= 2:
@@ -2018,7 +2038,7 @@ def merge_and_oncall(stage1_schedule, stage1_hours,
 
     
 
-        # 80/20 显示分离: 超140.8h的工时重新标记为20%
+        # 80/20 显示分离: 累计到140.8h后标20%
     for person in list(final_schedule.keys()):
         if person not in final_schedule: continue
         accumulated = 0.0
@@ -2111,6 +2131,7 @@ def merge_and_oncall(stage1_schedule, stage1_hours,
         dus_count = sum(1 for v in oncall_schedule.get(DUSTIN_US, {}).values() if v is True)
         dru_count = sum(1 for v in oncall_schedule.get(DUSTIN_RAD, {}).values() if v is True)
         print(f"[ONCALL DUMP] DUSTIN_US={dus_count} DUSTIN_RAD={dru_count}")
+    # 工时由CP-SAT控制
     return dict(final_schedule), dict(final_hours), dict(category_hours), dict(oncall_schedule), dict(ot_hours)
 
 
@@ -2553,7 +2574,7 @@ def _apply_v3_excel_styling(worksheet, df, sheet_name, date_strs, category_hours
 
 def generate_dashboard_html(final_schedule, final_hours, category_hours, hourly_hc,
                              date_strs, staff, oncall_schedule, us_notes,
-                             pto_dates, output_path):
+                             pto_dates, ot_hours, output_path):
     """生成独立HTML仪表盘 (V3: 含分类工时面板)"""
     print("\n" + "="*60)
     print("🌐 Phase 9: 生成Web仪表盘 (V3)")
@@ -2594,6 +2615,7 @@ def generate_dashboard_html(final_schedule, final_hours, category_hours, hourly_
                 "name": display,
                 "internal_name": name,
                 "hours": round(final_hours.get(name, 0), 1),
+                "hours_ot": round(ot_hours.get(name, 0), 1),
                 "target": TARGET_HOURS_FULL if not name.startswith("备班") else 0,
                 "hours_80": round(cat.get("80%", 0), 1),
                 "hours_20": round(cat.get("20%", 0), 1),
@@ -2666,12 +2688,12 @@ def generate_dashboard_html(final_schedule, final_hours, category_hours, hourly_
         if need_fd > 0:
             # promote H1/H2 → D
             for p_name, sv, cat in hx_people[:need_fd]:
-                final_schedule[p_name][ds] = ('D', cat)
+                final_schedule.setdefault(p_name, {})[ds] = ('D', cat)
                 fd_people.append((p_name, 'D', cat))
             # still need → pull off doctors
             need_fd = day_target - len(fd_people)
             for p_name in off_people[:need_fd]:
-                final_schedule[p_name][ds] = ('D', '80%')
+                final_schedule.setdefault(p_name, {})[ds] = ('D', '80%')
                 fd_people.append((p_name, 'D', '80%'))
 
         # 2. PM 约束 (Tue-Fri)
@@ -2684,19 +2706,19 @@ def generate_dashboard_html(final_schedule, final_hours, category_hours, hourly_
                     pm_people.append((p_name, sv, cat))
             # Cut excess PM to H2
             for p_name, sv, cat in pm_people[pm_target:]:
-                final_schedule[p_name][ds] = ('H2', cat)
+                final_schedule.setdefault(p_name, {})[ds] = ('H2', cat)
                 # Remove them from pm_people too
                 pm_people = pm_people[:pm_target]
             # 不足: promote H2→D
             need_pm = pm_target - len(pm_people[:pm_target])
             remaining_h2 = [(n, s, c) for n, s, c in hx_people if n not in [x[0] for x in pm_people[:pm_target]]]
             for p_name, sv, cat in remaining_h2[:need_pm]:
-                final_schedule[p_name][ds] = ('D', cat)
+                final_schedule.setdefault(p_name, {})[ds] = ('D', cat)
             # still need → pull off
             still_off = [p for p in off_people if p not in [x[0] for x in pm_people]]
             need_pm = pm_target - len(pm_people[:pm_target])
             for p_name in still_off[:need_pm]:
-                final_schedule[p_name][ds] = ('D', '80%')
+                final_schedule.setdefault(p_name, {})[ds] = ('D', '80%')
 
     # 星期后缀 (JS渲染时附加)
     wd_names = ['一','二','三','四','五','六','日']
@@ -2978,6 +3000,7 @@ table.schedule .shift-cell.cell-oncall::after{content:"📞";position:absolute;t
 <div class="popup" id="popup"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<script>var AVAILABLE_MONTHS = ['2026-06', '2026-07'];</script>
 <script>
 // ============ DATA ============
 var SCHEDULE_DATA = __JSON_DATA__;
@@ -3032,7 +3055,7 @@ function loadMonthSelector(){
     var sel = document.getElementById('monthSelect');
     if(!sel) return;
     // Scan for schedule_YYYY-MM.html archives (generated by schedule.py)
-    var months = window.AVAILABLE_MONTHS || [];
+    var months = window.AVAILABLE_MONTHS || []; /* populated by Python at generation time */
     if(months.length === 0){
         // Fallback: probe via fetch
         var now = new Date(); var y=now.getFullYear(); var m=now.getMonth()+1;
@@ -3661,7 +3684,7 @@ def main():
     html_path = os.path.join(schedule_dir, f"Schedule_Dashboard_{month_str}_V3.html")
     generate_dashboard_html(final_schedule, final_hours, category_hours, hourly_hc,
                             date_strs, staff, oncall_schedule, us_notes,
-                            pto_dates, html_path)
+                            pto_dates, ot_hours, html_path)
 
     # 同时输出到 publish/schedule.html (GitHub Pages)
     publish_schedule_path = os.path.join(base_dir, "publish", "schedule.html")
