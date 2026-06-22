@@ -2046,12 +2046,12 @@ def merge_and_oncall(stage1_schedule, stage1_hours,
             shift_str = value[0] if isinstance(value, tuple) else str(value)
             hrs = _get_shift_hours(shift_str)
             accumulated += hrs
-            old_cat = value[1] if isinstance(value, tuple) else "80%"
+            old_cat = value[1] if isinstance(value, tuple) and value[1] else "80%"
             if accumulated > TARGET_HOURS_FULL:
                 final_schedule[person][ds] = (shift_str, "OT")
                 ot_hours.setdefault(person, 0)
                 ot_hours[person] += hrs
-            elif accumulated > TARGET_HOURS_80 and old_cat == "80%":
+            elif accumulated > TARGET_HOURS_80 and old_cat not in ("20%", "备班", "L/N"):
                 final_schedule[person][ds] = (shift_str, "20%")
 
     # 重新算工时(反映20%分离)
