@@ -3421,34 +3421,38 @@ async function saveChanges(){
 }
 
 function exportExcel(){
-    // Apply edits to get full schedule
+    // Deep clone SCHEDULE_DATA to preserve original values
+    var origData = JSON.parse(JSON.stringify(SCHEDULE_DATA));
+    var rd = origData.roles[currentRole];
+    // Apply edits to rd only (not SCHEDULE_DATA)
     for(var p in edits){
         for(var d in edits[p]){
-            for(var si=0; si<SCHEDULE_DATA.roles[currentRole].staff.length; si++){
-                if(SCHEDULE_DATA.roles[currentRole].staff[si].internal_name === p){
-                    SCHEDULE_DATA.roles[currentRole].staff[si].schedule[d] = edits[p][d];
+            for(var si=0; si<rd.staff.length; si++){
+                if(rd.staff[si].internal_name === p){
+                    rd.staff[si].schedule[d] = edits[p][d];
                 }
             }
         }
     }
-    var rd = SCHEDULE_DATA.roles[currentRole];
     var dates = rd.dates;
     var header = ['人员','总工时','80%','20%','备班','L/N','OT','目标','OnCall'];
     for(var i=0; i<dates.length; i++) header.push(dates[i]);
 
-    var orig = [header.slice()];  // original SCHEDULE_DATA
+    var orig = [header.slice()];  // original
     var mods = [header.slice()];  // with edits
 
     for(var si=0; si<rd.staff.length; si++){
         var p = rd.staff[si];
+        // Original values from cloned origData
+        var origP = origData.roles[currentRole].staff[si];
         var stats = [p.name, p.hours, p.hours_80, p.hours_20, p.hours_backup, p.hours_ln, p.hours_ot||0, p.target, p.oncall_count||''];
         var origRow = stats.slice(); var modRow = stats.slice();
         for(var di=0; di<dates.length; di++){
             var ds = dates[di];
-            var origVal = p.schedule[ds]||'';
-            var editVal = (edits[p.internal_name]&&edits[p.internal_name][ds]!==undefined) ? edits[p.internal_name][ds] : origVal;
+            var origVal = origP.schedule[ds]||'';
+            var modVal = p.schedule[ds]||'';
             origRow.push(origVal||'-');
-            modRow.push(editVal||'-');
+            modRow.push(modVal||'-');
         }
         orig.push(origRow); mods.push(modRow);
     }
