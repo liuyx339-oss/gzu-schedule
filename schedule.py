@@ -3048,6 +3048,12 @@ if(sessionStorage.getItem('_gzu_sched') === '1'){
 function init(){
     // Freeze original snapshot before any edits can pollute SCHEDULE_DATA
     if(!ORIG_SCHEDULE_DATA) ORIG_SCHEDULE_DATA = JSON.parse(JSON.stringify(SCHEDULE_DATA));
+    // Restore unsaved edits from localStorage (survives page reload)
+    var lsKey = '_gzu_edits_' + (SCHEDULE_DATA.month||'default');
+    var saved = localStorage.getItem(lsKey);
+    if(saved){
+        try { var allEdits = JSON.parse(saved); edits = allEdits[currentRole] || {}; } catch(e){}
+    }
     document.getElementById('hdMonth').textContent = SCHEDULE_DATA.month || '';
     loadMonthSelector();
     var tabs = document.getElementById('tabs');
@@ -3102,6 +3108,12 @@ function switchMonth(url){ if(url) window.location.href = url; }
 
 function switchRole(){
     currentRole = document.getElementById('roleSelect').value;
+    // Restore this role's edits from localStorage
+    var lsKey = '_gzu_edits_' + (SCHEDULE_DATA.month||'default');
+    var saved = localStorage.getItem(lsKey);
+    if(saved){
+        try { var allEdits = JSON.parse(saved); edits = allEdits[currentRole] || {}; } catch(e){}
+    } else { edits = {}; }
     var tabEls = document.querySelectorAll('.tab');
     for(var i=0; i<tabEls.length; i++){
         tabEls[i].classList.toggle('active', tabEls[i].textContent === currentRole);
@@ -3351,6 +3363,12 @@ function selectShift(shift){
     }
     if(!edits[selectedCell.name]) edits[selectedCell.name] = {};
     edits[selectedCell.name][selectedCell.ds] = shift;
+    // Auto-save to localStorage so edits survive page reload
+    var lsKey = '_gzu_edits_' + (SCHEDULE_DATA.month||'default');
+    var allEdits = {};
+    try { allEdits = JSON.parse(localStorage.getItem(lsKey)||'{}'); } catch(e){}
+    allEdits[currentRole] = edits;
+    localStorage.setItem(lsKey, JSON.stringify(allEdits));
     renderRoster();
     closePopup();
 }
@@ -3416,6 +3434,12 @@ async function saveChanges(){
         if(r.content){
             msg('已保存 ' + count + ' 处修改', 'ok');
             edits = {};
+            // Clear this role's edits from localStorage after successful GitHub save
+            var lsKey = '_gzu_edits_' + (SCHEDULE_DATA.month||'default');
+            var allEdits = {};
+            try { allEdits = JSON.parse(localStorage.getItem(lsKey)||'{}'); } catch(e){}
+            delete allEdits[currentRole];
+            localStorage.setItem(lsKey, JSON.stringify(allEdits));
             renderRoster();
         } else {
             msg('保存失败 HTTP' + putResp.status + ': ' + (r.message||'?'), 'err');
