@@ -3448,54 +3448,76 @@ async function saveChanges(){
 }
 
 function exportExcel(){
-    // Read original from frozen snapshot (never modified by saveChanges)
-    var roleData = SCHEDULE_DATA.roles[currentRole];
-    var origRoleData = ORIG_SCHEDULE_DATA.roles[currentRole];
-    // Build lookup by internal_name for original data
-    var origByName = {};
-    if(origRoleData){
-        for(var oi=0; oi<origRoleData.staff.length; oi++){
-            origByName[origRoleData.staff[oi].internal_name] = origRoleData.staff[oi];
+    // Load all edits from localStorage (includes edits from all roles)
+    var lsKey = '_gzu_edits_' + (SCHEDULE_DATA.month||'default');
+    var allSavedEdits = {};
+    try { allSavedEdits = JSON.parse(localStorage.getItem(lsKey)||'{}'); } catch(e){}
+    // Merge current in-memory edits (may not be saved to localStorage yet)
+    allSavedEdits[currentRole] = edits;
+
+    var roleNames = Object.keys(SCHEDULE_DATA.roles);
+    var totalDiffs = 0;
+    var allSections = [];
+
+    for(var ri=0; ri<roleNames.length; ri++){
+        var roleName = roleNames[ri];
+        var roleData = SCHEDULE_DATA.roles[roleName];
+        var origRoleData = ORIG_SCHEDULE_DATA.roles[roleName];
+        var roleEdits = allSavedEdits[roleName] || {};
+
+        // Build lookup by internal_name for original data
+        var origByName = {};
+        if(origRoleData){
+            for(var oi=0; oi<origRoleData.staff.length; oi++){
+                origByName[origRoleData.staff[oi].internal_name] = origRoleData.staff[oi];
+            }
         }
-    }
-    var dates = roleData.dates;
-    var header = ['人员','总工时','80%','20%','备班','L/N','OT','目标','OnCall'];
-    for(var i=0; i<dates.length; i++) header.push(dates[i]);
+        var dates = roleData.dates;
+        var header = ['人员','总工时','80%','20%','备班','L/N','OT','目标','OnCall'];
+        for(var i=0; i<dates.length; i++) header.push(dates[i]);
 
-    var orig = [header.slice()];
-    var mods = [header.slice()];
+        var orig = [header.slice()];
+        var mods = [header.slice()];
 
-    for(var si=0; si<roleData.staff.length; si++){
-        var p = roleData.staff[si];
-        var origP = origByName[p.internal_name];  // Frozen original for this person
-        var stats = [p.name, p.hours, p.hours_80, p.hours_20, p.hours_backup, p.hours_ln, p.hours_ot||0, p.target, p.oncall_count||''];
-        var origRow = stats.slice();
-        var modRow = stats.slice();
-        for(var di=0; di<dates.length; di++){
-            var ds = dates[di];
-            var origVal = (origP && origP.schedule[ds])||'';  // From frozen original
-            var editVal = (edits[p.internal_name] && edits[p.internal_name][ds]!==undefined) ? edits[p.internal_name][ds] : p.schedule[ds];
-            origRow.push(origVal||'-');
-            modRow.push(editVal||'-');
+        for(var si=0; si<roleData.staff.length; si++){
+            var p = roleData.staff[si];
+            var origP = origByName[p.internal_name];
+            var stats = [p.name, p.hours, p.hours_80, p.hours_20, p.hours_backup, p.hours_ln, p.hours_ot||0, p.target, p.oncall_count||''];
+            var origRow = stats.slice();
+            var modRow = stats.slice();
+            for(var di=0; di<dates.length; di++){
+                var ds = dates[di];
+                var origVal = (origP && origP.schedule[ds])||'';
+                var editVal = (roleEdits[p.internal_name] && roleEdits[p.internal_name][ds]!==undefined) ? roleEdits[p.internal_name][ds] : p.schedule[ds];
+                origRow.push(origVal||'-');
+                modRow.push(editVal||'-');
+            }
+            orig.push(origRow);
+            mods.push(modRow);
         }
-        orig.push(origRow);
-        mods.push(modRow);
-    }
 
-    // Count diffs
-    var diffCount = 0;
-    for(var si=0; si<orig.length; si++){
-        for(var ci=9; ci<orig[si].length; ci++){
-            if(orig[si][ci] !== mods[si][ci]) diffCount++;
+        // Count diffs for this role
+        var diffCount = 0;
+        for(var si=0; si<orig.length; si++){
+            for(var ci=9; ci<orig[si].length; ci++){
+                if(orig[si][ci] !== mods[si][ci]) diffCount++;
+            }
         }
+        totalDiffs += diffCount;
+
+        // Build section for this role
+        allSections.push([['=== ' + roleName + ' 原始排班 (未修改) ===']]);
+        allSections[allSections.length-1] = allSections[allSections.length-1].concat(orig);
+        allSections.push([['=== ' + roleName + ' 修改后 (' + diffCount + ' 处变更) ===']]);
+        allSections[allSections.length-1] = allSections[allSections.length-1].concat(mods);
     }
 
-    // Build combined CSV
-    var all = [['=== 原始排班 (未修改) ===']];
-    all = all.concat(orig);
-    all.push([]); all.push([]);
-    all.push(['=== 修改后排班 (' + diffCount + ' 处变更) ===']);
-    all = all.concat(mods);
+    // Merge all sections with blank rows between
+    var all = [];
+    for(var si=0; si<allSections.length; si++){
+        all = all.concat(allSections[si]);
+        all.push([]);
+    }
 
     var BOM = '﻿';
     var csv = BOM + all.map(function(r){
@@ -3506,10 +3528,10 @@ function exportExcel(){
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
     a.href = url;
-    a.download = currentRole + '_对比_' + (new Date().toISOString().slice(0,10)) + '.csv';
+    a.download = '排班对比_' + (new Date().toISOString().slice(0,10)) + '.csv';
     a.click();
     URL.revokeObjectURL(url);
-    msg('已导出: 原始 + 修改后 (' + diffCount + ' 处变更)', 'ok');
+    msg('已导出: 3个角色, 共' + totalDiffs + '处变更', 'ok');
 }
 
 function msg(text, cls){
