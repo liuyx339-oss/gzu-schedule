@@ -3017,6 +3017,7 @@ table.schedule .shift-cell.cell-oncall::after{content:"📞";position:absolute;t
 <script>
 // ============ DATA ============
 var SCHEDULE_DATA = __JSON_DATA__;
+var ORIG_SCHEDULE_DATA = null;
 var TARGET_HOURS = __TARGET_FULL__;
 var TARGET_80 = __TARGET_80__;
 var currentRole = '放射医生';
@@ -3045,6 +3046,8 @@ if(sessionStorage.getItem('_gzu_sched') === '1'){
 
 // ============ INIT ============
 function init(){
+    // Freeze original snapshot before any edits can pollute SCHEDULE_DATA
+    if(!ORIG_SCHEDULE_DATA) ORIG_SCHEDULE_DATA = JSON.parse(JSON.stringify(SCHEDULE_DATA));
     document.getElementById('hdMonth').textContent = SCHEDULE_DATA.month || '';
     loadMonthSelector();
     var tabs = document.getElementById('tabs');
@@ -3421,40 +3424,38 @@ async function saveChanges(){
 }
 
 function exportExcel(){
-    // Deep clone SCHEDULE_DATA to preserve original values
-    var origData = JSON.parse(JSON.stringify(SCHEDULE_DATA));
-    var rd = origData.roles[currentRole];
-    // Apply edits to rd only (not SCHEDULE_DATA)
-    for(var p in edits){
-        for(var d in edits[p]){
-            for(var si=0; si<rd.staff.length; si++){
-                if(rd.staff[si].internal_name === p){
-                    rd.staff[si].schedule[d] = edits[p][d];
-                }
-            }
+    // Read original from frozen snapshot (never modified by saveChanges)
+    var roleData = SCHEDULE_DATA.roles[currentRole];
+    var origRoleData = ORIG_SCHEDULE_DATA.roles[currentRole];
+    // Build lookup by internal_name for original data
+    var origByName = {};
+    if(origRoleData){
+        for(var oi=0; oi<origRoleData.staff.length; oi++){
+            origByName[origRoleData.staff[oi].internal_name] = origRoleData.staff[oi];
         }
     }
-    var dates = rd.dates;
+    var dates = roleData.dates;
     var header = ['人员','总工时','80%','20%','备班','L/N','OT','目标','OnCall'];
     for(var i=0; i<dates.length; i++) header.push(dates[i]);
 
-    var orig = [header.slice()];  // original
-    var mods = [header.slice()];  // with edits
+    var orig = [header.slice()];
+    var mods = [header.slice()];
 
-    for(var si=0; si<rd.staff.length; si++){
-        var p = rd.staff[si];
-        // Original values from cloned origData
-        var origP = origData.roles[currentRole].staff[si];
+    for(var si=0; si<roleData.staff.length; si++){
+        var p = roleData.staff[si];
+        var origP = origByName[p.internal_name];  // Frozen original for this person
         var stats = [p.name, p.hours, p.hours_80, p.hours_20, p.hours_backup, p.hours_ln, p.hours_ot||0, p.target, p.oncall_count||''];
-        var origRow = stats.slice(); var modRow = stats.slice();
+        var origRow = stats.slice();
+        var modRow = stats.slice();
         for(var di=0; di<dates.length; di++){
             var ds = dates[di];
-            var origVal = origP.schedule[ds]||'';
-            var modVal = p.schedule[ds]||'';
+            var origVal = (origP && origP.schedule[ds])||'';  // From frozen original
+            var editVal = (edits[p.internal_name] && edits[p.internal_name][ds]!==undefined) ? edits[p.internal_name][ds] : p.schedule[ds];
             origRow.push(origVal||'-');
-            modRow.push(modVal||'-');
+            modRow.push(editVal||'-');
         }
-        orig.push(origRow); mods.push(modRow);
+        orig.push(origRow);
+        mods.push(modRow);
     }
 
     // Count diffs
