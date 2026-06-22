@@ -3391,29 +3391,27 @@ async function saveChanges(){
     }
 
     var jsonStr = JSON.stringify(SCHEDULE_DATA, null, 2);
-    // Chunked UTF-8→base64 (avoids stack overflow on large payloads)
-    var utf8Bytes = new TextEncoder().encode(jsonStr);
-    var chunkSize = 0x8000; // 32KB chunks
-    var b64Chunks = [];
-    for (var i = 0; i < utf8Bytes.length; i += chunkSize) {
-        b64Chunks.push(String.fromCharCode.apply(null, utf8Bytes.subarray(i, i + chunkSize)));
-    }
-    var b64 = btoa(b64Chunks.join(''));
+    // UTF-8 → base64: encodeURIComponent handles all Unicode, then convert %XX→bytes
+    var b64 = btoa(encodeURIComponent(jsonStr).replace(/%([0-9A-F]{2})/g, function(m, p) {
+        return String.fromCharCode(parseInt(p, 16));
+    }));
     var path = 'publish/schedule_data.json';
     try{
         var getUrl = 'https://api.github.com/repos/liuyx339-oss/gzu-schedule/contents/' + path;
-        var d = await (await fetch(getUrl, {headers: {'Authorization': 'token ' + token}})).json();
+        var resp = await fetch(getUrl, {headers: {'Authorization': 'token ' + token}});
+        var d = await resp.json();
         var body = {message: 'Update schedule', content: b64, branch: 'master'};
         if(d.sha) body.sha = d.sha;
-        var r = await (await fetch(getUrl, {method: 'PUT', headers: {'Authorization': 'token ' + token, 'Content-Type': 'application/json'}, body: JSON.stringify(body)})).json();
+        var putResp = await fetch(getUrl, {method: 'PUT', headers: {'Authorization': 'token ' + token, 'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+        var r = await putResp.json();
         if(r.content){
             msg('已保存 ' + count + ' 处修改', 'ok');
             edits = {};
             renderRoster();
         } else {
-            msg('保存失败: ' + (r.message||'?'), 'err');
+            msg('保存失败 HTTP' + putResp.status + ': ' + (r.message||'?'), 'err');
         }
-    } catch(e){ msg('网络错误: ' + e.message, 'err'); }
+    } catch(e){ msg('网络错误 ' + e.message, 'err'); }
 }
 
 function msg(text, cls){
