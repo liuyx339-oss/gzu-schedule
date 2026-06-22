@@ -3433,31 +3433,54 @@ function exportExcel(){
     }
     var rd = SCHEDULE_DATA.roles[currentRole];
     var dates = rd.dates;
-    // Build CSV: name, stats, then each date
-    var rows = [];
     var header = ['人员','总工时','80%','20%','备班','L/N','OT','目标','OnCall'];
     for(var i=0; i<dates.length; i++) header.push(dates[i]);
-    rows.push(header);
+
+    var orig = [header.slice()];  // original SCHEDULE_DATA
+    var mods = [header.slice()];  // with edits
+
     for(var si=0; si<rd.staff.length; si++){
         var p = rd.staff[si];
-        var row = [p.name, p.hours, p.hours_80, p.hours_20, p.hours_backup, p.hours_ln, p.hours_ot||0, p.target, p.oncall_count||''];
+        var stats = [p.name, p.hours, p.hours_80, p.hours_20, p.hours_backup, p.hours_ln, p.hours_ot||0, p.target, p.oncall_count||''];
+        var origRow = stats.slice(); var modRow = stats.slice();
         for(var di=0; di<dates.length; di++){
             var ds = dates[di];
-            var sv = (edits[p.internal_name]&&edits[p.internal_name][ds]!==undefined) ? edits[p.internal_name][ds] : (p.schedule[ds]||'');
-            row.push(sv||'-');
+            var origVal = p.schedule[ds]||'';
+            var editVal = (edits[p.internal_name]&&edits[p.internal_name][ds]!==undefined) ? edits[p.internal_name][ds] : origVal;
+            origRow.push(origVal||'-');
+            modRow.push(editVal||'-');
         }
-        rows.push(row);
+        orig.push(origRow); mods.push(modRow);
     }
-    // Convert to CSV string
-    var csv = '\\uFEFF' + rows.map(function(r){ return r.map(function(c){ return '"' + String(c).replace(/"/g,'\"\"') + '"'; }).join(','); }).join('\\n');
+
+    // Count diffs
+    var diffCount = 0;
+    for(var si=0; si<orig.length; si++){
+        for(var ci=9; ci<orig[si].length; ci++){
+            if(orig[si][ci] !== mods[si][ci]) diffCount++;
+        }
+    }
+
+    // Build combined CSV
+    var all = [['=== 原始排班 (未修改) ===']];
+    all = all.concat(orig);
+    all.push([]); all.push([]);
+    all.push(['=== 修改后排班 (' + diffCount + ' 处变更) ===']);
+    all = all.concat(mods);
+
+    var BOM = '﻿';
+    var csv = BOM + all.map(function(r){
+        return r.map(function(c){ return '"' + String(c).replace(/"/g,'""') + '"'; }).join(',');
+    }).join('\n');
+
     var blob = new Blob([csv], {type: 'text/csv;charset=utf-8'});
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
     a.href = url;
-    a.download = currentRole + '_' + (new Date().toISOString().slice(0,10)) + '.csv';
+    a.download = currentRole + '_对比_' + (new Date().toISOString().slice(0,10)) + '.csv';
     a.click();
     URL.revokeObjectURL(url);
-    msg('已导出 Excel (CSV): ' + a.download, 'ok');
+    msg('已导出: 原始 + 修改后 (' + diffCount + ' 处变更)', 'ok');
 }
 
 function msg(text, cls){
