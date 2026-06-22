@@ -3390,7 +3390,9 @@ async function saveChanges(){
         }
     }
 
-    var b64 = btoa(unescape(encodeURIComponent(JSON.stringify(SCHEDULE_DATA, null, 2))));
+    var jsonStr = JSON.stringify(SCHEDULE_DATA, null, 2);
+    var utf8Bytes = new TextEncoder().encode(jsonStr);
+    var b64 = btoa(String.fromCharCode.apply(null, utf8Bytes));
     var path = 'publish/schedule_data.json';
     try{
         var getUrl = 'https://api.github.com/repos/liuyx339-oss/gzu-schedule/contents/' + path;
@@ -3399,7 +3401,7 @@ async function saveChanges(){
         if(d.sha) body.sha = d.sha;
         var r = await (await fetch(getUrl, {method: 'PUT', headers: {'Authorization': 'token ' + token, 'Content-Type': 'application/json'}, body: JSON.stringify(body)})).json();
         if(r.content){
-            msg('✅ 已保存 ' + count + ' 处修改', 'ok');
+            msg('已保存 ' + count + ' 处修改', 'ok');
             edits = {};
             renderRoster();
         } else {
@@ -3444,7 +3446,7 @@ async function saveNote(){
     if(editingNoteId !== null){ notes[editingNoteId].text = text; notes[editingNoteId].time = now; }
     else{ notes.push({text:text, time:now}); }
     notes.sort(function(a,b){ return b.time.localeCompare(a.time); });
-    var b64 = btoa(unescape(encodeURIComponent(JSON.stringify(notes,null,2))));
+    var b64 = function(s){var b=new TextEncoder().encode(s);return btoa(String.fromCharCode.apply(null,b))}(JSON.stringify(notes,null,2));
     try{
         var getUrl = 'https://api.github.com/repos/liuyx339-oss/gzu-schedule/contents/' + NOTES_PATH;
         var d = await (await fetch(getUrl, {headers:{'Authorization':'token '+token}})).json();
@@ -3456,7 +3458,7 @@ async function saveNote(){
 async function delNote(idx){
     if(!confirm('确定删除？')) return; notes.splice(idx,1);
     var token = localStorage.getItem('gh_token'); if(!token) return;
-    var b64 = btoa(unescape(encodeURIComponent(JSON.stringify(notes,null,2))));
+    var b64 = function(s){var b=new TextEncoder().encode(s);return btoa(String.fromCharCode.apply(null,b))}(JSON.stringify(notes,null,2));
     try{
         var getUrl = 'https://api.github.com/repos/liuyx339-oss/gzu-schedule/contents/' + NOTES_PATH;
         var d = await (await fetch(getUrl, {headers:{'Authorization':'token '+token}})).json();
@@ -3495,7 +3497,7 @@ async function saveReq(){
     if(editingReqId !== null){ reqs[editingReqId].text = text; reqs[editingReqId].time = now; }
     else{ reqs.push({text:text, time:now}); }
     reqs.sort(function(a,b){ return b.time.localeCompare(a.time); });
-    var b64 = btoa(unescape(encodeURIComponent(JSON.stringify(reqs,null,2))));
+    var b64 = function(s){var b=new TextEncoder().encode(s);return btoa(String.fromCharCode.apply(null,b))}(JSON.stringify(reqs,null,2));
     try{
         var getUrl = 'https://api.github.com/repos/liuyx339-oss/gzu-schedule/contents/' + REQS_PATH;
         var d = await (await fetch(getUrl, {headers:{'Authorization':'token '+token}})).json();
@@ -3507,7 +3509,7 @@ async function saveReq(){
 async function delReq(idx){
     if(!confirm('确定删除？')) return; reqs.splice(idx,1);
     var token = localStorage.getItem('gh_token'); if(!token) return;
-    var b64 = btoa(unescape(encodeURIComponent(JSON.stringify(reqs,null,2))));
+    var b64 = function(s){var b=new TextEncoder().encode(s);return btoa(String.fromCharCode.apply(null,b))}(JSON.stringify(reqs,null,2));
     try{
         var getUrl = 'https://api.github.com/repos/liuyx339-oss/gzu-schedule/contents/' + REQS_PATH;
         var d = await (await fetch(getUrl, {headers:{'Authorization':'token '+token}})).json();
