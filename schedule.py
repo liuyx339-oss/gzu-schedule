@@ -3391,9 +3391,14 @@ async function saveChanges(){
     }
 
     var jsonStr = JSON.stringify(SCHEDULE_DATA, null, 2);
-    // UTF-8 → base64 (chunked to avoid stack overflow)
-    var utf8Str = encodeURIComponent(jsonStr).replace(/%([0-9A-F]{2})/g, function(m, p) { return String.fromCharCode('0x' + p); });
-    var b64 = btoa(utf8Str);
+    // Chunked UTF-8→base64 (avoids stack overflow on large payloads)
+    var utf8Bytes = new TextEncoder().encode(jsonStr);
+    var chunkSize = 0x8000; // 32KB chunks
+    var b64Chunks = [];
+    for (var i = 0; i < utf8Bytes.length; i += chunkSize) {
+        b64Chunks.push(String.fromCharCode.apply(null, utf8Bytes.subarray(i, i + chunkSize)));
+    }
+    var b64 = btoa(b64Chunks.join(''));
     var path = 'publish/schedule_data.json';
     try{
         var getUrl = 'https://api.github.com/repos/liuyx339-oss/gzu-schedule/contents/' + path;
@@ -3447,7 +3452,7 @@ async function saveNote(){
     if(editingNoteId !== null){ notes[editingNoteId].text = text; notes[editingNoteId].time = now; }
     else{ notes.push({text:text, time:now}); }
     notes.sort(function(a,b){ return b.time.localeCompare(a.time); });
-    var b64 = function(s){var b=new TextEncoder().encode(s);return btoa(String.fromCharCode.apply(null,b))}(JSON.stringify(notes,null,2));
+    var b64 = function(s){var b=new TextEncoder().encode(s);return function(ab){var c=0x8000,r=[];for(var i=0;i<ab.length;i+=c)r.push(String.fromCharCode.apply(null,ab.subarray(i,i+c)));return btoa(r.join(""))}(b)}(JSON.stringify(notes,null,2));
     try{
         var getUrl = 'https://api.github.com/repos/liuyx339-oss/gzu-schedule/contents/' + NOTES_PATH;
         var d = await (await fetch(getUrl, {headers:{'Authorization':'token '+token}})).json();
@@ -3459,7 +3464,7 @@ async function saveNote(){
 async function delNote(idx){
     if(!confirm('确定删除？')) return; notes.splice(idx,1);
     var token = localStorage.getItem('gh_token'); if(!token) return;
-    var b64 = function(s){var b=new TextEncoder().encode(s);return btoa(String.fromCharCode.apply(null,b))}(JSON.stringify(notes,null,2));
+    var b64 = function(s){var b=new TextEncoder().encode(s);return function(ab){var c=0x8000,r=[];for(var i=0;i<ab.length;i+=c)r.push(String.fromCharCode.apply(null,ab.subarray(i,i+c)));return btoa(r.join(""))}(b)}(JSON.stringify(notes,null,2));
     try{
         var getUrl = 'https://api.github.com/repos/liuyx339-oss/gzu-schedule/contents/' + NOTES_PATH;
         var d = await (await fetch(getUrl, {headers:{'Authorization':'token '+token}})).json();
@@ -3498,7 +3503,7 @@ async function saveReq(){
     if(editingReqId !== null){ reqs[editingReqId].text = text; reqs[editingReqId].time = now; }
     else{ reqs.push({text:text, time:now}); }
     reqs.sort(function(a,b){ return b.time.localeCompare(a.time); });
-    var b64 = function(s){var b=new TextEncoder().encode(s);return btoa(String.fromCharCode.apply(null,b))}(JSON.stringify(reqs,null,2));
+    var b64 = function(s){var b=new TextEncoder().encode(s);return function(ab){var c=0x8000,r=[];for(var i=0;i<ab.length;i+=c)r.push(String.fromCharCode.apply(null,ab.subarray(i,i+c)));return btoa(r.join(""))}(b)}(JSON.stringify(reqs,null,2));
     try{
         var getUrl = 'https://api.github.com/repos/liuyx339-oss/gzu-schedule/contents/' + REQS_PATH;
         var d = await (await fetch(getUrl, {headers:{'Authorization':'token '+token}})).json();
@@ -3510,7 +3515,7 @@ async function saveReq(){
 async function delReq(idx){
     if(!confirm('确定删除？')) return; reqs.splice(idx,1);
     var token = localStorage.getItem('gh_token'); if(!token) return;
-    var b64 = function(s){var b=new TextEncoder().encode(s);return btoa(String.fromCharCode.apply(null,b))}(JSON.stringify(reqs,null,2));
+    var b64 = function(s){var b=new TextEncoder().encode(s);return function(ab){var c=0x8000,r=[];for(var i=0;i<ab.length;i+=c)r.push(String.fromCharCode.apply(null,ab.subarray(i,i+c)));return btoa(r.join(""))}(b)}(JSON.stringify(reqs,null,2));
     try{
         var getUrl = 'https://api.github.com/repos/liuyx339-oss/gzu-schedule/contents/' + REQS_PATH;
         var d = await (await fetch(getUrl, {headers:{'Authorization':'token '+token}})).json();
