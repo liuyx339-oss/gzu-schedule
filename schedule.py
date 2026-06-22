@@ -3391,8 +3391,9 @@ async function saveChanges(){
     }
 
     var jsonStr = JSON.stringify(SCHEDULE_DATA, null, 2);
-    var utf8Bytes = new TextEncoder().encode(jsonStr);
-    var b64 = btoa(String.fromCharCode.apply(null, utf8Bytes));
+    // UTF-8 → base64 (chunked to avoid stack overflow)
+    var utf8Str = encodeURIComponent(jsonStr).replace(/%([0-9A-F]{2})/g, function(m, p) { return String.fromCharCode('0x' + p); });
+    var b64 = btoa(utf8Str);
     var path = 'publish/schedule_data.json';
     try{
         var getUrl = 'https://api.github.com/repos/liuyx339-oss/gzu-schedule/contents/' + path;
