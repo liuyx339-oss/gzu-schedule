@@ -2792,6 +2792,8 @@ body{font-family:"Microsoft YaHei","SimHei",sans-serif;background:#f0f2f5;color:
 .btn-edit.active{background:#e65100;color:#fff}
 .btn-save{background:#1a73e8;color:#fff;display:none}
 .btn-save.show{display:inline-block}
+.btn-export{background:#388E3C;color:#fff;display:none}
+.btn-export.show{display:inline-block}
 .btn-token{background:none;color:#999;font-size:11px!important;text-decoration:underline}
 .token-area{display:none;padding:8px 20px;background:#fff}
 .token-area.show{display:flex;gap:8px;align-items:center}
@@ -2926,6 +2928,7 @@ table.schedule .shift-cell.cell-oncall::after{content:"📞";position:absolute;t
     </select>
     <button class="btn-edit" id="btnEdit" onclick="toggleEdit()">编辑模式</button>
     <button class="btn-save" id="btnSave" onclick="saveChanges()">保存修改</button>
+    <button class="btn-export" id="btnExport" onclick="exportExcel()">📥 导出Excel</button>
     <button class="btn-token" onclick="toggleToken()">设置Token</button>
 </div>
 <div class="token-area" id="tokenArea">
@@ -3292,15 +3295,18 @@ function showDayDetail(dateStr){
 function toggleEdit(){
     var btn = document.getElementById('btnEdit');
     var saveBtn = document.getElementById('btnSave');
+    var exportBtn = document.getElementById('btnExport');
     editMode = !editMode;
     if(editMode){
         btn.textContent = '退出编辑';
         btn.classList.add('active');
         saveBtn.classList.add('show');
+        if(exportBtn) exportBtn.classList.add('show');
     } else {
         btn.textContent = '编辑模式';
         btn.classList.remove('active');
         saveBtn.classList.remove('show');
+        if(exportBtn) exportBtn.classList.remove('show');
     }
     renderRoster();
 }
@@ -3412,6 +3418,46 @@ async function saveChanges(){
             msg('保存失败 HTTP' + putResp.status + ': ' + (r.message||'?'), 'err');
         }
     } catch(e){ msg('网络错误 ' + e.message, 'err'); }
+}
+
+function exportExcel(){
+    // Apply edits to get full schedule
+    for(var p in edits){
+        for(var d in edits[p]){
+            for(var si=0; si<SCHEDULE_DATA.roles[currentRole].staff.length; si++){
+                if(SCHEDULE_DATA.roles[currentRole].staff[si].internal_name === p){
+                    SCHEDULE_DATA.roles[currentRole].staff[si].schedule[d] = edits[p][d];
+                }
+            }
+        }
+    }
+    var rd = SCHEDULE_DATA.roles[currentRole];
+    var dates = rd.dates;
+    // Build CSV: name, stats, then each date
+    var rows = [];
+    var header = ['人员','总工时','80%','20%','备班','L/N','OT','目标','OnCall'];
+    for(var i=0; i<dates.length; i++) header.push(dates[i]);
+    rows.push(header);
+    for(var si=0; si<rd.staff.length; si++){
+        var p = rd.staff[si];
+        var row = [p.name, p.hours, p.hours_80, p.hours_20, p.hours_backup, p.hours_ln, p.hours_ot||0, p.target, p.oncall_count||''];
+        for(var di=0; di<dates.length; di++){
+            var ds = dates[di];
+            var sv = (edits[p.internal_name]&&edits[p.internal_name][ds]!==undefined) ? edits[p.internal_name][ds] : (p.schedule[ds]||'');
+            row.push(sv||'-');
+        }
+        rows.push(row);
+    }
+    // Convert to CSV string
+    var csv = '\\uFEFF' + rows.map(function(r){ return r.map(function(c){ return '"' + String(c).replace(/"/g,'\"\"') + '"'; }).join(','); }).join('\\n');
+    var blob = new Blob([csv], {type: 'text/csv;charset=utf-8'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = currentRole + '_' + (new Date().toISOString().slice(0,10)) + '.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+    msg('已导出 Excel (CSV): ' + a.download, 'ok');
 }
 
 function msg(text, cls){
