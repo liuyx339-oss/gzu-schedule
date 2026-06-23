@@ -283,7 +283,35 @@ HTML 生成前硬切:
 - 先分配 1 人 B1 (每日强制)
 - 再分配 4(四楼) 9(九楼) — 贪婪算法，选该楼层累计最少的人
 
-### 3.14 月度 CSVs + HTML 归档
+### 3.14 产物输出 & 部署架构
+
+**schedule.py 每次运行生成 3 个 HTML 文件**（schedule.py:3871-3882）：
+
+```
+schedule.py --month 2026-07
+  │
+  └─ 生成 HTML（Python 模板 + 内联 JS + 嵌入排班 data）
+       │
+       ├─ pipeline_output/schedule/Schedule_Dashboard_2026-07_V3.html  (归档)
+       ├─ publish/schedule.html              ← 覆盖（默认页，永远是最近跑的月份）
+       └─ publish/schedule_2026-07.html      ← 新建/覆盖（7月归档，跑8月时不动）
+```
+
+**线上部署**：GitHub Actions `daily-report.yml` 把 `publish/` 目录推送到 `gh-pages` 分支 → GitHub Pages 即时上线。
+
+```
+publish/ 目录            gh-pages 分支             线上 URL
+──────────────────────────────────────────────────────────────
+schedule.html            schedule.html             /schedule.html         (默认页，最新月份)
+schedule_2026-06.html    schedule_2026-06.html     /schedule_2026-06.html (6月归档)
+schedule_2026-07.html    schedule_2026-07.html     /schedule_2026-07.html (7月归档)
+index.html               index.html                /                      (首页导航)
+dashboard.html           dashboard.html            /dashboard.html        (需求日报)
+```
+
+**关键理解**：每个 `schedule_YYYY-MM.html` 是**独立自包含的 HTML 文件**，内联了自己当时生成时的 JavaScript 代码。改 `schedule.py`（源代码模板）不会自动更新已生成的归档文件 — 必须重新跑 `schedule.py --month YYYY-MM`。
+
+**月份切换**：页面顶部下拉框 JavaScript 在运行时扫描服务器上是否存 `schedule_YYYY-MM.html` 文件，存在就显示在列表里。切换时 `window.location.href` 跳转到对应文件。
 
 ```
 pipeline_output/
@@ -295,9 +323,9 @@ pipeline_output/
     Schedule_Dashboard_2026-07_V3.html
 
 publish/
-  schedule.html             ← 最新月份
-  schedule_2026-06.html     ← 6月归档
-  schedule_2026-07.html     ← 7月归档
+  schedule.html             ← 最新月份（覆盖式）
+  schedule_2026-06.html     ← 6月归档（不覆盖）
+  schedule_2026-07.html     ← 7月归档（不覆盖）
   monthly_forecast_hourly.csv  ← 最新月份 (CI用)
 ```
 
@@ -334,8 +362,10 @@ python run_pipeline.py --month 2026-07 --skip-fetch --skip-forecast --no-feishu 
 
 **跑完推送上线**：
 ```bash
-cp pipeline_output/schedule/Schedule_Dashboard_2026-07_V3.html publish/schedule.html
+# schedule.py 已经自动把 HTML 复制到 publish/ 目录
+# 只需提交 + 推送 + 触发 Actions 部署
 git add publish/ && git commit -m "7月排班" && git push
+gh workflow run "Daily Report + Deploy" --ref master
 ```
 
 ### 4.2 每日推送（自动）
@@ -359,12 +389,12 @@ git add publish/ && git commit -m "7月排班" && git push
 | 页面 | 地址 |
 |------|------|
 | 首页 | `https://liuyx339-oss.github.io/gzu-schedule/` |
-| 排班表 | `https://liuyx339-oss.github.io/gzu-schedule/schedule.html` |
+| 排班表（默认最新） | `https://liuyx339-oss.github.io/gzu-schedule/schedule.html` |
 | 需求日报 | `https://liuyx339-oss.github.io/gzu-schedule/dashboard.html` |
 
 密码: `gzu2026`
 
-排班表页面顶部下拉框切换月份。
+排班表页面顶部下拉框切换月份（自动扫描 `schedule_YYYY-MM.html` 归档文件）。
 
 ### 4.5 排班表功能
 
@@ -375,12 +405,25 @@ git add publish/ && git commit -m "7月排班" && git push
 | 📊 工时统计 | 80%池/20%池/OT/备班/LN/总工时/目标/OnCall |
 | 🎨 分类着色 | 80%(黑)/20%(蓝框sup)/LN(橙粗框)/备班(红虚线) |
 | 🏥 楼层备注 | B超 [4]/[9]/[B1] |
-| 📞 OnCall | 右下📞标记 |
+| 📞 OnCall | 右下📞标记，弹窗可勾选/取消 |
 | 📈 日详情 | 点击日期→HC 需求柱状图 |
-| ✏️ 编辑 | 点格子→选班型(PTO/CTO/OFF/空白)→保存GitHub |
+| ✏️ 编辑 | 点格子→选班型(PTO4/PTO8/CTO4/CTO8/OFF)→修改即自动保存 |
+| 💾 本地持久化 | 编辑自动存浏览器 localStorage，刷新/关机不丢 |
+| 📥 导出CSV | 一键导出三角色原始+修改后对比表 |
 | 📝 备注需求 | CRUD → GitHub API |
-| 🗓️ 日期星期 | 表头"06月01日 一" |
+| 🗓️ 日期星期 | 表头"06月01日 一"，用真实日期计算（不再假设月初是周一） |
 | 🔄 月份切换 | 顶栏下拉框自动检测归档 |
+
+### 4.6 排班表代码更新注意事项 ⚠️
+
+`schedule.py` 是**唯一的源代码模板**，其中内联了完整的 HTML/CSS/JavaScript。修改前端功能时需要改 `schedule.py` 模板，然后**重新跑一次排班**才能让修改生效到线上的 HTML 文件。
+
+**已生成的归档文件**（`publish/schedule_2026-06.html`、`publish/schedule_2026-07.html`）是独立快照，修改 `schedule.py` 不会自动追溯更新它们，必须重新跑对应月份的排班。
+
+**当前线上状态**（2026-06-23）：
+- `schedule.html` → 代码已更新（从 Actions 部署的 6月数据）
+- `schedule_2026-06.html` → ⚠️ 旧代码，需重新生成
+- `schedule_2026-07.html` → ⚠️ 旧代码（6月22日生成，无 weekdays/oncallEdits/PTO4/PTO8/CTO4/CTO8）
 
 ---
 
