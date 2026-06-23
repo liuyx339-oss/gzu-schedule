@@ -2583,7 +2583,7 @@ def _apply_v3_excel_styling(worksheet, df, sheet_name, date_strs, category_hours
 
 
 def generate_dashboard_html(final_schedule, final_hours, category_hours, hourly_hc,
-                             date_strs, staff, oncall_schedule, us_notes,
+                             date_strs, all_dates, staff, oncall_schedule, us_notes,
                              pto_dates, ot_hours, output_path):
     """生成独立HTML仪表盘 (V3: 含分类工时面板)"""
     print("\n" + "="*60)
@@ -3870,7 +3870,7 @@ def main():
     # 输出到 pipeline_output/schedule/ (归档)
     html_path = os.path.join(schedule_dir, f"Schedule_Dashboard_{month_str}_V3.html")
     generate_dashboard_html(final_schedule, final_hours, category_hours, hourly_hc,
-                            date_strs, staff, oncall_schedule, us_notes,
+                            date_strs, all_dates, staff, oncall_schedule, us_notes,
                             pto_dates, ot_hours, html_path)
 
     # 同时输出到 publish/schedule.html (GitHub Pages)
