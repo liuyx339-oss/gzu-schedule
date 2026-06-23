@@ -2658,6 +2658,7 @@ def generate_dashboard_html(final_schedule, final_hours, category_hours, hourly_
         return {
             "staff": staff_list,
             "dates": date_strs,
+            "weekdays": [all_dates[i].weekday() for i in range(len(date_strs))],  # 0=Mon
             "shift_colors": shift_colors,
             "shift_times": SHIFT_TIME_STR,
             "demand_samples": demand_samples,
@@ -3023,6 +3024,7 @@ var TARGET_80 = __TARGET_80__;
 var currentRole = '放射医生';
 var editMode = false;
 var edits = {};
+var oncallEdits = {};
 var selectedCell = null;
 
 // ============ PASSWORD ============
@@ -3052,7 +3054,7 @@ function init(){
     var lsKey = '_gzu_edits_' + (SCHEDULE_DATA.month||'default');
     var saved = localStorage.getItem(lsKey);
     if(saved){
-        try { var allEdits = JSON.parse(saved); edits = allEdits[currentRole] || {}; } catch(e){}
+        try { var allEdits = JSON.parse(saved); edits = allEdits[currentRole] || {}; oncallEdits = allEdits['_oncall'] || {}; } catch(e){}
     }
     document.getElementById('hdMonth').textContent = SCHEDULE_DATA.month || '';
     loadMonthSelector();
@@ -3112,7 +3114,7 @@ function switchRole(){
     var lsKey = '_gzu_edits_' + (SCHEDULE_DATA.month||'default');
     var saved = localStorage.getItem(lsKey);
     if(saved){
-        try { var allEdits = JSON.parse(saved); edits = allEdits[currentRole] || {}; } catch(e){}
+        try { var allEdits = JSON.parse(saved); edits = allEdits[currentRole] || {}; oncallEdits = allEdits['_oncall'] || {}; } catch(e){}
     } else { edits = {}; }
     var tabEls = document.querySelectorAll('.tab');
     for(var i=0; i<tabEls.length; i++){
@@ -3190,11 +3192,28 @@ function renderRoster(){
                 else if(catVal === 'L/N') badge = ' <sup style="background:#FF9800;color:#fff;padding:1px 3px;border-radius:2px;font-size:8px">LN</sup>';
                 text = '<b>' + displayShift + '</b>' + badge;
             }
-            if(p.pto && p.pto[ds]){
-                html += '<td class="shift-cell cell-pto" style="background:#FF4444;color:#fff;font-weight:bold"><span>PTO</span></td>';
+            // PTO/CTO special rendering (from edits or algorithmic PTO)
+            var shiftUpper = displayShift.toUpperCase();
+            if(p.pto && p.pto[ds] && !hasEdit){  // algorithmic PTO (no manual override)
+                html += '<td class="shift-cell" style="background:#FF4444;color:#fff;font-weight:bold"><span>PTO</span></td>';
                 continue;
             }
-            if(isOncall){ text += ' 📞'; extraClass += ' cell-oncall'; }
+            if(shiftUpper === 'PTO4' || shiftUpper === 'PTO8'){
+                var ptoLabel = shiftUpper === 'PTO4' ? 'PTO 4h' : 'PTO 8h';
+                html += '<td class="shift-cell editable" style="background:#FF4444;color:#fff;font-weight:bold" onclick="openEditPopup(\'' + p.internal_name + '\',\'' + ds + '\')"><span>' + ptoLabel + '</span></td>';
+                continue;
+            }
+            if(shiftUpper === 'CTO4' || shiftUpper === 'CTO8'){
+                var ctoLabel = shiftUpper === 'CTO4' ? 'CTO 4h' : 'CTO 8h';
+                html += '<td class="shift-cell editable" style="background:#FF9800;color:#fff;font-weight:bold" onclick="openEditPopup(\'' + p.internal_name + '\',\'' + ds + '\')"><span>' + ctoLabel + '</span></td>';
+                continue;
+            }
+            // Oncall: check user edits first, then algorithmic
+            var showOncall = isOncall;
+            if(oncallEdits[p.internal_name] && oncallEdits[p.internal_name][ds] !== undefined){
+                showOncall = oncallEdits[p.internal_name][ds];
+            }
+            if(showOncall){ text += ' 📞'; extraClass += ' cell-oncall'; }
             if(p.notes && p.notes[ds]){
                 text += ' [' + p.notes[ds] + ']';
             }
@@ -3207,7 +3226,7 @@ function renderRoster(){
 
     var header = '<th class="name-col">人员</th><th class="stats-col">工时</th><th class="stats-col">80%</th><th class="stats-col">20%</th><th class="stats-col">备班</th><th class="stats-col">L/N</th><th class="stats-col">目标</th><th class="stats-col">OnCall</th>';
     var wk=['一','二','三','四','五','六','日'];
-    for(var di=0; di<dates.length; di++){ header += '<th>' + dates[di].slice(3) + '<br><small>' + wk[di%7] + '</small></th>'; }
+    for(var di=0; di<dates.length; di++){ var wd = rd.weekdays ? rd.weekdays[di] : (di % 7); header += '<th>' + dates[di].slice(3) + '<br><small>' + wk[wd] + '</small></th>'; }
 
     var h = '<h2>' + currentRole + ' 排班表</h2>';
     h += '<table class="schedule"><thead><tr>' + header + '</tr></thead><tbody>';
@@ -3326,8 +3345,8 @@ function toggleEdit(){
     renderRoster();
 }
 
-var ALLOWED_SHIFTS = ['C','C1','D1','D2','D3','D4','D5','D6','N','N1','N2','N3','L','L/N','T','T1','H','H1','H2','H3','PTO','CTO','OFF',''];
-var SHIFT_LABELS = {OFF:'休息'};
+var ALLOWED_SHIFTS = ['C','C1','D1','D2','D3','D4','D5','D6','N','N1','N2','N3','L','L/N','T','T1','H','H1','H2','H3','PTO4','PTO8','CTO4','CTO8','OFF',''];
+var SHIFT_LABELS = {OFF:'休息', PTO4:'PTO 4h', PTO8:'PTO 8h', CTO4:'CTO 4h', CTO8:'CTO 8h'};
 
 function openEditPopup(personName, dateStr){
     selectedCell = {name: personName, ds: dateStr};
@@ -3336,6 +3355,13 @@ function openEditPopup(personName, dateStr){
     for(var i=0; i<rd.staff.length; i++){ if(rd.staff[i].internal_name === personName){ person = rd.staff[i]; break; } }
     if(!person) return;
     var currentShift = edits[personName]&&edits[personName][dateStr]!==undefined ? edits[personName][dateStr] : (person.schedule[dateStr] || '');
+    // Determine current oncall state
+    var isOncall = false;
+    if(oncallEdits[personName] && oncallEdits[personName][dateStr] !== undefined){
+        isOncall = oncallEdits[personName][dateStr];
+    } else if(person.is_oncall && person.is_oncall[dateStr]){
+        isOncall = true;
+    }
 
     var h = '<h3>✏️ ' + person.name + ' — ' + dateStr + '</h3>';
     h += '<p style="font-size:11px;color:#666;margin-bottom:8px">当前班次：<b>' + (currentShift||'休息') + '</b></p>';
@@ -3347,9 +3373,26 @@ function openEditPopup(personName, dateStr){
         h += '<button class="btn-shift' + sel + '" onclick="selectShift(\'' + s + '\')">' + label + '</button>';
     }
     h += '</div>';
+    // Oncall toggle
+    h += '<div style="margin-top:12px;padding-top:10px;border-top:1px solid #eee">';
+    h += '<label style="font-size:12px;cursor:pointer"><input type="checkbox" id="chkOncall" onchange="toggleOncall()" ' + (isOncall ? 'checked' : '') + '> 📞 OnCall</label>';
+    h += '</div>';
     h += '<button class="btn-save-changes" onclick="applyEdit()">确认修改</button>';
     document.getElementById('popup').innerHTML = h;
     openOverlay();
+}
+
+function toggleOncall(){
+    var checked = document.getElementById('chkOncall').checked;
+    if(!oncallEdits[selectedCell.name]) oncallEdits[selectedCell.name] = {};
+    oncallEdits[selectedCell.name][selectedCell.ds] = checked;
+    // Save to localStorage
+    var lsKey = '_gzu_edits_' + (SCHEDULE_DATA.month||'default');
+    var allEdits = {};
+    try { allEdits = JSON.parse(localStorage.getItem(lsKey)||'{}'); } catch(e){}
+    allEdits['_oncall'] = oncallEdits;
+    localStorage.setItem(lsKey, JSON.stringify(allEdits));
+    renderRoster();
 }
 
 function selectShift(shift){
@@ -3368,6 +3411,7 @@ function selectShift(shift){
     var allEdits = {};
     try { allEdits = JSON.parse(localStorage.getItem(lsKey)||'{}'); } catch(e){}
     allEdits[currentRole] = edits;
+    allEdits['_oncall'] = oncallEdits;
     localStorage.setItem(lsKey, JSON.stringify(allEdits));
     renderRoster();
     closePopup();
