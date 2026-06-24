@@ -3345,7 +3345,7 @@ function toggleEdit(){
     renderRoster();
 }
 
-var ALLOWED_SHIFTS = ['C','C1','D1','D2','D3','D4','D5','D6','N','N1','N2','N3','L','L/N','T','T1','H','H1','H2','H3','PTO4','PTO8','CTO4','CTO8','OFF',''];
+var ALLOWED_SHIFTS = ['C','C1','D','D1','D2','D3','D4','D5','D6','N','N1','N2','N3','L','L/N','T','T1','H','H1','H2','H3','PTO4','PTO8','CTO4','CTO8','OFF',''];
 var SHIFT_LABELS = {OFF:'休息', PTO4:'PTO 4h', PTO8:'PTO 8h', CTO4:'CTO 4h', CTO8:'CTO 8h'};
 
 function openEditPopup(personName, dateStr){
