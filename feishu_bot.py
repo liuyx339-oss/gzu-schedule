@@ -241,6 +241,11 @@ def process_table_a(df, target_date):
         df[appt_col] = pd.to_datetime(ts_num, unit="ms", utc=True).dt.tz_convert("Asia/Shanghai")
         df = df[df[appt_col].dt.date == target_date].copy()
 
+    # Filter: only keep records where appt_status_desc == "arrived"
+    status_col = _fuzzy_find(cols, ["appt_status_desc", "预约状态", "status"])
+    if status_col and status_col in df.columns:
+        df = df[df[status_col].astype(str).str.strip().str.lower() == "arrived"].copy()
+
     if len(df) == 0:
         return _empty_checkup_result()
 
