@@ -5,7 +5,7 @@ on:
     types: [daily-trigger]
   workflow_dispatch:
   schedule:
-    - cron: '30 8 * * *'     # 兜底: UTC 8:30 = 北京 16:30
+    - cron: '50 9 * * *'     # UTC 9:50 = 北京 17:50
 
 jobs:
   daily:
