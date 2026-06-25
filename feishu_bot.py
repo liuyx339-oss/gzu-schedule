@@ -244,7 +244,7 @@ def process_table_a(df, target_date):
     # Filter: only keep records where appt_status_desc == "arrived"
     status_col = _fuzzy_find(cols, ["appt_status_desc", "预约状态", "status"])
     if status_col and status_col in df.columns:
-        df = df[df[status_col].astype(str).str.strip().str.lower() == "arrived"].copy()
+        df = df[df[status_col].astype(str).str.strip().str.lower() == "booked"].copy()
 
     if len(df) == 0:
         return _empty_checkup_result()
