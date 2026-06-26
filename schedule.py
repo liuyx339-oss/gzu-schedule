@@ -52,6 +52,16 @@ SHIFT_DICT = {
     "N":  (17.5, 32.0, 14.5, "夜班"),  "N2": (17.5, 31.5, 14.0, "夜班"),
     "N3": (18.0, 32.0, 14.0, "夜班"),
     "L/N": (8.0, 32.0, 24.0, "24H班"),
+    # --- 放射技师专用9班型 ---
+    "R_D1": (8.5, 17.0, 8.0, "白班"),
+    "R_L":  (8.0, 17.5, 9.5, "白班"),
+    "R_C1": (8.0, 16.5, 8.5, "白班"),
+    "R_H1": (8.0, 12.0, 4.0, "半天班(上午)"),
+    "R_H2": (12.0, 17.0, 5.0, "半天班(下午)"),
+    "R_N":  (17.5, 32.0, 14.5, "夜班"),
+    "R_N2": (17.5, 36.0, 18.5, "夜班+次日上午"),
+    "R_N3": (12.0, 32.0, 20.0, "下午+夜班"),
+    "R_LN": (8.0, 32.0, 24.0, "24H班"),
 }
 
 SHIFT_TIME_STR = {
@@ -61,6 +71,11 @@ SHIFT_TIME_STR = {
     "H1": "07:40-11:40", "H2": "08:30-12:30", "H3": "13:30-17:30", "T": "08:00-12:00",
     "N": "17:30-08:00", "N2": "17:30-07:30", "N3": "18:00-08:00",
     "L/N": "08:00-08:00",
+    # 放射技师
+    "R_D1": "08:30-17:00", "R_L": "08:00-17:30", "R_C1": "08:00-16:30",
+    "R_H1": "08:00-12:00", "R_H2": "12:00-17:00",
+    "R_N": "17:30-08:00", "R_N2": "17:30-12:00", "R_N3": "12:00-08:00",
+    "R_LN": "08:00-08:00",
 }
 
 SHIFT_COVERAGE = {
@@ -82,11 +97,30 @@ SHIFT_COVERAGE = {
     "N2": [1,1,1,1,1,1,1,0, 0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1],
     "N3": [1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1],
     "L/N":[1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    # 放射技师专用 SHIFT_COVERAGE (24h数组, index=小时)
+    # R_D1: 8:30→17:00 = 8.5→17.0 → h8-16
+    "R_D1":[0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1,1,0, 0,0,0,0,0,0],
+    # R_L: 8:00→17:30 = 8.0→17.5 → h8-17
+    "R_L": [0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1,1,1, 0,0,0,0,0,0],
+    # R_C1: 8:00→16:30 = 8.0→16.5 → h8-16
+    "R_C1":[0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1,1,0, 0,0,0,0,0,0],
+    # R_H1: 8:00→12:00 = 8.0→12.0 → h8-11
+    "R_H1":[0,0,0,0,0,0,0,0, 1,1,1,1, 0,0,0,0,0,0,0,0,0,0,0,0],
+    # R_H2: 12:00→17:00 = 12.0→17.0 → h12-16
+    "R_H2":[0,0,0,0,0,0,0,0, 0,0,0,0,1,1,1,1,1,0, 0,0,0,0,0,0],
+    # R_N: 17:30→8:00 = 17.5→32.0 → h0-7 + h17-23
+    "R_N": [1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1],
+    # R_N2: 17:30→12:00次日 = 17.5→36.0 → h0-11 + h17-23
+    "R_N2":[1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,1,1,1,1,1,1,1],
+    # R_N3: 12:00→8:00次日 = 12.0→32.0 → h0-7 + h12-23
+    "R_N3":[1,1,1,1,1,1,1,1, 0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1],
+    # R_LN: 8:00→8:00次日 = 8.0→32.0 → all 24h
+    "R_LN":[1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
 }
 
 ROLE_SHIFTS = {
     "放射医生": ["D","D1","D2","D3","D4","D5","D6","C","C1","L","L/N","N","N2","N3"],
-    "放射技师": ["D","D1","D2","D3","D4","D5","D6","C","C1","L","H1","H2","H3","N","N2","N3","L/N"],
+    "放射技师": ["R_D1","R_L","R_C1","R_H1","R_H2","R_N","R_N2","R_N3","R_LN"],
     "B超医生": ["D","D1","D2","D3","D4","D5","D6","C","C1","H1","H2","H3"],
 }
 
@@ -94,6 +128,34 @@ NIGHT_SHIFTS = {"N", "N2", "N3"}
 DAY_SHIFTS = {"D","D1","D2","D3","D4","D5","D6","C","C1","L","H1","H2","H3","T"}
 # 全天白班（不含半天班 H1/H2/H3/T）— 基础保障硬约束使用
 FULL_DAY_SHIFTS = {"D","D1","D2","D3","D4","D5","D6","C","C1","L"}
+# 放射技师专用
+R_NIGHT_SHIFTS = {"R_N", "R_N2", "R_N3"}
+R_LN_SHIFT = "R_LN"
+
+def _get_night_shifts(role_name):
+    """Return (night_set, ln_code) appropriate for the given role."""
+    if role_name == '放射技师':
+        return R_NIGHT_SHIFTS, R_LN_SHIFT
+    return NIGHT_SHIFTS, 'L/N'
+
+def _is_night_or_ln(shift, role_name=None):
+    """Check if a shift is night or L/N, role-aware."""
+    if role_name == '放射技师':
+        return shift in R_NIGHT_SHIFTS or shift == R_LN_SHIFT
+    return shift in NIGHT_SHIFTS or shift == 'L/N'
+
+R_DAY_SHIFTS = {"R_D1","R_L","R_C1","R_H1","R_H2"}
+R_FULL_DAY_SHIFTS = {"R_D1","R_L","R_C1"}
+
+def _get_day_shifts(role_name):
+    if role_name == '放射技师':
+        return R_DAY_SHIFTS
+    return DAY_SHIFTS
+
+def _get_full_day_shifts(role_name):
+    if role_name == '放射技师':
+        return R_FULL_DAY_SHIFTS
+    return FULL_DAY_SHIFTS
 
 TARGET_HOURS_FULL = None   # 在 main() 中根据月份动态计算: 当月工作日数 × 8
 TARGET_HOURS_80 = None     # TARGET_HOURS_FULL × 0.8
@@ -106,7 +168,7 @@ ROLE_CONFIG = {
         "backup_shift_based": True, "night_prefer_backup": True,
     },
     "放射技师": {
-        "day_shifts": 2, "night_shifts": 1, "ln_per_month": 2,
+        "day_shifts": 2, "night_shifts": 1, "ln_per_month": 1,  # L/N周末+每月最多1个
         "coverage_24h": True, "has_oncall": True,
         "backup_shift_based": False, "night_prefer_backup": False,
     },
@@ -673,11 +735,13 @@ def pre_allocate_ln(hourly_hc, date_strs, staff, all_dates):
         if ln_per_person <= 0 or not fulltime:
             continue
 
-        assignments = _distribute_ln_shifts(fulltime, date_strs, ln_per_person)
+        _, ln_code = _get_night_shifts(role)
+        assignments = _distribute_ln_shifts(fulltime, date_strs, ln_per_person,
+                                            all_dates=all_dates, weekends_only=(role == '放射技师'))
         for person, dates in assignments.items():
             for ds in dates:
-                ln_schedule[person][ds] = 'L/N'
-                ln_hours[person] += SHIFT_DICT['L/N'][2]
+                ln_schedule[person][ds] = ln_code
+                ln_hours[person] += SHIFT_DICT[ln_code][2]
                 ln_skip_dates[person].add(ds)
                 print(f"    L/N: {DISPLAY_NAME.get(person, person)} → {ds}")
 
@@ -693,19 +757,27 @@ def pre_allocate_ln(hourly_hc, date_strs, staff, all_dates):
     return dict(ln_schedule), dict(ln_hours), dict(ln_skip_dates)
 
 
-def _distribute_ln_shifts(fulltime_staff, date_strs, count_per_person=2):
-    """均匀间隔分配L/N班次"""
+def _distribute_ln_shifts(fulltime_staff, date_strs, count_per_person=2,
+                         all_dates=None, weekends_only=False):
+    """均匀间隔分配L/N班次。若weekends_only,仅分配到周六日(5,6)。"""
     n_people = len(fulltime_staff)
     if n_people == 0:
         return {}
     total_ln = n_people * count_per_person
-    n_days = len(date_strs)
+    # 若仅周末，先筛选周末日期
+    candidates = list(range(len(date_strs)))
+    if weekends_only and all_dates:
+        candidates = [i for i, d in enumerate(all_dates) if d.weekday() in (5, 6)]
+    if not candidates:
+        return {}
+    n_days = len(candidates)
     assignments = defaultdict(list)
     spacing = n_days / total_ln if total_ln > 0 else n_days
     for i in range(total_ln):
         person = fulltime_staff[i % n_people]
-        day_idx = int(i * spacing)
-        if day_idx < n_days:
+        idx_in_candidates = int(i * spacing)
+        if idx_in_candidates < n_days:
+            day_idx = candidates[idx_in_candidates]
             ds = date_strs[day_idx]
             assignments[person].append(ds)
     return dict(assignments)
@@ -747,7 +819,7 @@ def _build_shift_list(role_name, demand_by_date, date_strs):
     # 确保常用班次
     defaults = {
         '放射医生': ['D', 'L', 'L/N', 'N'],
-        '放射技师': ['D', 'D2', 'D6', 'N', 'N2', 'L/N', 'H1', 'H3'],
+        '放射技师': ['R_D1', 'R_L', 'R_C1', 'R_H1', 'R_H2', 'R_N', 'R_N2', 'R_N3', 'R_LN'],
         'B超医生': ['D', 'D5', 'D2', 'H1', 'H2', 'H3', 'T'],
     }
     used.update(defaults.get(role_name, ['D']))
@@ -808,9 +880,13 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
         shifts_list = _build_shift_list(role_name, hourly_hc, date_strs)
         n_shifts = len(shifts_list)
         shift_hours = [SHIFT_DICT[s][2] for s in shifts_list]
-        shift_is_night = [1 if s in NIGHT_SHIFTS else 0 for s in shifts_list]
-        shift_is_ln = [1 if s == 'L/N' else 0 for s in shifts_list]
-        shift_is_day = [1 if s in DAY_SHIFTS else 0 for s in shifts_list]
+        _night_set, _ln_code = _get_night_shifts(role_name)
+        _night_ln_set = _night_set | {_ln_code}
+        _day_set = _get_day_shifts(role_name)
+        _full_day_set = _get_full_day_shifts(role_name)
+        shift_is_night = [1 if s in _night_set else 0 for s in shifts_list]
+        shift_is_ln = [1 if s == _ln_code else 0 for s in shifts_list]
+        shift_is_day = [1 if s in _day_set else 0 for s in shifts_list]
 
         # 计算每人已有工时（来自L/N预分配）和每天已有排班
         existing_hours = {p: ln_hours.get(p, 0) for p in all_staff}
@@ -867,8 +943,8 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
             person = all_staff[p]
             for d in range(n_days - 1):
                 # 当天夜班
-                base_night_curr = 1 if existing_shift_d.get(person, {}).get(d, '') in (NIGHT_SHIFTS | {'L/N'}) else 0
-                base_night_next = 1 if existing_shift_d.get(person, {}).get(d + 1, '') in (NIGHT_SHIFTS | {'L/N'}) else 0
+                base_night_curr = 1 if existing_shift_d.get(person, {}).get(d, '') in _night_ln_set else 0
+                base_night_next = 1 if existing_shift_d.get(person, {}).get(d + 1, '') in _night_ln_set else 0
                 supp_night_curr = sum(x[p, d, s] for s in range(n_shifts) if shift_is_night[s] or shift_is_ln[s])
                 supp_night_next = sum(x[p, d + 1, s] for s in range(n_shifts) if shift_is_night[s] or shift_is_ln[s])
                 model.Add(base_night_curr + base_night_next + supp_night_curr + supp_night_next <= 1)
@@ -877,7 +953,7 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
         for p in range(n_staff):
             person = all_staff[p]
             for d in range(n_days - 1):
-                base_night = 1 if existing_shift_d.get(person, {}).get(d, '') in (NIGHT_SHIFTS | {'L/N'}) else 0
+                base_night = 1 if existing_shift_d.get(person, {}).get(d, '') in _night_ln_set else 0
                 supp_night = sum(x[p, d, s] for s in range(n_shifts) if shift_is_night[s] or shift_is_ln[s])
                 supp_day_next = sum(x[p, d + 1, s] for s in range(n_shifts) if shift_is_day[s])
                 if base_night:
@@ -892,7 +968,7 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
         # - 不考虑需求覆盖 (需求由备班满足)
         # ================================================================
         if role_name == '放射医生':
-            full_day_is = [1 if s in FULL_DAY_SHIFTS else 0 for s in shifts_list]
+            full_day_is = [1 if s in _full_day_set else 0 for s in shifts_list]
 
             # 兼职人员 (独立的 night-only pool)
             parttime = staff[role_name].get('parttime', [])
@@ -938,7 +1014,7 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                 ln_covers = 0
                 for p in range(n_staff):
                     person = all_staff[p]
-                    if existing_shift_d.get(person, {}).get(d, '') == 'L/N':
+                    if existing_shift_d.get(person, {}).get(d, '') in _night_ln_set:
                         ln_covers = 1
                         break
 
@@ -971,6 +1047,28 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                             pt_slack_vars[d] = ptsl
                             model.Add(sum(pt_night_vars_d) + ptsl == 1)
 
+            # 连续工作≤4天 (防疲劳) — 仅全职放射医生
+            MAX_CONSEC = 4
+            for p in range(n_staff):
+                for d in range(n_days - MAX_CONSEC):
+                    cons_vars = []
+                    for i in range(MAX_CONSEC + 1):
+                        has_ln = existing_shift_d.get(all_staff[p], {}).get(d+i, '') in _night_ln_set
+                        if has_ln:
+                            cons_vars.append(1)
+                        else:
+                            day_v = [x[p, d+i, s] for s in range(n_shifts)
+                                    if not shift_is_night[s] and not shift_is_ln[s]]
+                            if day_v:
+                                w = model.NewBoolVar(f's1_cons_{p}_{d+i}')
+                                model.Add(sum(day_v) >= 1).OnlyEnforceIf(w)
+                                model.Add(sum(day_v) == 0).OnlyEnforceIf(w.Not())
+                                cons_vars.append(w)
+                            else:
+                                cons_vars.append(0)
+                    if cons_vars:
+                        model.Add(sum(cons_vars) <= MAX_CONSEC)
+
             # --- Objective ---
             objective_terms = []
 
@@ -1002,7 +1100,49 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                 model.Add(over >= total_dec + base_dec - target_dec)
                 objective_terms.append(over * (-S1_COVERAGE_WEIGHT))
 
-            # 同天惩罚: 两人同时白班→惩罚
+            # D班偏好: 多用D班
+            d_idx = None
+            for s_idx, s_name in enumerate(shifts_list):
+                if s_name == 'D':
+                    d_idx = s_idx
+                    break
+            if d_idx is not None:
+                for p in range(n_staff):
+                    d_count = sum(x[p, d, d_idx] for d in range(n_days))
+                    objective_terms.append(d_count * 1500)
+
+            # 隔天交替: 同一个人不能连续2天独自值白班
+            for d in range(n_days - 1):
+                li_today = sum(x[0, d, s] for s in range(n_shifts)
+                              if not shift_is_night[s] and not shift_is_ln[s])
+                li_tom = sum(x[0, d+1, s] for s in range(n_shifts)
+                            if not shift_is_night[s] and not shift_is_ln[s])
+                du_today = sum(x[1, d, s] for s in range(n_shifts)
+                              if not shift_is_night[s] and not shift_is_ln[s])
+                du_tom = sum(x[1, d+1, s] for s in range(n_shifts)
+                            if not shift_is_night[s] and not shift_is_ln[s])
+                # li_only: li>=1 AND du==0
+                li_only_today = model.NewBoolVar(f's1_lio_{d}')
+                model.Add(li_only_today >= li_today - du_today)
+                model.Add(li_only_today <= li_today)
+                model.Add(li_only_today <= 1 - du_today)
+                li_only_tom = model.NewBoolVar(f's1_lio_{d+1}')
+                model.Add(li_only_tom >= li_tom - du_tom)
+                model.Add(li_only_tom <= li_tom)
+                model.Add(li_only_tom <= 1 - du_tom)
+                # du_only: du>=1 AND li==0
+                du_only_today = model.NewBoolVar(f's1_duo_{d}')
+                model.Add(du_only_today >= du_today - li_today)
+                model.Add(du_only_today <= du_today)
+                model.Add(du_only_today <= 1 - li_today)
+                du_only_tom = model.NewBoolVar(f's1_duo_{d+1}')
+                model.Add(du_only_tom >= du_tom - li_tom)
+                model.Add(du_only_tom <= du_tom)
+                model.Add(du_only_tom <= 1 - li_tom)
+                # 不能连续2天独自值班
+                model.Add(li_only_today + li_only_tom <= 1)
+                model.Add(du_only_today + du_only_tom <= 1)
+            # 同天惩罚: 轻微
             for d, ds in enumerate(date_strs):
                 li_var = sum(x[0, d, s] for s in range(n_shifts) if not shift_is_night[s] and not shift_is_ln[s])
                 du_var = sum(x[1, d, s] for s in range(n_shifts) if not shift_is_night[s] and not shift_is_ln[s])
@@ -1091,7 +1231,7 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
         night_slack_vars = {}
         h24_slack_vars = {}
         dustin_wf_slack = {}
-        full_day_is = [1 if s in FULL_DAY_SHIFTS else 0 for s in shifts_list]
+        full_day_is = [1 if s in _full_day_set else 0 for s in shifts_list]
 
         for d, ds in enumerate(date_strs):
             base_coverage = np.zeros(24)
@@ -1105,9 +1245,9 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                     for hh in range(24):
                         if cov_arr[hh]:
                             base_coverage[hh] += 1
-                    if shift in NIGHT_SHIFTS or shift == 'L/N':
+                    if shift in _night_ln_set:
                         base_night_count += 1
-                    if shift in FULL_DAY_SHIFTS or shift == 'L/N':
+                    if shift in _full_day_set or shift == _ln_code:
                         base_full_day_count += 1
 
             # C0: 请假硬约束 — 请假时段禁止排任何覆盖该时段的班次
@@ -1183,9 +1323,19 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
 
             # 24h覆盖 (仅放射技师，极高惩罚slack)
             if cfg['coverage_24h']:
+                # N2 index for cross-day linkage
+                n2_cross_idx = None
+                for si, sn in enumerate(shifts_list):
+                    if sn == 'R_N2':
+                        n2_cross_idx = si
+                        break
                 for h in range(24):
                     coverage_vars = [x[p, d, s] for p in range(n_staff) for s, shift in enumerate(shifts_list)
                                    if h < len(SHIFT_COVERAGE.get(shift, [])) and SHIFT_COVERAGE[shift][h] == 1]
+                    # N2跨天: 前一天N2覆盖当天上午h8-11
+                    if d > 0 and n2_cross_idx is not None and h in range(8, 12):
+                        n2_prev = [x[p, d-1, n2_cross_idx] for p in range(n_staff)]
+                        coverage_vars.extend(n2_prev)
                     if coverage_vars:
                         total_base = int(base_coverage[h])
                         h24slack = model.NewIntVar(0, 2, f's1_h24slack_{d}_{h}')
@@ -1279,6 +1429,55 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
         for sl in h24_slack_vars.values():
             objective_terms.append(sl * (-S1_COVERAGE_WEIGHT * 5))
 
+        # 夜班均衡 + N/N2/N3 适度激励 (仅放射技师)
+        if role_name == '放射技师':
+            n_idx = n2_idx = n3_idx = None
+            for si, sn in enumerate(shifts_list):
+                if sn == 'R_N': n_idx = si
+                if sn == 'R_N2': n2_idx = si
+                if sn == 'R_N3': n3_idx = si
+            # N2 跨天奖励: 次日上午有需求时给中等奖励
+            if n2_idx is not None:
+                for d in range(n_days - 1):
+                    demand_d1 = hourly_hc.get(date_strs[d+1], {}).get(role_key, np.zeros(24))
+                    next_demand_morning = sum(demand_d1[h] for h in range(8, 12))
+                    if next_demand_morning >= 1:
+                        n2_vars_d = [x[p, d, n2_idx] for p in range(n_staff)]
+                        objective_terms.append(sum(n2_vars_d) * 30000)
+            # N3 下午+夜班激励: 当天下午有需求时N3有价值
+            if n3_idx is not None:
+                for d in range(n_days):
+                    demand_d = hourly_hc.get(date_strs[d], {}).get(role_key, np.zeros(24))
+                    afternoon_demand = sum(demand_d[h] for h in range(12, 17))
+                    night_demand = sum(demand_d[h] for h in range(0, 8)) + sum(demand_d[h] for h in range(17, 24))
+                    if afternoon_demand >= 1 and night_demand >= 1:
+                        n3_vars_d = [x[p, d, n3_idx] for p in range(n_staff)]
+                        objective_terms.append(sum(n3_vars_d) * 15000)
+            # N 基础奖励: 纯夜班最标准
+            if n_idx is not None:
+                for d in range(n_days):
+                    demand_d = hourly_hc.get(date_strs[d], {}).get(role_key, np.zeros(24))
+                    if sum(demand_d[h] for h in range(0, 8)) + sum(demand_d[h] for h in range(17, 24)) >= 1:
+                        n_vars_d = [x[p, d, n_idx] for p in range(n_staff)]
+                        objective_terms.append(sum(n_vars_d) * 12000)
+            # 夜班均衡: 每人夜班(N/N2/N3)数量偏差惩罚
+            total_night_per_person = {}
+            for p in range(n_staff):
+                night_total = []
+                for d in range(n_days):
+                    for nidx in [ni for ni in [n_idx, n2_idx, n3_idx] if ni is not None]:
+                        night_total.append(x[p, d, nidx])
+                total_night_per_person[p] = sum(night_total)
+            total_nights = sum(total_night_per_person.values())
+            if n_staff > 0:
+                for p in range(n_staff):
+                    n_dev = model.NewIntVar(0, n_days * n_staff, f's1_ndev_{p}')
+                    model.Add(n_dev >= total_night_per_person[p] * n_staff - total_nights)
+                    model.Add(n_dev >= total_nights - total_night_per_person[p] * n_staff)
+                    objective_terms.append(n_dev * (-3000))
+
+
+
         # Dustin Wed+Fri 缺口 → 极高惩罚 (P0级别)
         for sl in dustin_wf_slack.values():
             objective_terms.append(sl * (-S1_COVERAGE_WEIGHT * 10))
@@ -1310,7 +1509,7 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
 
         # Solve
         solver = cp_model.CpSolver()
-        solver.parameters.max_time_in_seconds = 120
+        solver.parameters.max_time_in_seconds = 180
         solver.parameters.num_search_workers = 8
         status = solver.Solve(model)
         print(f"   {role_name} Stage1 求解: {solver.StatusName(status)}")
@@ -1389,11 +1588,15 @@ def solve_stage2_20pct(hourly_hc, date_strs, staff, stage1_schedule, stage1_hour
         shifts_list = _build_shift_list(role_name, hourly_hc, date_strs)
         n_shifts = len(shifts_list)
         shift_hours = [SHIFT_DICT[s][2] for s in shifts_list]
-        shift_is_night = [1 if s in NIGHT_SHIFTS else 0 for s in shifts_list]
-        shift_is_ln = [1 if s == 'L/N' else 0 for s in shifts_list]
-        shift_is_day = [1 if s in DAY_SHIFTS else 0 for s in shifts_list]
-        full_day_is = [1 if s in FULL_DAY_SHIFTS else 0 for s in shifts_list]
-        TOL_DECIHOURS = 0  # 8h tolerance (lower bound = TARGET - 8h)
+        _night_set, _ln_code = _get_night_shifts(role_name)
+        _night_ln_set = _night_set | {_ln_code}
+        _day_set = _get_day_shifts(role_name)
+        _full_day_set = _get_full_day_shifts(role_name)
+        shift_is_night = [1 if s in _night_set else 0 for s in shifts_list]
+        shift_is_ln = [1 if s == _ln_code else 0 for s in shifts_list]
+        shift_is_day = [1 if s in _day_set else 0 for s in shifts_list]
+        full_day_is = [1 if s in _full_day_set else 0 for s in shifts_list]
+        TOL_DECIHOURS = 80  # 8h tolerance
 
         # 计算Stage1每天的覆盖和每人已用工时
         s1_hours = {p: stage1_hours.get(p, 0) for p in fulltime}
@@ -1453,7 +1656,7 @@ def solve_stage2_20pct(hourly_hc, date_strs, staff, stage1_schedule, stage1_hour
         # C3: L/N限制
         for p in range(n_staff):
             person = fulltime[p]
-            s1_ln = sum(1 for v in s1_shift_d.get(person, {}).values() if v == 'L/N')
+            s1_ln = sum(1 for v in s1_shift_d.get(person, {}).values() if v == _ln_code)
             supp_ln = sum(x[p, d, s] for d in range(n_days) for s in range(n_shifts) if shift_is_ln[s])
             model.Add(supp_ln <= max(0, cfg['ln_per_month'] - s1_ln))
 
@@ -1461,8 +1664,8 @@ def solve_stage2_20pct(hourly_hc, date_strs, staff, stage1_schedule, stage1_hour
         for p in range(n_staff):
             person = fulltime[p]
             for d in range(n_days - 1):
-                s1_night_curr = 1 if s1_shift_d.get(person, {}).get(d, '') in (NIGHT_SHIFTS | {'L/N'}) else 0
-                s1_night_next = 1 if s1_shift_d.get(person, {}).get(d + 1, '') in (NIGHT_SHIFTS | {'L/N'}) else 0
+                s1_night_curr = 1 if s1_shift_d.get(person, {}).get(d, '') in _night_ln_set else 0
+                s1_night_next = 1 if s1_shift_d.get(person, {}).get(d + 1, '') in _night_ln_set else 0
                 supp_night_curr = sum(x[p, d, s] for s in range(n_shifts) if shift_is_night[s] or shift_is_ln[s])
                 supp_night_next = sum(x[p, d + 1, s] for s in range(n_shifts) if shift_is_night[s] or shift_is_ln[s])
                 model.Add(s1_night_curr + s1_night_next + supp_night_curr + supp_night_next <= 1)
@@ -1471,7 +1674,7 @@ def solve_stage2_20pct(hourly_hc, date_strs, staff, stage1_schedule, stage1_hour
         for p in range(n_staff):
             person = fulltime[p]
             for d in range(n_days - 1):
-                s1_night = 1 if s1_shift_d.get(person, {}).get(d, '') in (NIGHT_SHIFTS | {'L/N'}) else 0
+                s1_night = 1 if s1_shift_d.get(person, {}).get(d, '') in _night_ln_set else 0
                 supp_night = sum(x[p, d, s] for s in range(n_shifts) if shift_is_night[s] or shift_is_ln[s])
                 supp_day_next = sum(x[p, d + 1, s] for s in range(n_shifts) if shift_is_day[s])
                 if s1_night:
@@ -1507,7 +1710,7 @@ def solve_stage2_20pct(hourly_hc, date_strs, staff, stage1_schedule, stage1_hour
         if role_name == '放射技师':
             for d, ds in enumerate(date_strs):
                 s1_night_d = sum(1 for p in range(n_staff)
-                               if s1_shift_d.get(fulltime[p], {}).get(d, '') in (NIGHT_SHIFTS | {'L/N'}))
+                               if s1_shift_d.get(fulltime[p], {}).get(d, '') in _night_ln_set)
                 supp_night_d = sum(x[p, d, s] for p in range(n_staff) for s in range(n_shifts)
                                   if shift_is_night[s] or shift_is_ln[s])
                 model.Add(supp_night_d + s1_night_d <= 1)
@@ -1538,7 +1741,7 @@ def solve_stage2_20pct(hourly_hc, date_strs, staff, stage1_schedule, stage1_hour
 
         # Solve
         solver = cp_model.CpSolver()
-        solver.parameters.max_time_in_seconds = 120
+        solver.parameters.max_time_in_seconds = 180
         solver.parameters.num_search_workers = 8
         status = solver.Solve(model)
         print(f"   {role_name} Stage2 求解: {solver.StatusName(status)}")
@@ -2651,6 +2854,11 @@ def generate_dashboard_html(final_schedule, final_hours, category_hours, hourly_
             "H1": "#29B6F6", "H2": "#4FC3F7", "H3": "#81D4FA", "T": "#B3E5FC",
             "N": "#1a73e8", "N2": "#1565C0", "N3": "#0D47A1",
             "L/N": "#FF9800",
+            # 放射技师专用
+            "R_D1": "#66BB6A", "R_L": "#8BC34A", "R_C1": "#66BB6A",
+            "R_H1": "#29B6F6", "R_H2": "#4FC3F7",
+            "R_N": "#1a73e8", "R_N2": "#1565C0", "R_N3": "#0D47A1",
+            "R_LN": "#FF9800",
             "OnCall": "#9E9E9E",
             "off": "#F5F5F5",
         }
@@ -2659,8 +2867,10 @@ def generate_dashboard_html(final_schedule, final_hours, category_hours, hourly_
             "staff": staff_list,
             "dates": date_strs,
             "weekdays": [all_dates[i].weekday() for i in range(len(date_strs))],  # 0=Mon
+            "allowed_shifts": ROLE_SHIFTS.get(role_name, []),
             "shift_colors": shift_colors,
             "shift_times": SHIFT_TIME_STR,
+            "shift_hours": {s: SHIFT_DICT[s][2] for s in SHIFT_DICT},
             "demand_samples": demand_samples,
             "total_days": len(date_strs),
         }
@@ -3164,8 +3374,14 @@ function renderRoster(){
 
     function staffRow(p){
         var html = '<tr>';
+        var dynHours = getDynamicHours(p, dates);
+        var changed = (Math.abs(dynHours - p.hours) > 0.05);
+        var hourColor = '#333';
+        if(changed) hourColor = '#E91E63';
+        else if(dynHours > TARGET_80 && !p.is_backup) hourColor = '#1a73e8';
+        var hourTitle = changed ? ('原始 ' + p.hours + 'h → 修改后 ' + dynHours + 'h') : '';
         html += '<td class="name-col">' + p.name + (p.is_backup?' 🔄':'') + '</td>';
-        html += '<td class="stats-col" style="' + (p.hours > TARGET_80 && !p.is_backup?'color:#1a73e8;font-weight:600':'') + '">' + p.hours + 'h</td>';
+        html += '<td class="stats-col" style="font-weight:600;color:' + hourColor + '" title="' + hourTitle + '">' + dynHours + 'h</td>';
         html += '<td class="stats-col">' + p.hours_80 + 'h</td>';
         html += '<td class="stats-col" style="color:#1a73e8">' + (p.hours_20>0?p.hours_20+'h':'-') + '</td>';
         html += '<td class="stats-col" style="color:#F44336">' + (p.hours_backup>0?p.hours_backup+'h':'-') + '</td>';
@@ -3179,7 +3395,8 @@ function renderRoster(){
             var isOncall = p.is_oncall && p.is_oncall[ds];
             var hasEdit = edits[p.internal_name] && edits[p.internal_name][ds] !== undefined;
             var displayShift = hasEdit ? edits[p.internal_name][ds] : shiftVal;
-            var text = displayShift || '-';
+            var displayName = SHIFT_LABELS[displayShift] || displayShift;
+            var text = displayName || '-';
             var extraClass = editMode ? ' editable' : '';
             var bg = displayShift ? '#F8F8F8' : '#FFFFFF';
             if(displayShift){
@@ -3190,7 +3407,7 @@ function renderRoster(){
                 if(catVal === '20%') badge = ' <sup style="background:#1565C0;color:#fff;padding:2px 4px;border-radius:3px;font-size:10px;font-weight:bold">20%</sup>';
                 else if(catVal === '备班') badge = ' <sup style="background:#F44336;color:#fff;padding:1px 3px;border-radius:2px;font-size:8px">B</sup>';
                 else if(catVal === 'L/N') badge = ' <sup style="background:#FF9800;color:#fff;padding:1px 3px;border-radius:2px;font-size:8px">LN</sup>';
-                text = '<b>' + displayShift + '</b>' + badge;
+                text = '<b>' + displayName + '</b>' + badge;
             }
             // PTO/CTO special rendering (from edits or algorithmic PTO)
             var shiftUpper = displayShift.toUpperCase();
@@ -3206,6 +3423,10 @@ function renderRoster(){
             if(shiftUpper === 'CTO4' || shiftUpper === 'CTO8'){
                 var ctoLabel = shiftUpper === 'CTO4' ? 'CTO 4h' : 'CTO 8h';
                 html += '<td class="shift-cell editable" style="background:#FF9800;color:#fff;font-weight:bold" onclick="openEditPopup(\'' + p.internal_name + '\',\'' + ds + '\')"><span>' + ctoLabel + '</span></td>';
+                continue;
+            }
+            if(displayShift === '放射假'){
+                html += '<td class="shift-cell editable" style="background:#9C27B0;color:#fff;font-weight:bold" onclick="openEditPopup(\'' + p.internal_name + '\',\'' + ds + '\')"><span>放射假</span></td>';
                 continue;
             }
             // Oncall: check user edits first, then algorithmic
@@ -3248,16 +3469,20 @@ function renderRoster(){
 function renderShiftRef(){
     var rd = SCHEDULE_DATA.roles[currentRole];
     var h = '<div class="shift-grid">';
-    var shiftNames = ['D','D1','D2','D3','D4','D5','D6','C','C1','L','N','N1','N2','N3','L/N','T','T1','H','H1','H2','H3'];
+    var shiftNames = (rd.allowed_shifts||[]).slice();
     for(var i=0; i<shiftNames.length; i++){
         var s = shiftNames[i];
         var time = rd.shift_times[s];
         var color = rd.shift_colors[s];
         if(!time && !color) continue;
         var bg = color || '#9e9e9e';
-        h += '<div class="shift-chip"><span class="chip-name" style="background:' + bg + '">' + s + '</span><span class="chip-time">' + (time||'-') + '</span></div>';
+        var displayName = SHIFT_LABELS[s] || s;
+        h += '<div class="shift-chip"><span class="chip-name" style="background:' + bg + '">' + displayName + '</span><span class="chip-time">' + (time||'-') + '</span></div>';
     }
     h += '<div class="shift-chip chip-off"><span class="chip-name" style="background:#eee;color:#999">OFF</span><span class="chip-time">休息</span></div>';
+    if(currentRole === '放射技师'){
+        h += '<div class="shift-chip chip-off"><span class="chip-name" style="background:#9C27B0;color:#fff">放射假</span><span class="chip-time">放射假</span></div>';
+    }
     h += '</div>';
     document.getElementById('shiftRef').innerHTML = h;
 }
@@ -3345,8 +3570,50 @@ function toggleEdit(){
     renderRoster();
 }
 
-var ALLOWED_SHIFTS = ['C','C1','D','D1','D2','D3','D4','D5','D6','N','N1','N2','N3','L','L/N','T','T1','H','H1','H2','H3','PTO4','PTO8','CTO4','CTO8','OFF',''];
-var SHIFT_LABELS = {OFF:'休息', PTO4:'PTO 4h', PTO8:'PTO 8h', CTO4:'CTO 4h', CTO8:'CTO 8h'};
+function getRoleAllowedShifts(){
+    var rd = SCHEDULE_DATA.roles[currentRole];
+    var shifts = (rd.allowed_shifts||[]).slice();  // role-specific shifts
+    // Add universal options applicable to all roles
+    var extras = ['PTO4','PTO8','CTO4','CTO8','OFF',''];
+    if(currentRole === '放射技师') extras.splice(4, 0, '放射假');  // insert before OFF
+    for(var i=0; i<extras.length; i++){
+        if(shifts.indexOf(extras[i]) < 0) shifts.push(extras[i]);
+    }
+    return shifts;
+}
+var SHIFT_LABELS = {
+    OFF:'休息', PTO4:'PTO 4h', PTO8:'PTO 8h', CTO4:'CTO 4h', CTO8:'CTO 8h',
+    '放射假':'放射假',
+    // 放射技师显示名
+    R_D1:'D1', R_L:'L', R_C1:'C1', R_H1:'H1', R_H2:'H2',
+    R_N:'N', R_N2:'N2', R_N3:'N3', R_LN:'L/N'
+};
+
+function getDynamicHours(person, dates){
+    // Recalculate total hours from current schedule (edits override original)
+    var h = 0.0;
+    var rd = SCHEDULE_DATA.roles[currentRole];
+    var shiftHoursMap = rd.shift_hours || {};
+    for(var di=0; di<dates.length; di++){
+        var ds = dates[di];
+        var shiftVal;
+        if(edits[person.internal_name] && edits[person.internal_name][ds] !== undefined){
+            shiftVal = edits[person.internal_name][ds];
+        } else {
+            shiftVal = person.schedule[ds] || '';
+        }
+        if(shiftVal && shiftHoursMap[shiftVal]){
+            h += shiftHoursMap[shiftVal];
+        } else if(shiftVal === 'PTO4' || shiftVal === 'CTO4'){
+            h += 4;
+        } else if(shiftVal === 'PTO8' || shiftVal === 'CTO8'){
+            h += 8;
+        } else if(shiftVal === '放射假'){
+            h += 8;
+        }
+    }
+    return Math.round(h * 10) / 10;
+}
 
 function openEditPopup(personName, dateStr){
     selectedCell = {name: personName, ds: dateStr};
@@ -3366,8 +3633,9 @@ function openEditPopup(personName, dateStr){
     var h = '<h3>✏️ ' + person.name + ' — ' + dateStr + '</h3>';
     h += '<p style="font-size:11px;color:#666;margin-bottom:8px">当前班次：<b>' + (currentShift||'休息') + '</b></p>';
     h += '<div class="btn-row">';
-    for(var i=0; i<ALLOWED_SHIFTS.length; i++){
-        var s = ALLOWED_SHIFTS[i];
+    var allowedShifts = getRoleAllowedShifts();
+    for(var i=0; i<allowedShifts.length; i++){
+        var s = allowedShifts[i];
         var sel = s === currentShift ? ' sel' : '';
         var label = SHIFT_LABELS[s] || s;
         h += '<button class="btn-shift' + sel + '" onclick="selectShift(\'' + s + '\')">' + label + '</button>';
