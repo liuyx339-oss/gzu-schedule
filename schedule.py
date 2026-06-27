@@ -44,11 +44,12 @@ LOAD_RATE = {
 SHIFT_DICT = {
     "D":  (8.5, 17.5, 8.5, "白班"),   "D1": (8.5, 17.0, 8.0, "白班"),
     "D2": (9.0, 17.5, 8.0, "白班"),   "D3": (9.5, 18.0, 8.0, "白班"),
-    "D4": (9.0, 18.0, 8.5, "白班"),   "D5": (8.5, 18.0, 9.0, "白班"),
-    "D6": (7.5, 15.5, 8.0, "白班"),   "C":  (7.67, 16.17, 8.0, "白班"),
-    "C1": (8.0, 16.5, 8.0, "白班"),   "L":  (8.0, 20.0, 12.0, "白班"),
-    "H1": (7.67, 11.67, 4.0, "半天班"), "H2": (8.5, 12.5, 4.0, "半天班"),
-    "H3": (13.5, 17.5, 4.0, "半天班"),  "T":  (8.0, 12.0, 4.0, "半天班"),
+    "D4": (9.0, 18.0, 8.5, "白班"),
+    "C":  (7.67, 16.17, 8.0, "白班"), "C1": (8.0, 16.5, 8.0, "白班"),
+    "L":  (8.0, 17.5, 9.5, "白班"),    "L1": (8.0, 18.0, 10.0, "白班"),  # 长白班
+    "H1": (7.67, 11.67, 4.0, "半天班"), "H2": (8.0, 12.0, 4.0, "半天班"),
+    "H3": (8.5, 12.5, 4.0, "半天班"),  "H4": (13.5, 17.5, 4.0, "半天班"),
+    "T":  (8.0, 12.0, 4.0, "半天班"),
     "N":  (17.5, 32.0, 14.5, "夜班"),  "N2": (17.5, 31.5, 14.0, "夜班"),
     "N3": (18.0, 32.0, 14.0, "夜班"),
     "L/N": (8.0, 32.0, 24.0, "24H班"),
@@ -66,9 +67,10 @@ SHIFT_DICT = {
 
 SHIFT_TIME_STR = {
     "D": "08:30-17:30", "D1": "08:30-17:00", "D2": "09:00-17:30", "D3": "09:30-18:00",
-    "D4": "09:00-18:00", "D5": "08:30-18:00", "D6": "07:30-15:30",
-    "C": "07:40-16:10", "C1": "08:00-16:30", "L": "08:00-20:00",
-    "H1": "07:40-11:40", "H2": "08:30-12:30", "H3": "13:30-17:30", "T": "08:00-12:00",
+    "D4": "09:00-18:00",
+    "C": "07:40-16:10", "C1": "08:00-16:30", "L": "08:00-17:30", "L1": "08:00-18:00",
+    "H1": "07:40-11:40", "H2": "08:00-12:00", "H3": "08:30-12:30", "H4": "13:30-17:30",
+    "T": "08:00-12:00",
     "N": "17:30-08:00", "N2": "17:30-07:30", "N3": "18:00-08:00",
     "L/N": "08:00-08:00",
     # 放射技师
@@ -84,14 +86,16 @@ SHIFT_COVERAGE = {
     "D2": [0,0,0,0,0,0,0,0, 0,1,1,1,1,1,1,1,1,1, 0,0,0,0,0,0],
     "D3": [0,0,0,0,0,0,0,0, 0,1,1,1,1,1,1,1,1,1, 0,0,0,0,0,0],
     "D4": [0,0,0,0,0,0,0,0, 0,1,1,1,1,1,1,1,1,1, 0,0,0,0,0,0],
-    "D5": [0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1,1,1, 0,0,0,0,0,0],
-    "D6": [0,0,0,0,0,0,0,1, 1,1,1,1,1,1,1,1,0,0, 0,0,0,0,0,0],
     "C":  [0,0,0,0,0,0,0,1, 1,1,1,1,1,1,1,1,1,0, 0,0,0,0,0,0],
     "C1": [0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1,1,0, 0,0,0,0,0,0],
-    "L":  [0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0],
+    # L: 8:00-17:30 = h8-17
+    "L":  [0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1,1,1, 0,0,0,0,0,0],
+    # L1: 8:00-18:00 = h8-17
+    "L1": [0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1,1,1, 0,0,0,0,0,0],
     "H1": [0,0,0,0,0,0,0,1, 1,1,1,1, 0,0,0,0,0,0,0,0,0,0,0,0],
-    "H2": [0,0,0,0,0,0,0,0, 1,1,1,1,1, 0,0,0,0,0,0,0,0,0,0,0],
-    "H3": [0,0,0,0,0,0,0,0, 0,0,0,0,0,1,1,1,1,1, 0,0,0,0,0,0],
+    "H2": [0,0,0,0,0,0,0,0, 1,1,1,1, 0,0,0,0,0,0,0,0,0,0,0,0],
+    "H3": [0,0,0,0,0,0,0,0, 1,1,1,1,1, 0,0,0,0,0,0,0,0,0,0,0],
+    "H4": [0,0,0,0,0,0,0,0, 0,0,0,0,0,1,1,1,1,1, 0,0,0,0,0,0],
     "T":  [0,0,0,0,0,0,0,0, 1,1,1,1, 0,0,0,0,0,0,0,0,0,0,0,0],
     "N":  [1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1],
     "N2": [1,1,1,1,1,1,1,0, 0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1],
@@ -119,15 +123,14 @@ SHIFT_COVERAGE = {
 }
 
 ROLE_SHIFTS = {
-    "放射医生": ["D","D1","D2","D3","D4","D5","D6","C","C1","L","L/N","N","N2","N3"],
+    "放射医生": ["D","D1","D2","D3","D4","C","C1","L","L1","H1","H2","H3","H4","L/N","N","N2","N3"],
     "放射技师": ["R_D1","R_L","R_C1","R_H1","R_H2","R_N","R_N2","R_N3","R_LN"],
-    "B超医生": ["D","D1","D2","D3","D4","D5","D6","C","C1","H1","H2","H3"],
+    "B超医生": ["D","D1","D2","D3","D4","C","C1","L","L1","H1","H2","H3","H4"],
 }
 
 NIGHT_SHIFTS = {"N", "N2", "N3"}
-DAY_SHIFTS = {"D","D1","D2","D3","D4","D5","D6","C","C1","L","H1","H2","H3","T"}
-# 全天白班（不含半天班 H1/H2/H3/T）— 基础保障硬约束使用
-FULL_DAY_SHIFTS = {"D","D1","D2","D3","D4","D5","D6","C","C1","L"}
+DAY_SHIFTS = {"D","D1","D2","D3","D4","C","C1","L","L1","H1","H2","H3","H4","T"}
+FULL_DAY_SHIFTS = {"D","D1","D2","D3","D4","C","C1","L","L1"}
 # 放射技师专用
 R_NIGHT_SHIFTS = {"R_N", "R_N2", "R_N3"}
 R_LN_SHIFT = "R_LN"
@@ -818,9 +821,9 @@ def _build_shift_list(role_name, demand_by_date, date_strs):
                     used.add(s)
     # 确保常用班次
     defaults = {
-        '放射医生': ['D', 'L', 'L/N', 'N'],
+        '放射医生': ['D', 'L', 'L1', 'L/N', 'N'],
         '放射技师': ['R_D1', 'R_L', 'R_C1', 'R_H1', 'R_H2', 'R_N', 'R_N2', 'R_N3', 'R_LN'],
-        'B超医生': ['D', 'D5', 'D2', 'H1', 'H2', 'H3', 'T'],
+        'B超医生': ['D', 'D2', 'L', 'L1', 'H1', 'H2', 'H3', 'H4'],
     }
     used.update(defaults.get(role_name, ['D']))
     return [s for s in available if s in used]
@@ -1344,7 +1347,7 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
 
         # C8: B超医生 下午约束 (Wed+Fri=2人, Tue+Thu=3人) — 硬约束
         if role_name == 'B超医生':
-            pm_is = [1 if (s in FULL_DAY_SHIFTS or s == 'H3') else 0 for s in shifts_list]
+            pm_is = [1 if (s in FULL_DAY_SHIFTS or s == 'H4') else 0 for s in shifts_list]
             pm_dates_wf = pm_dates_tt = 0
             for d, ds in enumerate(date_strs):
                 wd = _get_date_weekday(ds, all_dates, date_strs)
@@ -1443,7 +1446,7 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                     next_demand_morning = sum(demand_d1[h] for h in range(8, 12))
                     if next_demand_morning >= 1:
                         n2_vars_d = [x[p, d, n2_idx] for p in range(n_staff)]
-                        objective_terms.append(sum(n2_vars_d) * 30000)
+                        objective_terms.append(sum(n2_vars_d) * 20000)
             # N3 下午+夜班激励: 当天下午有需求时N3有价值
             if n3_idx is not None:
                 for d in range(n_days):
@@ -1452,14 +1455,48 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                     night_demand = sum(demand_d[h] for h in range(0, 8)) + sum(demand_d[h] for h in range(17, 24))
                     if afternoon_demand >= 1 and night_demand >= 1:
                         n3_vars_d = [x[p, d, n3_idx] for p in range(n_staff)]
-                        objective_terms.append(sum(n3_vars_d) * 15000)
-            # N 基础奖励: 纯夜班最标准
+                        objective_terms.append(sum(n3_vars_d) * 12000)
+            # N 基础奖励: 纯夜班最标准，与N2同级以保持平衡
             if n_idx is not None:
                 for d in range(n_days):
                     demand_d = hourly_hc.get(date_strs[d], {}).get(role_key, np.zeros(24))
                     if sum(demand_d[h] for h in range(0, 8)) + sum(demand_d[h] for h in range(17, 24)) >= 1:
                         n_vars_d = [x[p, d, n_idx] for p in range(n_staff)]
-                        objective_terms.append(sum(n_vars_d) * 12000)
+                        objective_terms.append(sum(n_vars_d) * 20000)
+            # N/N2 最低保障: 每人至少1个N、1个N2 (软约束)
+            if n_idx is not None:
+                for p in range(n_staff):
+                    n_min_slack = model.NewIntVar(0, 1, f's1_nmin_{p}')
+                    total_n = sum(x[p, d, n_idx] for d in range(n_days))
+                    model.Add(total_n + n_min_slack >= 1)
+                    objective_terms.append(n_min_slack * (-30000))
+            if n2_idx is not None:
+                for p in range(n_staff):
+                    n2_min_slack = model.NewIntVar(0, 1, f's1_n2min_{p}')
+                    total_n2 = sum(x[p, d, n2_idx] for d in range(n_days))
+                    model.Add(total_n2 + n2_min_slack >= 1)
+                    objective_terms.append(n2_min_slack * (-30000))
+            # 白天班型按需自适应: HC>=2.5→L(9.5h), 2.0-2.4→C1(8.5h), <2.0→D1(8h)
+            l_idx = c1_idx = d1_idx = None
+            for si, sn in enumerate(shifts_list):
+                if sn == 'R_L': l_idx = si
+                if sn == 'R_C1': c1_idx = si
+                if sn == 'R_D1': d1_idx = si
+            for d in range(n_days):
+                demand_d = hourly_hc.get(date_strs[d], {}).get(role_key, np.zeros(24))
+                daytime_demand = sum(demand_d[h] for h in range(8, 18))
+                if daytime_demand >= 2.5:
+                    if l_idx is not None:
+                        l_vars_d = [x[p, d, l_idx] for p in range(n_staff)]
+                        objective_terms.append(sum(l_vars_d) * 25000)
+                elif daytime_demand >= 2.0:
+                    if c1_idx is not None:
+                        c1_vars_d = [x[p, d, c1_idx] for p in range(n_staff)]
+                        objective_terms.append(sum(c1_vars_d) * 15000)
+                else:
+                    if d1_idx is not None:
+                        d1_vars_d = [x[p, d, d1_idx] for p in range(n_staff)]
+                        objective_terms.append(sum(d1_vars_d) * 8000)
             # 夜班均衡: 每人夜班(N/N2/N3)数量偏差惩罚
             total_night_per_person = {}
             for p in range(n_staff):
@@ -1474,7 +1511,25 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                     n_dev = model.NewIntVar(0, n_days * n_staff, f's1_ndev_{p}')
                     model.Add(n_dev >= total_night_per_person[p] * n_staff - total_nights)
                     model.Add(n_dev >= total_nights - total_night_per_person[p] * n_staff)
-                    objective_terms.append(n_dev * (-3000))
+                    objective_terms.append(n_dev * (-5000))
+            # 白天班型均衡: D1/L/C1 每类每人使用量接近
+            if role_name == '放射技师':
+                day_bal_groups = {'R_D1':[], 'R_L':[], 'R_C1':[]}
+                for label in day_bal_groups:
+                    idx = None
+                    for si, sn in enumerate(shifts_list):
+                        if sn == label: idx = si; break
+                    if idx is not None:
+                        for p in range(n_staff):
+                            day_bal_groups[label].append(sum(x[p, d, idx] for d in range(n_days)))
+                group_totals = [sum(v) for v in day_bal_groups.values()]
+                for gv, gtotal in zip(day_bal_groups.values(), group_totals):
+                    if n_staff > 0 and len(gv) > 0:
+                        for p in range(n_staff):
+                            d_dev = model.NewIntVar(0, n_days * n_staff, f's1_dbal_{p}')
+                            model.Add(d_dev >= gv[p] * n_staff - gtotal)
+                            model.Add(d_dev >= gtotal - gv[p] * n_staff)
+                            objective_terms.append(d_dev * (-8000))
 
 
 
@@ -1504,6 +1559,88 @@ def solve_stage1_80pct(hourly_hc, date_strs, staff, ln_schedule, ln_skip_dates,
                 model.Add(dev >= total_dec + base_h - avg_target)
                 model.Add(dev >= avg_target - (total_dec + base_h))
                 objective_terms.append(dev * (-S1_BALANCE_WEIGHT))
+
+        # B超医生: 白班偏好 D1-D4 > C,C1 > L,L1
+        if role_name == 'B超医生':
+            D1_priority = ['D1','D2','D4']
+            D3_priority = ['D3']
+            C_priority = ['C','C1']
+            L_priority = ['L','L1']
+            for p in range(n_staff):
+                for d in range(n_days):
+                    for s in range(n_shifts):
+                        sn = shifts_list[s]
+                        if sn in D1_priority:
+                            objective_terms.append(x[p, d, s] * 3000)
+                        elif sn in D3_priority:
+                            objective_terms.append(x[p, d, s] * 1000)
+                        elif sn in C_priority:
+                            objective_terms.append(x[p, d, s] * 1000)
+                        elif sn in L_priority:
+                            objective_terms.append(x[p, d, s] * 500)
+            # D-family 均衡: D/D1/D2/D3/D4 每人使用量接近，D3不无限扩张
+            D_family = ['D','D1','D2','D3','D4']
+            for label in D_family:
+                idx = None
+                for si, sn in enumerate(shifts_list):
+                    if sn == label: idx = si; break
+                if idx is not None:
+                    per_person = []
+                    for p in range(n_staff):
+                        per_person.append(sum(x[p, d, idx] for d in range(n_days)))
+                    gtotal = sum(per_person)
+                    if n_staff > 0 and len(per_person) > 0:
+                        for p in range(n_staff):
+                            d_dev = model.NewIntVar(0, n_days * n_staff, f's1_dbal_{p}')
+                            model.Add(d_dev >= per_person[p] * n_staff - gtotal)
+                            model.Add(d_dev >= gtotal - per_person[p] * n_staff)
+                            objective_terms.append(d_dev * (-5000))
+            # D4 最低保障: 每人至少1个
+            d4_idx_bal = None
+            for si, sn in enumerate(shifts_list):
+                if sn == 'D4': d4_idx_bal = si; break
+            if d4_idx_bal is not None:
+                for p in range(n_staff):
+                    d4_slack = model.NewIntVar(0, 1, f's1_d4min_{p}')
+                    total_d4 = sum(x[p, d, d4_idx_bal] for d in range(n_days))
+                    model.Add(total_d4 + d4_slack >= 1)
+                    objective_terms.append(d4_slack * (-S1_COVERAGE_WEIGHT // 2))
+            # H1/H2 每人至少1个 (软约束)
+            for label in ['H1','H2']:
+                idx = None
+                for si, sn in enumerate(shifts_list):
+                    if sn == label: idx = si; break
+                if idx is not None:
+                    for p in range(n_staff):
+                        h_slack = model.NewIntVar(0, 2, f's1_{label}min_{p}')
+                        total_h = sum(x[p, d, idx] for d in range(n_days))
+                        model.Add(total_h + h_slack >= 1)
+                        objective_terms.append(h_slack * (-S1_COVERAGE_WEIGHT // 3))
+            # H1/H2 上午班均衡
+                idx = None
+                for si, sn in enumerate(shifts_list):
+                    if sn == label: idx = si; break
+                if idx is not None:
+                    per_person = []
+                    for p in range(n_staff):
+                        per_person.append(sum(x[p, d, idx] for d in range(n_days)))
+                    gtotal = sum(per_person)
+                    if n_staff > 0 and len(per_person) > 0:
+                        for p in range(n_staff):
+                            h_dev = model.NewIntVar(0, n_days * n_staff, f's1_hbal_{p}')
+                            model.Add(h_dev >= per_person[p] * n_staff - gtotal)
+                            model.Add(h_dev >= gtotal - per_person[p] * n_staff)
+                            objective_terms.append(h_dev * (-5000))
+            # 早晨VIP: h7-h8有需求时强激励H1(7:40-11:40唯一覆盖早班时段)
+            h1_vip_idx = None
+            for si, sn in enumerate(shifts_list):
+                if sn == 'H1': h1_vip_idx = si; break
+            if h1_vip_idx is not None:
+                for d in range(n_days):
+                    demand_d = hourly_hc.get(date_strs[d], {}).get(role_key, np.zeros(24))
+                    if demand_d[7] >= 1 or demand_d[8] >= 1:
+                        h1_vip_vars = [x[p, d, h1_vip_idx] for p in range(n_staff)]
+                        objective_terms.append(sum(h1_vip_vars) * 20000)
 
         model.Maximize(sum(objective_terms))
 
@@ -2211,7 +2348,7 @@ def merge_and_oncall(stage1_schedule, stage1_hours,
         if all_dates[d].weekday() in (2, 4):
             pm_list = [(p, final_schedule[p][ds]) for p in us_ft
                       if p in final_schedule and ds in final_schedule[p]
-                      and any(s.strip() in FULL_DAY_SHIFTS or s.strip() == 'H3'
+                      and any(s.strip() in FULL_DAY_SHIFTS or s.strip() == 'H4'
                            for s in str(final_schedule[p][ds][0] if isinstance(final_schedule[p][ds], tuple) else final_schedule[p][ds]).split(' + '))]
             while len(pm_list) > 2:
                 p_to_move = pm_list[-1][0]
@@ -2355,7 +2492,7 @@ def _merge_half_shifts(final_schedule, final_hours, category_hours, date_strs, s
     返回: (updated_schedule, updated_hours, updated_category_hours, ot_hours)
     """
     ot_hours = defaultdict(float)
-    half_pairs = {('H1', 'H3'): ('D6', 10.0), ('H2', 'H3'): ('D', 8.5)}  # (半天1,半天2) -> (合并班型, 工时)
+    half_pairs = {('H1', 'H4'): ('D', 8.0), ('H2', 'H4'): ('D', 8.0), ('H3', 'H4'): ('D', 8.0)}
     merged_count = 0
 
     for ds in date_strs:
@@ -2849,9 +2986,10 @@ def generate_dashboard_html(final_schedule, final_hours, category_hours, hourly_
 
         shift_colors = {
             "D": "#4CAF50", "D1": "#66BB6A", "D2": "#81C784", "D3": "#A5D6A7",
-            "D4": "#43A047", "D5": "#388E3C", "D6": "#2E7D32",
-            "C": "#4CAF50", "C1": "#66BB6A", "L": "#8BC34A",
-            "H1": "#29B6F6", "H2": "#4FC3F7", "H3": "#81D4FA", "T": "#B3E5FC",
+            "D4": "#43A047",
+            "C": "#4CAF50", "C1": "#66BB6A", "L": "#8BC34A", "L1": "#689F38",
+            "H1": "#29B6F6", "H2": "#4FC3F7", "H3": "#81D4FA", "H4": "#B3E5FC",
+            "T": "#B3E5FC",
             "N": "#1a73e8", "N2": "#1565C0", "N3": "#0D47A1",
             "L/N": "#FF9800",
             # 放射技师专用
@@ -2884,12 +3022,12 @@ def generate_dashboard_html(final_schedule, final_hours, category_hours, hourly_
     # B超 最终硬切（在生成HTML前最后执行）
     us_ft_names = [p for p in staff['B超医生']['fulltime'] if 'US' not in p]
     for d, ds in enumerate(date_strs):
-        wd = d % 7
+        wd = all_dates[d].weekday()
         day_target = 1 if wd == 6 else 2  # Sun=1, others=2 full_day minimum
         pm_target = 2 if wd in (2, 4) else (3 if wd in (1, 3) else None)
 
         fd_people = []   # 全天白班 (D/C/L)
-        hx_people = []   # 半天班 (H1/H2/H3)
+        hx_people = []   # H1/H2/H3 上午半天, H4 下午半天
         off_people = []  # 休息
         for p_name in us_ft_names:
             entry = final_schedule.get(p_name, {}).get(ds, None)
@@ -2921,9 +3059,9 @@ def generate_dashboard_html(final_schedule, final_hours, category_hours, hourly_
         if pm_target is not None:
             # All full-day people are PM (they cover afternoon)
             pm_people = list(fd_people)
-            # Also include H3 from half-day people
+            # Also include H4 from half-day people
             for p_name, sv, cat in hx_people:
-                if 'H3' in sv.split(' + '):
+                if 'H4' in sv.split(' + '):
                     pm_people.append((p_name, sv, cat))
             # Cut excess PM to H2
             for p_name, sv, cat in pm_people[pm_target:]:
@@ -3045,15 +3183,16 @@ body{font-family:"Microsoft YaHei","SimHei",sans-serif;background:#f0f2f5;color:
 table.schedule{border-collapse:collapse;width:max-content;min-width:100%;font-size:11px}
 table.schedule th,table.schedule td{border:1px solid #e0e0e0;padding:4px 3px;text-align:center;white-space:nowrap}
 table.schedule th{background:#f5f5f5;font-weight:600;position:sticky;top:0;z-index:2}
-table.schedule .name-col{min-width:80px;position:sticky;left:0;background:#fff;z-index:1;font-weight:600;text-align:left;padding-left:6px}
-table.schedule .stats-col{min-width:42px;font-size:10px}
-table.schedule .shift-cell{font-size:10px;min-width:50px;transition:all 0.15s;border-radius:2px;position:relative;color:#000}
+table.schedule .name-col{min-width:80px;width:80px;position:sticky;left:0;background:#fff;z-index:1;font-weight:600;text-align:left;padding-left:6px}
+table.schedule .stats-col{min-width:42px;width:42px;font-size:10px}
+table.schedule .shift-cell{font-size:10px;min-width:54px;width:54px;transition:all 0.15s;border-radius:2px;position:relative;color:#000}
 table.schedule .shift-cell.editable{cursor:pointer}
 table.schedule .shift-cell.editable:hover{transform:scale(1.1);z-index:3;box-shadow:0 2px 8px rgba(0,0,0,0.25)}
 table.schedule .shift-cell.cat-backup{border:2px dashed #F44336!important}
 table.schedule .shift-cell.cat-ln{border:3px solid #FF9800!important;font-weight:bold}
 table.schedule .shift-cell.cat-20{background:#E3F2FD!important;border:2px solid #1565C0!important;font-weight:bold}
 table.schedule .shift-cell.cell-oncall::after{content:"📞";position:absolute;top:0;right:1px;font-size:7px;line-height:1}
+table.schedule .date-col{min-width:54px;width:54px;font-size:10px}
 
 /* === PTO === */
 .pto-cell{background:#FF4444!important;color:#fff!important;font-weight:bold}
@@ -3163,9 +3302,9 @@ table.schedule .shift-cell.cell-oncall::after{content:"📞";position:absolute;t
 <!-- === TABS === -->
 <div class="tabs" id="tabs"></div>
 
-<!-- === LEGEND === -->
-<div class="legend" id="legendBar">
-    <b>图例：</b><span id="legendContent"></span>
+<!-- === SHIFT REFERENCE (replaces legend) === -->
+<div class="legend" id="shiftRefBar">
+    <b>班型参考：</b><span id="shiftRefContent"></span>
 </div>
 <div class="legend">
     <b>分类：</b>
@@ -3177,12 +3316,6 @@ table.schedule .shift-cell.cell-oncall::after{content:"📞";position:absolute;t
 
 <!-- === ROSTER === -->
 <div class="roster-grid" id="roster"><div style="text-align:center;padding:30px;color:#999">加载中...</div></div>
-
-<!-- === SHIFT REFERENCE === -->
-<div class="shift-ref">
-    <div class="section-title">班型参考</div>
-    <div id="shiftRef"></div>
-</div>
 
 <!-- === NOTES === -->
 <div class="notes-section">
@@ -3231,7 +3364,7 @@ var SCHEDULE_DATA = __JSON_DATA__;
 var ORIG_SCHEDULE_DATA = null;
 var TARGET_HOURS = __TARGET_FULL__;
 var TARGET_80 = __TARGET_80__;
-var currentRole = '放射医生';
+var currentRole = '_combined';
 var editMode = false;
 var edits = {};
 var oncallEdits = {};
@@ -3269,17 +3402,20 @@ function init(){
     document.getElementById('hdMonth').textContent = SCHEDULE_DATA.month || '';
     loadMonthSelector();
     var tabs = document.getElementById('tabs');
-    var roles = Object.keys(SCHEDULE_DATA.roles);
-    for(var i=0; i<roles.length; i++){
-        (function(role){
-            var btn = document.createElement('button');
-            btn.className = 'tab' + (role === currentRole ? ' active' : '');
-            btn.textContent = role;
-            btn.onclick = function(){ currentRole = role; document.getElementById('roleSelect').value = role; switchRole(); };
-            tabs.appendChild(btn);
-        })(roles[i]);
-    }
-    document.getElementById('roleSelect').value = currentRole;
+    // 放射技师 tab
+    (function(){
+        var btn = document.createElement('button');
+        btn.className = 'tab' + (currentRole === '放射技师' ? ' active' : '');
+        btn.textContent = '放射技师';
+        btn.onclick = function(){ currentRole = '放射技师'; document.getElementById('roleSelect').value = '放射技师'; switchRole(); };
+        tabs.appendChild(btn);
+    })();
+    // Combined view tab (default)
+    var btnComb = document.createElement('button');
+    btnComb.className = 'tab' + (currentRole === '_combined' ? ' active' : '');
+    btnComb.textContent = '放射+超声';
+    btnComb.onclick = function(){ currentRole = '_combined'; switchRole(); };
+    tabs.appendChild(btnComb);
     renderAll();
     loadNotes();
     loadReqs();
@@ -3319,7 +3455,9 @@ function renderOptions(sel, months){
 function switchMonth(url){ if(url) window.location.href = url; }
 
 function switchRole(){
-    currentRole = document.getElementById('roleSelect').value;
+    if(currentRole !== '_combined'){
+        currentRole = document.getElementById('roleSelect').value;
+    }
     // Restore this role's edits from localStorage
     var lsKey = '_gzu_edits_' + (SCHEDULE_DATA.month||'default');
     var saved = localStorage.getItem(lsKey);
@@ -3328,33 +3466,210 @@ function switchRole(){
     } else { edits = {}; }
     var tabEls = document.querySelectorAll('.tab');
     for(var i=0; i<tabEls.length; i++){
-        tabEls[i].classList.toggle('active', tabEls[i].textContent === currentRole);
+        var tabText = tabEls[i].textContent;
+        var match = (tabText === '放射+超声' && currentRole === '_combined') || (tabText === currentRole);
+        tabEls[i].classList.toggle('active', match);
     }
     renderAll();
 }
 
 // ============ RENDER ============
 function renderAll(){
-    renderLegend();
-    renderRoster();
-    renderShiftRef();
+    if(currentRole === '_combined'){
+        // Build one combined table: rad doctors + US doctors with separator
+        renderCombinedRoster();
+        var chips = '<div style="display:flex;gap:4px;flex-wrap:wrap">';
+        var shown = {};
+        ['放射医生','B超医生'].forEach(function(rn){
+            var rd2 = SCHEDULE_DATA.roles[rn];
+            for(var k in (rd2.shift_colors||{})){
+                if(shown[k] || k==='off' || k==='OnCall') continue;
+                shown[k] = true;
+                chips += '<span class="shift-chip"><span class="chip-name" style="background:' + rd2.shift_colors[k] + '">' + k + '</span><span class="chip-time">' + ((rd2.shift_times||{})[k]||'-') + '</span></span>';
+            }
+        });
+        chips += '<span class="shift-chip chip-off"><span class="chip-name" style="background:#eee;color:#999">OFF</span><span class="chip-time">休息</span></span></div>';
+        document.getElementById('shiftRefContent').innerHTML = chips;
+    } else {
+        renderShiftRefInline();
+        renderRoster();
+    }
 }
 
-function renderLegend(){
-    var rd = SCHEDULE_DATA.roles[currentRole];
-    var colors = rd.shift_colors;
-    var h = '';
-    var shown = {};
-    for(var k in colors){
-        if(shown[k] || k === 'off') continue;
-        shown[k] = true;
-        var time = rd.shift_times[k] || '';
-        h += '<span class="legend-item"><span class="legend-dot" style="background:' + colors[k] + '"></span> ' + k + (time?' ('+time+')':'') + '</span> ';
+function renderCombinedRoster(){
+    // One unified table: 放射医生 rows | separator | 超声医生 rows | merged backup below
+    var rd = SCHEDULE_DATA.roles['放射医生'];
+    var us = SCHEDULE_DATA.roles['B超医生'];
+    var dates = rd.dates;
+    // Build header once
+    var header = '<th class="name-col">人员</th><th class="stats-col">工时</th><th class="stats-col">80%</th><th class="stats-col">20%</th><th class="stats-col">备班</th><th class="stats-col">L/N</th><th class="stats-col">目标</th><th class="stats-col">OnCall</th>';
+    var wk=['一','二','三','四','五','六','日'];
+    for(var di=0; di<dates.length; di++){ var wd = rd.weekdays ? rd.weekdays[di] : (di % 7); header += '<th class="date-col">' + dates[di].slice(3) + '<br><small>' + wk[wd] + '</small></th>'; }
+
+    function buildRoleRows(roleName, skipBackup){
+        var saved = currentRole;
+        currentRole = roleName;
+        var lsKey = '_gzu_edits_' + (SCHEDULE_DATA.month||'default');
+        var s = localStorage.getItem(lsKey);
+        if(s){ try { var ae = JSON.parse(s); edits = ae[roleName] || {}; oncallEdits = ae['_oncall'] || {}; } catch(e){} } else { edits = {}; }
+        var rows = '';
+        var staff = SCHEDULE_DATA.roles[roleName].staff;
+        for(var si=0; si<staff.length; si++){
+            var p = staff[si];
+            var isBackup = p.is_backup || (''+p.name).indexOf('备班') >= 0;
+            if(skipBackup && isBackup) continue;
+            if(!skipBackup && !isBackup) continue;
+            rows += buildStaffRow(p, dates);
+        }
+        currentRole = saved;
+        return rows;
     }
-    h += '<span class="legend-item"><span class="legend-dot" style="background:#F5F5F5;border:1px solid #ddd"></span> 休息</span> ';
-    h += '<span class="legend-item" style="color:#9E9E9E">📞 OnCall</span>';
-    document.getElementById('legendContent').innerHTML = h;
+
+    var h = '<div class="roster-grid"><h2>放射+超声 排班表</h2><table class="schedule"><thead><tr>' + header + '</tr></thead><tbody>';
+    // Build date-only subheader (no stats columns) for US section
+    var dateOnlyHeader = '';
+    for(var di=0; di<dates.length; di++){ var wd = rd.weekdays ? rd.weekdays[di] : (di % 7); dateOnlyHeader += '<th class="date-col" style="font-size:10px">' + dates[di].slice(3) + '<br><small>' + wk[wd] + '</small></th>'; }
+    h += buildRoleRows('放射医生', true);
+    h += '<tr style="border-top:4px solid #999"><td style="font-weight:600;font-size:12px;text-align:left;padding:6px 8px;background:#fff">超声医生</td><td colspan="7" style="background:#fff"></td>' + dateOnlyHeader + '</tr>';
+    h += buildRoleRows('B超医生', true);
+    h += '</tbody></table></div>';
+
+    // Merged backups
+    var bkRows = buildRoleRows('放射医生', false) + buildRoleRows('B超医生', false);
+    if(bkRows){
+        h += '<div class="roster-grid" style="margin-top:20px;border-top:3px solid #F44336">';
+        h += '<h2 style="color:#F44336">备班（合并）</h2>';
+        h += '<table class="schedule"><thead><tr>' + header + '</tr></thead><tbody>';
+        h += bkRows;
+        h += '</tbody></table></div>';
+    }
+    document.getElementById('roster').innerHTML = h;
 }
+
+// Build table for a single role (used for standalone tabs)
+// ============ SHARED STAFF ROW (used by renderRoster and renderRosterForRole) ============
+function buildStaffRow(p, dates){
+    var html = '<tr>';
+    var dynHours = getDynamicHours(p, dates);
+    var changed = (Math.abs(dynHours - p.hours) > 0.05);
+    var hourColor = '#333';
+    if(changed) hourColor = '#E91E63';
+    else if(dynHours > TARGET_80 && !p.is_backup) hourColor = '#1a73e8';
+    var hourTitle = changed ? ('原始 ' + p.hours + 'h → 修改后 ' + dynHours + 'h') : '';
+    html += '<td class="name-col">' + p.name + (p.is_backup?' ↩':'') + '</td>';
+    html += '<td class="stats-col" style="font-weight:600;color:' + hourColor + '" title="' + hourTitle + '">' + dynHours + 'h</td>';
+    html += '<td class="stats-col">' + p.hours_80 + 'h</td>';
+    html += '<td class="stats-col" style="color:#1a73e8">' + (p.hours_20>0?p.hours_20+'h':'-') + '</td>';
+    html += '<td class="stats-col" style="color:#F44336">' + (p.hours_backup>0?p.hours_backup+'h':'-') + '</td>';
+    html += '<td class="stats-col" style="color:#FF9800;font-weight:600">' + (p.hours_ln>0?p.hours_ln+'h':'-') + '</td>';
+    html += '<td class="stats-col">' + (p.target>0?p.target+'h':'-') + '</td>';
+    html += '<td class="stats-col">' + (p.oncall_count||'') + '</td>';
+    for(var di=0; di<dates.length; di++){
+        var ds = dates[di];
+        var shiftVal = p.schedule[ds] || '';
+        var catVal = p.category[ds] || '';
+        var isOncall = p.is_oncall && p.is_oncall[ds];
+        var hasEdit = edits[p.internal_name] && edits[p.internal_name][ds] !== undefined;
+        var displayShift = hasEdit ? edits[p.internal_name][ds] : shiftVal;
+        var displayName = SHIFT_LABELS[displayShift] || displayShift;
+        var text = displayName || '-';
+        var extraClass = editMode ? ' editable' : '';
+        var bg = displayShift ? '#F8F8F8' : '#FFFFFF';
+        if(displayShift){
+            if(catVal === '备班') extraClass += ' cat-backup';
+            else if(catVal === 'L/N') extraClass += ' cat-ln';
+            else if(catVal === '20%') extraClass += ' cat-20';
+            var badge = '';
+            if(catVal === '20%') badge = ' <sup style="background:#1565C0;color:#fff;padding:2px 4px;border-radius:3px;font-size:10px;font-weight:bold">20%</sup>';
+            else if(catVal === '备班') badge = ' <sup style="background:#F44336;color:#fff;padding:1px 3px;border-radius:2px;font-size:8px">B</sup>';
+            else if(catVal === 'L/N') badge = ' <sup style="background:#FF9800;color:#fff;padding:1px 3px;border-radius:2px;font-size:8px">LN</sup>';
+            text = '<b>' + displayName + '</b>' + badge;
+        }
+        var shiftUpper = displayShift.toUpperCase();
+        if(p.pto && p.pto[ds] && !hasEdit){
+            html += '<td class="shift-cell" style="background:#FF4444;color:#fff;font-weight:bold"><span>PTO</span></td>';
+            continue;
+        }
+        if(shiftUpper === 'PTO4' || shiftUpper === 'PTO8'){
+            var ptoLabel = shiftUpper === 'PTO4' ? 'PTO 4h' : 'PTO 8h';
+            html += '<td class="shift-cell editable" style="background:#FF4444;color:#fff;font-weight:bold" onclick="openEditPopup(\'' + p.internal_name + '\',\'' + ds + '\')"><span>' + ptoLabel + '</span></td>';
+            continue;
+        }
+        if(shiftUpper === 'CTO4' || shiftUpper === 'CTO8'){
+            var ctoLabel = shiftUpper === 'CTO4' ? 'CTO 4h' : 'CTO 8h';
+            html += '<td class="shift-cell editable" style="background:#FF9800;color:#fff;font-weight:bold" onclick="openEditPopup(\'' + p.internal_name + '\',\'' + ds + '\')"><span>' + ctoLabel + '</span></td>';
+            continue;
+        }
+        if(displayShift === '放射假'){
+            html += '<td class="shift-cell editable" style="background:#9C27B0;color:#fff;font-weight:bold" onclick="openEditPopup(\'' + p.internal_name + '\',\'' + ds + '\')"><span>放射假</span></td>';
+            continue;
+        }
+        var showOncall = isOncall;
+        if(oncallEdits[p.internal_name] && oncallEdits[p.internal_name][ds] !== undefined){
+            showOncall = oncallEdits[p.internal_name][ds];
+        }
+        if(showOncall){ text += ' 📞'; extraClass += ' cell-oncall'; }
+        if(p.notes && p.notes[ds]){ text += ' [' + p.notes[ds] + ']'; }
+        var onclick = editMode ? ('onclick="openEditPopup(\'' + p.internal_name + '\',\'' + ds + '\')"') : ('onclick="showDayDetail(\'' + ds + '\')"');
+        html += '<td class="shift-cell date-col' + extraClass + '" style="background:' + bg + '" ' + onclick + ' title="' + ds + ': ' + (displayShift||'休息') + ' [' + (catVal||'-') + ']">' + text + '</td>';
+    }
+    html += '</tr>';
+    return html;
+}
+
+function renderRosterForRole(roleName, title){
+    // Render roster for a specific role (used for combined view)
+    var savedRole = currentRole;
+    currentRole = roleName;
+    var rd = SCHEDULE_DATA.roles[roleName];
+    if(!rd) return '';
+    var dates = rd.dates;
+    var regular = [], backup = [];
+    for(var si=0; si<rd.staff.length; si++){
+        var st = rd.staff[si];
+        if(st.is_backup || (st.name||'').indexOf('备班') >= 0){
+            backup.push(st);
+        } else {
+            regular.push(st);
+        }
+    }
+    var header = '<th class="name-col">人员</th><th class="stats-col">工时</th><th class="stats-col">80%</th><th class="stats-col">20%</th><th class="stats-col">备班</th><th class="stats-col">L/N</th><th class="stats-col">目标</th><th class="stats-col">OnCall</th>';
+    var wk=['一','二','三','四','五','六','日'];
+    for(var di=0; di<dates.length; di++){ var wd = rd.weekdays ? rd.weekdays[di] : (di % 7); header += '<th class="date-col">' + dates[di].slice(3) + '<br><small>' + wk[wd] + '</small></th>'; }
+    var h = '<div class="roster-grid"><h2>' + title + '</h2>';
+    h += '<table class="schedule"><thead><tr>' + header + '</tr></thead><tbody>';
+    for(var si=0; si<regular.length; si++){ h += buildStaffRow(regular[si], dates); }
+    h += '</tbody></table></div>';
+    if(backup.length > 0){
+        h += '<div class="roster-grid" style="margin-top:20px;border-top:3px solid #F44336">';
+        h += '<h2 style="color:#F44336">' + roleName + ' — 备班</h2>';
+        h += '<table class="schedule"><thead><tr>' + header + '</tr></thead><tbody>';
+        for(var si=0; si<backup.length; si++){ h += buildStaffRow(backup[si], dates); }
+        h += '</tbody></table></div>';
+    }
+    currentRole = savedRole;
+    return h;
+}
+
+function renderShiftRefInline(){
+    var rd = SCHEDULE_DATA.roles[currentRole];
+    var h = '<div style="display:flex;flex-wrap:wrap;gap:4px">';
+    var shown = {};
+    var names = (rd.allowed_shifts||[]).slice();
+    for(var i=0; i<names.length; i++){
+        var s = names[i];
+        if(shown[s]) continue; shown[s] = true;
+        var time = rd.shift_times[s];
+        var color = rd.shift_colors[s];
+        if(!time && !color) continue;
+        var bg = color || '#9e9e9e';
+        var dn = SHIFT_LABELS[s] || s;
+        h += '<span class="shift-chip"><span class="chip-name" style="background:' + bg + '">' + dn + '</span><span class="chip-time">' + (time||'-') + '</span></span>';
+    }
+    h += '<span class="shift-chip chip-off"><span class="chip-name" style="background:#eee;color:#999">OFF</span><span class="chip-time">休息</span></span></div>';
+    document.getElementById('shiftRefContent').innerHTML = h;
+}
+function renderLegend(){} // removed
 
 function renderRoster(){
     var rd = SCHEDULE_DATA.roles[currentRole];
@@ -3372,86 +3687,13 @@ function renderRoster(){
         }
     }
 
-    function staffRow(p){
-        var html = '<tr>';
-        var dynHours = getDynamicHours(p, dates);
-        var changed = (Math.abs(dynHours - p.hours) > 0.05);
-        var hourColor = '#333';
-        if(changed) hourColor = '#E91E63';
-        else if(dynHours > TARGET_80 && !p.is_backup) hourColor = '#1a73e8';
-        var hourTitle = changed ? ('原始 ' + p.hours + 'h → 修改后 ' + dynHours + 'h') : '';
-        html += '<td class="name-col">' + p.name + (p.is_backup?' 🔄':'') + '</td>';
-        html += '<td class="stats-col" style="font-weight:600;color:' + hourColor + '" title="' + hourTitle + '">' + dynHours + 'h</td>';
-        html += '<td class="stats-col">' + p.hours_80 + 'h</td>';
-        html += '<td class="stats-col" style="color:#1a73e8">' + (p.hours_20>0?p.hours_20+'h':'-') + '</td>';
-        html += '<td class="stats-col" style="color:#F44336">' + (p.hours_backup>0?p.hours_backup+'h':'-') + '</td>';
-        html += '<td class="stats-col" style="color:#FF9800;font-weight:600">' + (p.hours_ln>0?p.hours_ln+'h':'-') + '</td>';
-        html += '<td class="stats-col">' + (p.target>0?p.target+'h':'-') + '</td>';
-        html += '<td class="stats-col">' + (p.oncall_count||'') + '</td>';
-        for(var di=0; di<dates.length; di++){
-            var ds = dates[di];
-            var shiftVal = p.schedule[ds] || '';
-            var catVal = p.category[ds] || '';
-            var isOncall = p.is_oncall && p.is_oncall[ds];
-            var hasEdit = edits[p.internal_name] && edits[p.internal_name][ds] !== undefined;
-            var displayShift = hasEdit ? edits[p.internal_name][ds] : shiftVal;
-            var displayName = SHIFT_LABELS[displayShift] || displayShift;
-            var text = displayName || '-';
-            var extraClass = editMode ? ' editable' : '';
-            var bg = displayShift ? '#F8F8F8' : '#FFFFFF';
-            if(displayShift){
-                if(catVal === '备班') extraClass += ' cat-backup';
-                else if(catVal === 'L/N') extraClass += ' cat-ln';
-                else if(catVal === '20%') extraClass += ' cat-20';
-                var badge = '';
-                if(catVal === '20%') badge = ' <sup style="background:#1565C0;color:#fff;padding:2px 4px;border-radius:3px;font-size:10px;font-weight:bold">20%</sup>';
-                else if(catVal === '备班') badge = ' <sup style="background:#F44336;color:#fff;padding:1px 3px;border-radius:2px;font-size:8px">B</sup>';
-                else if(catVal === 'L/N') badge = ' <sup style="background:#FF9800;color:#fff;padding:1px 3px;border-radius:2px;font-size:8px">LN</sup>';
-                text = '<b>' + displayName + '</b>' + badge;
-            }
-            // PTO/CTO special rendering (from edits or algorithmic PTO)
-            var shiftUpper = displayShift.toUpperCase();
-            if(p.pto && p.pto[ds] && !hasEdit){  // algorithmic PTO (no manual override)
-                html += '<td class="shift-cell" style="background:#FF4444;color:#fff;font-weight:bold"><span>PTO</span></td>';
-                continue;
-            }
-            if(shiftUpper === 'PTO4' || shiftUpper === 'PTO8'){
-                var ptoLabel = shiftUpper === 'PTO4' ? 'PTO 4h' : 'PTO 8h';
-                html += '<td class="shift-cell editable" style="background:#FF4444;color:#fff;font-weight:bold" onclick="openEditPopup(\'' + p.internal_name + '\',\'' + ds + '\')"><span>' + ptoLabel + '</span></td>';
-                continue;
-            }
-            if(shiftUpper === 'CTO4' || shiftUpper === 'CTO8'){
-                var ctoLabel = shiftUpper === 'CTO4' ? 'CTO 4h' : 'CTO 8h';
-                html += '<td class="shift-cell editable" style="background:#FF9800;color:#fff;font-weight:bold" onclick="openEditPopup(\'' + p.internal_name + '\',\'' + ds + '\')"><span>' + ctoLabel + '</span></td>';
-                continue;
-            }
-            if(displayShift === '放射假'){
-                html += '<td class="shift-cell editable" style="background:#9C27B0;color:#fff;font-weight:bold" onclick="openEditPopup(\'' + p.internal_name + '\',\'' + ds + '\')"><span>放射假</span></td>';
-                continue;
-            }
-            // Oncall: check user edits first, then algorithmic
-            var showOncall = isOncall;
-            if(oncallEdits[p.internal_name] && oncallEdits[p.internal_name][ds] !== undefined){
-                showOncall = oncallEdits[p.internal_name][ds];
-            }
-            if(showOncall){ text += ' 📞'; extraClass += ' cell-oncall'; }
-            if(p.notes && p.notes[ds]){
-                text += ' [' + p.notes[ds] + ']';
-            }
-            var onclick = editMode ? ('onclick="openEditPopup(\'' + p.internal_name + '\',\'' + ds + '\')"') : ('onclick="showDayDetail(\'' + ds + '\')"');
-            html += '<td class="shift-cell' + extraClass + '" style="background:' + bg + '" ' + onclick + ' title="' + ds + ': ' + (displayShift||'休息') + ' [' + (catVal||'-') + ']">' + text + '</td>';
-        }
-        html += '</tr>';
-        return html;
-    }
-
     var header = '<th class="name-col">人员</th><th class="stats-col">工时</th><th class="stats-col">80%</th><th class="stats-col">20%</th><th class="stats-col">备班</th><th class="stats-col">L/N</th><th class="stats-col">目标</th><th class="stats-col">OnCall</th>';
     var wk=['一','二','三','四','五','六','日'];
-    for(var di=0; di<dates.length; di++){ var wd = rd.weekdays ? rd.weekdays[di] : (di % 7); header += '<th>' + dates[di].slice(3) + '<br><small>' + wk[wd] + '</small></th>'; }
+    for(var di=0; di<dates.length; di++){ var wd = rd.weekdays ? rd.weekdays[di] : (di % 7); header += '<th class="date-col">' + dates[di].slice(3) + '<br><small>' + wk[wd] + '</small></th>'; }
 
     var h = '<h2>' + currentRole + ' 排班表</h2>';
     h += '<table class="schedule"><thead><tr>' + header + '</tr></thead><tbody>';
-    for(var si=0; si<regular.length; si++){ h += staffRow(regular[si]); }
+    for(var si=0; si<regular.length; si++){ h += buildStaffRow(regular[si], dates); }
     h += '</tbody></table>';
 
     // === 备班独立 Section ===
@@ -3459,33 +3701,14 @@ function renderRoster(){
         h += '<div class="roster-grid" style="margin-top:20px;border-top:3px solid #F44336">';
         h += '<h2 style="color:#F44336">' + currentRole + ' — 备班</h2>';
         h += '<table class="schedule"><thead><tr>' + header + '</tr></thead><tbody>';
-        for(var si=0; si<backup.length; si++){ h += staffRow(backup[si]); }
+        for(var si=0; si<backup.length; si++){ h += buildStaffRow(backup[si], dates); }
         h += '</tbody></table></div>';
     }
 
     document.getElementById('roster').innerHTML = h;
 }
 
-function renderShiftRef(){
-    var rd = SCHEDULE_DATA.roles[currentRole];
-    var h = '<div class="shift-grid">';
-    var shiftNames = (rd.allowed_shifts||[]).slice();
-    for(var i=0; i<shiftNames.length; i++){
-        var s = shiftNames[i];
-        var time = rd.shift_times[s];
-        var color = rd.shift_colors[s];
-        if(!time && !color) continue;
-        var bg = color || '#9e9e9e';
-        var displayName = SHIFT_LABELS[s] || s;
-        h += '<div class="shift-chip"><span class="chip-name" style="background:' + bg + '">' + displayName + '</span><span class="chip-time">' + (time||'-') + '</span></div>';
-    }
-    h += '<div class="shift-chip chip-off"><span class="chip-name" style="background:#eee;color:#999">OFF</span><span class="chip-time">休息</span></div>';
-    if(currentRole === '放射技师'){
-        h += '<div class="shift-chip chip-off"><span class="chip-name" style="background:#9C27B0;color:#fff">放射假</span><span class="chip-time">放射假</span></div>';
-    }
-    h += '</div>';
-    document.getElementById('shiftRef').innerHTML = h;
-}
+function renderShiftRef(){} // removed: merged into renderShiftRefInline
 function getShiftDesc(s){
     if(s=='L/N') return '24小时长班';
     if(s.indexOf('D')===0) return s==='D'?'白班8h':'白班变体';
@@ -3570,12 +3793,29 @@ function toggleEdit(){
     renderRoster();
 }
 
+function resolveRole(personName){
+    // Look up which role a person belongs to (needed for _combined view)
+    var roleNames = Object.keys(SCHEDULE_DATA.roles);
+    for(var ri=0; ri<roleNames.length; ri++){
+        var staff = SCHEDULE_DATA.roles[roleNames[ri]].staff;
+        for(var si=0; si<staff.length; si++){
+            if(staff[si].internal_name === personName) return roleNames[ri];
+        }
+    }
+    return currentRole !== '_combined' ? currentRole : '放射医生';
+}
+
+function getEffectiveRole(){
+    return currentRole === '_combined' ? '放射医生' : currentRole;
+}
+
 function getRoleAllowedShifts(){
-    var rd = SCHEDULE_DATA.roles[currentRole];
+    var role = getEffectiveRole();
+    var rd = SCHEDULE_DATA.roles[role];
     var shifts = (rd.allowed_shifts||[]).slice();  // role-specific shifts
     // Add universal options applicable to all roles
     var extras = ['PTO4','PTO8','CTO4','CTO8','OFF',''];
-    if(currentRole === '放射技师') extras.splice(4, 0, '放射假');  // insert before OFF
+    if(role === '放射技师') extras.splice(4, 0, '放射假');  // insert before OFF
     for(var i=0; i<extras.length; i++){
         if(shifts.indexOf(extras[i]) < 0) shifts.push(extras[i]);
     }
@@ -3592,7 +3832,8 @@ var SHIFT_LABELS = {
 function getDynamicHours(person, dates){
     // Recalculate total hours from current schedule (edits override original)
     var h = 0.0;
-    var rd = SCHEDULE_DATA.roles[currentRole];
+    var personRole = resolveRole(person.internal_name);
+    var rd = SCHEDULE_DATA.roles[personRole];
     var shiftHoursMap = rd.shift_hours || {};
     for(var di=0; di<dates.length; di++){
         var ds = dates[di];
@@ -3617,7 +3858,9 @@ function getDynamicHours(person, dates){
 
 function openEditPopup(personName, dateStr){
     selectedCell = {name: personName, ds: dateStr};
-    var rd = SCHEDULE_DATA.roles[currentRole];
+    // Resolve which role this person belongs to (works in _combined view too)
+    var popupRole = resolveRole(personName);
+    var rd = SCHEDULE_DATA.roles[popupRole];
     var person = null;
     for(var i=0; i<rd.staff.length; i++){ if(rd.staff[i].internal_name === personName){ person = rd.staff[i]; break; } }
     if(!person) return;
@@ -3678,7 +3921,8 @@ function selectShift(shift){
     var lsKey = '_gzu_edits_' + (SCHEDULE_DATA.month||'default');
     var allEdits = {};
     try { allEdits = JSON.parse(localStorage.getItem(lsKey)||'{}'); } catch(e){}
-    allEdits[currentRole] = edits;
+    var saveRole = resolveRole(selectedCell.name);
+    allEdits[saveRole] = edits;
     allEdits['_oncall'] = oncallEdits;
     localStorage.setItem(lsKey, JSON.stringify(allEdits));
     renderRoster();
