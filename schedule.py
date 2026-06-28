@@ -3183,8 +3183,16 @@ body{font-family:"Microsoft YaHei","SimHei",sans-serif;background:#f0f2f5;color:
 table.schedule{border-collapse:collapse;width:max-content;min-width:100%;font-size:11px}
 table.schedule th,table.schedule td{border:1px solid #e0e0e0;padding:4px 3px;text-align:center;white-space:nowrap}
 table.schedule th{background:#f5f5f5;font-weight:600;position:sticky;top:0;z-index:2}
-table.schedule .name-col{min-width:80px;width:80px;position:sticky;left:0;background:#fff;z-index:1;font-weight:600;text-align:left;padding-left:6px}
-table.schedule .stats-col{min-width:42px;width:42px;font-size:10px}
+table.schedule .name-col{min-width:80px;width:80px;position:sticky;left:0;background:#fff;z-index:4;font-weight:600;text-align:left;padding-left:6px}
+table.schedule .stats-col{min-width:42px;width:42px;font-size:10px;position:sticky;background:#fff;z-index:2}
+table.schedule th.stats-col{background:#f5f5f5;z-index:3}
+table.schedule td:nth-child(2),table.schedule th:nth-child(2){left:80px}
+table.schedule td:nth-child(3),table.schedule th:nth-child(3){left:122px}
+table.schedule td:nth-child(4),table.schedule th:nth-child(4){left:164px}
+table.schedule td:nth-child(5),table.schedule th:nth-child(5){left:206px}
+table.schedule td:nth-child(6),table.schedule th:nth-child(6){left:248px}
+table.schedule td:nth-child(7),table.schedule th:nth-child(7){left:290px}
+table.schedule td:nth-child(8),table.schedule th:nth-child(8){left:332px;box-shadow:2px 0 4px rgba(0,0,0,0.1)}
 table.schedule .shift-cell{font-size:10px;min-width:54px;width:54px;transition:all 0.15s;border-radius:2px;position:relative;color:#000}
 table.schedule .shift-cell.editable{cursor:pointer}
 table.schedule .shift-cell.editable:hover{transform:scale(1.1);z-index:3;box-shadow:0 2px 8px rgba(0,0,0,0.25)}
@@ -3525,20 +3533,26 @@ function renderCombinedRoster(){
         return rows;
     }
 
-    var h = '<div class="roster-grid"><h2>放射+超声 排班表</h2><table class="schedule"><thead><tr>' + header + '</tr></thead><tbody>';
-    // Build date-only subheader (no stats columns) for US section
+    // Build date-only subheader for US section
     var dateOnlyHeader = '';
     for(var di=0; di<dates.length; di++){ var wd = rd.weekdays ? rd.weekdays[di] : (di % 7); dateOnlyHeader += '<th class="date-col" style="font-size:10px">' + dates[di].slice(3) + '<br><small>' + wk[wd] + '</small></th>'; }
+    var h = '<h2>放射+超声 排班表</h2><table class="schedule"><thead><tr>' + header + '</tr></thead><tbody>';
     h += buildRoleRows('放射医生', true);
-    h += '<tr style="border-top:4px solid #999"><td style="font-weight:600;font-size:12px;text-align:left;padding:6px 8px;background:#fff">超声医生</td><td colspan="7" style="background:#fff"></td>' + dateOnlyHeader + '</tr>';
+    h += '<tr style="border-top:4px solid #999"><td class="name-col" style="font-weight:600;font-size:12px;text-align:left;padding:6px 8px;background:#fff;position:sticky;left:0;z-index:5">超声医生</td>';
+    var statLabels = ['工时','80%','20%','备班','L/N','目标','OnCall'];
+    var statLefts = [80,122,164,206,248,290,332];
+    for(var si4=0; si4<statLabels.length; si4++){
+        h += '<td class="stats-col" style="position:sticky;left:' + statLefts[si4] + 'px;background:#fff;font-size:10px;font-weight:600;z-index:5">' + statLabels[si4] + '</td>';
+    }
+    h += dateOnlyHeader + '</tr>';
     h += buildRoleRows('B超医生', true);
-    h += '</tbody></table></div>';
+    h += '</tbody></table>';
 
     // Merged backups
     var bkRows = buildRoleRows('放射医生', false) + buildRoleRows('B超医生', false);
     if(bkRows){
-        h += '<div class="roster-grid" style="margin-top:20px;border-top:3px solid #F44336">';
-        h += '<h2 style="color:#F44336">备班（合并）</h2>';
+        h += '<div style="margin-top:20px;border-top:3px solid #F44336;background:#fff;border-radius:8px;padding:16px">';
+        h += '<h2 style="color:#F44336;font-size:15px;margin:0 0 10px 0">备班（合并）</h2>';
         h += '<table class="schedule"><thead><tr>' + header + '</tr></thead><tbody>';
         h += bkRows;
         h += '</tbody></table></div>';
@@ -3636,13 +3650,13 @@ function renderRosterForRole(roleName, title){
     var header = '<th class="name-col">人员</th><th class="stats-col">工时</th><th class="stats-col">80%</th><th class="stats-col">20%</th><th class="stats-col">备班</th><th class="stats-col">L/N</th><th class="stats-col">目标</th><th class="stats-col">OnCall</th>';
     var wk=['一','二','三','四','五','六','日'];
     for(var di=0; di<dates.length; di++){ var wd = rd.weekdays ? rd.weekdays[di] : (di % 7); header += '<th class="date-col">' + dates[di].slice(3) + '<br><small>' + wk[wd] + '</small></th>'; }
-    var h = '<div class="roster-grid"><h2>' + title + '</h2>';
+    var h = '<h2>' + title + '</h2>';
     h += '<table class="schedule"><thead><tr>' + header + '</tr></thead><tbody>';
     for(var si=0; si<regular.length; si++){ h += buildStaffRow(regular[si], dates); }
-    h += '</tbody></table></div>';
+    h += '</tbody></table>';
     if(backup.length > 0){
-        h += '<div class="roster-grid" style="margin-top:20px;border-top:3px solid #F44336">';
-        h += '<h2 style="color:#F44336">' + roleName + ' — 备班</h2>';
+        h += '<div style="margin-top:20px;border-top:3px solid #F44336;background:#fff;border-radius:8px;padding:16px">';
+        h += '<h2 style="color:#F44336;font-size:15px;margin:0 0 10px 0">' + roleName + ' — 备班</h2>';
         h += '<table class="schedule"><thead><tr>' + header + '</tr></thead><tbody>';
         for(var si=0; si<backup.length; si++){ h += buildStaffRow(backup[si], dates); }
         h += '</tbody></table></div>';
@@ -3698,8 +3712,8 @@ function renderRoster(){
 
     // === 备班独立 Section ===
     if(backup.length > 0){
-        h += '<div class="roster-grid" style="margin-top:20px;border-top:3px solid #F44336">';
-        h += '<h2 style="color:#F44336">' + currentRole + ' — 备班</h2>';
+        h += '<div style="margin-top:20px;border-top:3px solid #F44336;background:#fff;border-radius:8px;padding:16px">';
+        h += '<h2 style="color:#F44336;font-size:15px;margin:0 0 10px 0">' + currentRole + ' — 备班</h2>';
         h += '<table class="schedule"><thead><tr>' + header + '</tr></thead><tbody>';
         for(var si=0; si<backup.length; si++){ h += buildStaffRow(backup[si], dates); }
         h += '</tbody></table></div>';
