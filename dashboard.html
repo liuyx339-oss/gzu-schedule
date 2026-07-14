@@ -97,6 +97,36 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
     <div class="notes-list" id="dailyReqsList"></div>
 </div>
 
+<!-- ====== ULTRASOUND STAFFING ====== -->
+<div class="section" id="staffingSection">
+    <div class="section-title">超声医生配置建议</div>
+    <div style="display:flex;gap:12px;align-items:end;flex-wrap:wrap;margin-bottom:12px">
+        <div>
+            <label style="font-size:12px;color:#666">4楼体检人数</label>
+            <input type="number" id="staff4F" min="0" value="20" style="width:80px;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:14px;text-align:center">
+        </div>
+        <div>
+            <label style="font-size:12px;color:#666">9楼VIP人数</label>
+            <input type="number" id="staff9F" min="0" value="2" style="width:80px;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:14px;text-align:center">
+        </div>
+        <div>
+            <label style="font-size:12px;color:#666">大排畸数量</label>
+            <input type="number" id="staffAnatomy" min="0" value="2" style="width:80px;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:14px;text-align:center">
+        </div>
+        <button onclick="calcStaffing()" style="padding:8px 18px;background:#1a73e8;color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer">计算</button>
+    </div>
+    <div id="staffingResult" style="display:none;background:#fff;border-radius:10px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px">
+            <div class="badge badge-persons" style="min-width:100px"><span class="lbl">建议总HC</span><span class="val" id="staffTotal"></span></div>
+            <div class="badge badge-time" style="min-width:120px"><span class="lbl">4楼</span><span class="val" style="font-size:15px" id="staff4FOut"></span></div>
+            <div class="badge badge-time" style="min-width:120px"><span class="lbl">2楼</span><span class="val" style="font-size:15px" id="staff2FOut"></span></div>
+            <div class="badge badge-time" style="min-width:120px"><span class="lbl">9楼</span><span class="val" style="font-size:15px" id="staff9FOut"></span></div>
+        </div>
+        <div style="background:#e8f0fe;border-radius:6px;padding:8px 12px;margin-bottom:8px"><b>共享说明：</b><span id="staffShared"></span></div>
+        <div style="font-size:12px;color:#666;line-height:1.8" id="staffRationale"></div>
+    </div>
+</div>
+
 </div><!-- end mainContent -->
 <div class="footer">数据来源: 飞书 Bitable | 由 GitHub Actions 每日自动更新</div>
 
@@ -423,6 +453,66 @@ async function delDailyReq(idx){
         renderDailyReqs();
     }catch(e){alert('网络错误: '+e.message);}
 }
+
+// ============ ULTRASOUND STAFFING CALCULATOR ============
+function calcStaffing(){
+    var a4=parseInt(document.getElementById('staff4F').value)||0;
+    var b9=parseInt(document.getElementById('staff9F').value)||0;
+    var cAnatomy=parseInt(document.getElementById('staffAnatomy').value)||0;
+    var totalHC=0,floor4='',floor2='',floor9='',shared=[],rationale=[];
+
+    // 2楼
+    var f2Docs=2;
+    if(cAnatomy>=4)f2Docs=3;
+    floor2=f2Docs+'位';
+    totalHC+=f2Docs;
+    rationale.push('大排畸'+cAnatomy+'个 → 2楼安排'+f2Docs+'位医生');
+
+    // 9楼
+    if(b9<=3){
+        floor9='由2楼医生兼顾';
+        shared.push('9楼仅'+b9+'人，2楼医生兼顾');
+        rationale.push('9楼VIP'+b9+'人(≤3)，无需独立医生');
+    }else{
+        floor9='1位';
+        totalHC+=1;
+        rationale.push('9楼VIP'+b9+'人(≥4)，新增1位9楼医生');
+    }
+
+    // 4楼
+    if(a4<=15){
+        floor4='1位全职';
+        totalHC+=1;
+        rationale.push('4楼'+a4+'人(≤15)，1位全职医生即可');
+    }else{
+        floor4='1位全职 + 1位兼职(4h)';
+        totalHC+=2;
+        if(a4>=16&&a4<=22){
+            shared.push('4楼兼职支援2楼约2小时');
+            rationale.push('4楼'+a4+'人，兼职约2h完成→可支援2楼约2h');
+        }else if(a4>=23&&a4<=26){
+            shared.push('4楼兼职支援2楼约1小时');
+            rationale.push('4楼'+a4+'人，兼职约3h完成→可支援2楼约1h');
+        }else{
+            rationale.push('4楼'+a4+'人(>26)，兼职无空余支援');
+        }
+    }
+
+    document.getElementById('staffTotal').textContent=totalHC+'位';
+    document.getElementById('staff4FOut').textContent=floor4;
+    document.getElementById('staff2FOut').textContent=floor2;
+    document.getElementById('staff9FOut').textContent=floor9;
+    document.getElementById('staffShared').textContent=shared.length?shared.join('；'):'无特殊共享';
+    document.getElementById('staffRationale').innerHTML=rationale.map(function(r){return '• '+r;}).join('<br>');
+    document.getElementById('staffingResult').style.display='block';
+    // Save to localStorage
+    try{localStorage.setItem('_staffing_input',JSON.stringify({a4:a4,b9:b9,anatomy:cAnatomy}));}catch(e){}
+}
+// Restore last input on load
+(function(){
+    var s;try{s=JSON.parse(localStorage.getItem('_staffing_input'));}catch(e){}
+    if(s){document.getElementById('staff4F').value=s.a4||20;document.getElementById('staff9F').value=s.b9||2;document.getElementById('staffAnatomy').value=s.anatomy||2;}
+})();
 
 // ============ PASSWORD GATE ============
 var PWD_HASH='Z3p1MjAyNg==';
