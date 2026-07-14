@@ -79,6 +79,26 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
     </div>
 </div>
 
+<div class="section" style="margin:16px 24px 0" id="staffingSection">
+<div class="section-title">超声医生配置建议</div>
+<div style="display:flex;gap:12px;align-items:end;flex-wrap:wrap;margin-bottom:12px">
+<div><label style="font-size:12px;color:#666">4楼体检人数</label><input type="number" id="staff4F" min="0" value="20" style="width:80px;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:14px;text-align:center"></div>
+<div><label style="font-size:12px;color:#666">9楼VIP人数</label><input type="number" id="staff9F" min="0" value="2" style="width:80px;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:14px;text-align:center"></div>
+<div><label style="font-size:12px;color:#666">大排畸数量</label><input type="number" id="staffAnatomy" min="0" value="2" style="width:80px;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:14px;text-align:center"></div>
+<button onclick="calcStaffing()" style="padding:8px 18px;background:#1a73e8;color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer">计算</button>
+</div>
+<div id="staffingResult" style="display:none;background:#fff;border-radius:10px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">
+<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px">
+<div class="badge badge-persons" style="min-width:100px"><span class="lbl">建议总HC</span><span class="val" id="staffTotal"></span></div>
+<div class="badge badge-time" style="min-width:120px"><span class="lbl">4楼</span><span class="val" style="font-size:15px" id="staff4FOut"></span></div>
+<div class="badge badge-time" style="min-width:120px"><span class="lbl">2楼</span><span class="val" style="font-size:15px" id="staff2FOut"></span></div>
+<div class="badge badge-time" style="min-width:120px"><span class="lbl">9楼</span><span class="val" style="font-size:15px" id="staff9FOut"></span></div>
+</div>
+<div style="background:#e8f0fe;border-radius:6px;padding:8px 12px;margin-bottom:8px"><b>共享说明：</b><span id="staffShared"></span></div>
+<div style="font-size:12px;color:#666;line-height:1.8" id="staffRationale"></div>
+</div>
+</div>
+
 <div id="content"><div class="empty">加载中...</div></div>
 
 <!-- ====== REQUIREMENTS COLLECTION ====== -->
@@ -95,36 +115,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;b
         </div>
     </div>
     <div class="notes-list" id="dailyReqsList"></div>
-</div>
-
-<!-- ====== ULTRASOUND STAFFING ====== -->
-<div class="section" id="staffingSection">
-    <div class="section-title">超声医生配置建议</div>
-    <div style="display:flex;gap:12px;align-items:end;flex-wrap:wrap;margin-bottom:12px">
-        <div>
-            <label style="font-size:12px;color:#666">4楼体检人数</label>
-            <input type="number" id="staff4F" min="0" value="20" style="width:80px;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:14px;text-align:center">
-        </div>
-        <div>
-            <label style="font-size:12px;color:#666">9楼VIP人数</label>
-            <input type="number" id="staff9F" min="0" value="2" style="width:80px;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:14px;text-align:center">
-        </div>
-        <div>
-            <label style="font-size:12px;color:#666">大排畸数量</label>
-            <input type="number" id="staffAnatomy" min="0" value="2" style="width:80px;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:14px;text-align:center">
-        </div>
-        <button onclick="calcStaffing()" style="padding:8px 18px;background:#1a73e8;color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer">计算</button>
-    </div>
-    <div id="staffingResult" style="display:none;background:#fff;border-radius:10px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">
-        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px">
-            <div class="badge badge-persons" style="min-width:100px"><span class="lbl">建议总HC</span><span class="val" id="staffTotal"></span></div>
-            <div class="badge badge-time" style="min-width:120px"><span class="lbl">4楼</span><span class="val" style="font-size:15px" id="staff4FOut"></span></div>
-            <div class="badge badge-time" style="min-width:120px"><span class="lbl">2楼</span><span class="val" style="font-size:15px" id="staff2FOut"></span></div>
-            <div class="badge badge-time" style="min-width:120px"><span class="lbl">9楼</span><span class="val" style="font-size:15px" id="staff9FOut"></span></div>
-        </div>
-        <div style="background:#e8f0fe;border-radius:6px;padding:8px 12px;margin-bottom:8px"><b>共享说明：</b><span id="staffShared"></span></div>
-        <div style="font-size:12px;color:#666;line-height:1.8" id="staffRationale"></div>
-    </div>
 </div>
 
 </div><!-- end mainContent -->
