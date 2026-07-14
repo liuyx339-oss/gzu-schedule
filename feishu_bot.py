@@ -491,7 +491,7 @@ def _build_interactive_card(target_date, a, b):
             mod_lines.append(f"{mc[lbl]} {n}")
     mod_str = "  ".join(mod_lines) if mod_lines else "暂无"
 
-    # OB - NO bold
+    # OB - with AM/PM split
     ob_parts = []
     ob_total = 0
     for c in OB_CLASSES:
@@ -500,6 +500,30 @@ def _build_interactive_card(target_date, a, b):
         if n:
             ob_parts.append(f"{ob_cn[c]} {n}")
     ob_str = "  ".join(ob_parts) if ob_parts else "暂无预约"
+    # AM/PM split
+    am_total = 0; pm_total = 0
+    am_parts = []; pm_parts = []
+    if b.get("time_slots"):
+        for idx, ts in enumerate(b["time_slots"]):
+            hour = int(str(ts).split(":")[0]) if ts else 0
+            dst = (am_total, am_parts) if hour < 12 else (pm_total, pm_parts)
+            for c in OB_CLASSES:
+                n = (b.get("counts", {}).get(c, [])[idx] if idx < len(b.get("counts", {}).get(c, [])) else 0)
+                if n:
+                    if hour < 12: am_total += n
+                    else: pm_total += n
+        for c in OB_CLASSES:
+            am_n = 0; pm_n = 0
+            for idx, ts in enumerate(b["time_slots"]):
+                hour = int(str(ts).split(":")[0]) if ts else 0
+                n = (b.get("counts", {}).get(c, [])[idx] if idx < len(b.get("counts", {}).get(c, [])) else 0)
+                if n:
+                    if hour < 12: am_n += n
+                    else: pm_n += n
+            if am_n: am_parts.append(f"{ob_cn[c]} {am_n}")
+            if pm_n: pm_parts.append(f"{ob_cn[c]} {pm_n}")
+    ob_am_str = ", ".join(am_parts) if am_parts else "无"
+    ob_pm_str = ", ".join(pm_parts) if pm_parts else "无"
 
     md = (
         f"**📅 {target_date} {w}**\n\n"
@@ -508,7 +532,9 @@ def _build_interactive_card(target_date, a, b):
         f"{mod_str}\n\n"
         f"🔧 操作 {tm}min（{tm/60:.1f}h） 📝 报告 {dm}min（{dm/60:.1f}h）\n\n"
         f"---\n\n"
-        f"🩺 **OB超声** {ob_str}\n\n"
+        f"🩺 **OB超声** {ob_str}\n"
+        f"　☀上午: {ob_am_str}\n"
+        f"　🌙下午: {ob_pm_str}\n\n"
         f"---\n\n"
         f"📌 以上均按**人次**统计，非检查项目数\n\n"
         f"🔗 [完整日报](https://liuyx339-oss.github.io/gzu-schedule/dashboard.html)"

@@ -167,7 +167,39 @@ function render(data){
     obHasData=obTotal>0;
     html+='<div class="section"><div class="section-title">真实预约 &mdash; OB超声</div>';
     if(obHasData){
+        // Split by morning/afternoon (12:00 boundary)
+        var am={OB:0,NT:0,Anatomy:0},pm={OB:0,NT:0,Anatomy:0};
+        var times=ob.time_slots||[],counts=ob.counts||{};
+        for(var t=0;t<times.length;t++){
+            var hour=parseInt(times[t].split(':')[0])||0;
+            var dst=(hour<12)?am:pm;
+            for(var c=0;c<OB_CLASSES.length;c++){
+                var cls=OB_CLASSES[c];
+                dst[cls]+=(counts[cls]||[])[t]||0;
+            }
+        }
+        var amTotal=am.OB+am.NT+am.Anatomy;
+        var pmTotal=pm.OB+pm.NT+pm.Anatomy;
+        var hasAM=amTotal>0,hasPM=pmTotal>0;
+        // Grand total badges
         html+=renderBadges(obTotal,ob.total_counts||{},OB_CLASSES,OB_CN,OB_COLORS);
+        // AM/PM breakdown
+        html+='<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:8px">';
+        if(hasAM){
+            html+='<div style="background:#fff;border-radius:8px;padding:8px 14px;min-width:160px"><div style="font-size:11px;color:#999;margin-bottom:4px">☀ 上午 (12:00前)</div>';
+            html+='<div style="font-size:13px;font-weight:600;margin-bottom:2px">共 '+amTotal+' 人次</div>';
+            var amParts=[];
+            for(var c=0;c<OB_CLASSES.length;c++){var cls=OB_CLASSES[c];if(am[cls])amParts.push(OB_CN[cls]+' '+am[cls]);}
+            html+='<div style="font-size:12px;color:#666">'+amParts.join(' | ')+'</div></div>';
+        }
+        if(hasPM){
+            html+='<div style="background:#fff;border-radius:8px;padding:8px 14px;min-width:160px"><div style="font-size:11px;color:#999;margin-bottom:4px">🌙 下午 (12:00后)</div>';
+            html+='<div style="font-size:13px;font-weight:600;margin-bottom:2px">共 '+pmTotal+' 人次</div>';
+            var pmParts=[];
+            for(var c=0;c<OB_CLASSES.length;c++){var cls=OB_CLASSES[c];if(pm[cls])pmParts.push(OB_CN[cls]+' '+pm[cls]);}
+            html+='<div style="font-size:12px;color:#666">'+pmParts.join(' | ')+'</div></div>';
+        }
+        html+='</div>';
         html+='<div class="table-wrap" style="padding:12px"><div id="chartOB" style="height:350px"></div></div>';
         window._obData = ob;
     }else{html+='<div class="badges"><span style="color:#999;font-size:13px">暂无OB超声预约</span></div>';}
