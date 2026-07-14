@@ -863,6 +863,112 @@ def _build_daily_data(target_date, a, b):
 
 
 # =====================================================
+# ULTRASOUND STAFFING CALCULATOR
+# =====================================================
+
+def _calc_ultrasound_staffing(floor4_count, vip9_count, anatomy_count):
+    """
+    根据4楼体检人数/9楼VIP人数/大排畸数量，计算超声医生配置建议。
+
+    Returns:
+        dict with keys: total_hc, floor4, floor2, floor9, shared_notes, rationale
+    """
+    total_hc = 0
+    floor4 = ""
+    floor2 = ""
+    floor9 = ""
+    shared_notes = []
+    rationale_lines = []
+
+    # === 2楼 (最高优先级) ===
+    floor2_docs = 2  # 默认2位
+    if anatomy_count >= 4:
+        floor2_docs = 3  # 大排畸多时需要加人
+    floor2 = f"{floor2_docs}位"
+    total_hc += floor2_docs
+    rationale_lines.append(f"大排畸{anatomy_count}个 → 2楼安排{floor2_docs}位医生")
+    floor2_can_cover_vip = True  # 2楼医生可兼顾9楼
+
+    # === 9楼 ===
+    if vip9_count <= 3:
+        floor9 = "由2楼医生兼顾"
+        if floor2_can_cover_vip:
+            shared_notes.append(f"9楼仅{vip9_count}人，2楼医生兼顾")
+        rationale_lines.append(f"9楼VIP{vip9_count}人(≤3)，无需独立医生")
+    else:
+        floor9 = "1位"
+        total_hc += 1
+        rationale_lines.append(f"9楼VIP{vip9_count}人(≥4)，新增1位9楼医生")
+
+    # === 4楼 ===
+    total_floor4 = 0
+    if floor4_count <= 15:
+        floor4 = "1位全职"
+        total_floor4 = 1
+        part_support = ""
+        rationale_lines.append(f"4楼{floor4_count}人(≤15)，1位全职医生即可")
+    else:
+        floor4 = "1位全职 + 1位兼职(4h)"
+        total_floor4 = 2
+        if 16 <= floor4_count <= 22:
+            part_support = "约2小时"
+            shared_notes.append(f"4楼兼职支援2楼约{part_support}")
+            rationale_lines.append(f"4楼{floor4_count}人，兼职约2h完成→可支援2楼约2h")
+        elif 23 <= floor4_count <= 26:
+            part_support = "约1小时"
+            shared_notes.append(f"4楼兼职支援2楼约{part_support}")
+            rationale_lines.append(f"4楼{floor4_count}人，兼职约3h完成→可支援2楼约1h")
+        else:
+            part_support = "无"
+            rationale_lines.append(f"4楼{floor4_count}人(>26)，兼职无空余支援")
+
+    total_hc += total_floor4
+
+    # === 汇总 ===
+    shared_str = "\n".join(shared_notes) if shared_notes else "无特殊共享"
+
+    return {
+        "total_hc": total_hc,
+        "floor4": floor4,
+        "floor2": floor2,
+        "floor9": floor9,
+        "shared": shared_str,
+        "rationale": "\n".join(rationale_lines),
+    }
+
+
+def _build_staffing_card(target_date, staffing, a4, b9, c_anatomy):
+    """Build a Feishu interactive card for staffing recommendation."""
+    wday_cn = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]
+    w = wday_cn[target_date.weekday()]
+
+    md = (
+        f"**🏥 超声医生配置建议 — {target_date} {w}**\n\n"
+        f"📊 输入数据：\n"
+        f"  4楼体检：{a4}人 | 9楼VIP：{b9}人 | 大排畸：{c_anatomy}个\n\n"
+        f"---\n\n"
+        f"👨‍⚕️ **建议总HC：{staffing['total_hc']}位**\n\n"
+        f"🏢 4楼：{staffing['floor4']}\n"
+        f"🏥 2楼：{staffing['floor2']}\n"
+        f"🏨 9楼：{staffing['floor9']}\n\n"
+        f"---\n\n"
+        f"🔄 **共享说明**\n{staffing['shared']}\n\n"
+        f"---\n\n"
+        f"📝 **排班理由**\n{staffing['rationale']}"
+    )
+
+    card = {
+        "config": {"wide_screen_mode": True},
+        "header": {
+            "title": {"tag": "plain_text", "content": "超声医生配置建议"},
+            "template": "blue"
+        },
+        "elements": [{"tag": "markdown", "content": md}],
+    }
+    return card
+
+
+# =====================================================
 # MAIN
 # =====================================================
 
@@ -877,6 +983,8 @@ def main():
                         help="Write dashboard HTML to this path (e.g. publish/dashboard.html)")
     parser.add_argument("--output-data", type=str, default=None,
                         help="Write daily JSON data to this path (e.g. publish/daily_data.json)")
+    parser.add_argument("--calc-staffing", nargs=3, type=int, metavar=('4F','9F','DPL'),
+                        help="Calculate US staffing: <4F_count> <9F_VIP> <anatomy_count>")
     args = parser.parse_args()
 
     target_date = date.fromisoformat(args.target) if args.target else (date.today() + timedelta(days=1))
@@ -931,6 +1039,20 @@ def main():
     card = _build_interactive_card(target_date, result_a, result_b)
     ok1 = _send_card(token, chat_id, card)
     print("[DONE]" if ok1 else "[WARN] Message send failed")
+
+    # Send staffing card if --calc-staffing provided
+    if args.calc_staffing:
+        a4, b9, c_anatomy = args.calc_staffing
+        print(f"\n--- Ultrasound Staffing Calculation ---")
+        print(f"  4F={a4}, 9F={b9}, Anatomy={c_anatomy}")
+        staffing = _calc_ultrasound_staffing(a4, b9, c_anatomy)
+        print(f"  Total HC: {staffing['total_hc']}")
+        print(f"  4楼: {staffing['floor4']}")
+        print(f"  2楼: {staffing['floor2']}")
+        print(f"  9楼: {staffing['floor9']}")
+        staffing_card = _build_staffing_card(target_date, staffing, a4, b9, c_anatomy)
+        ok2 = _send_card(token, chat_id, staffing_card)
+        print("[DONE] Staffing card sent" if ok2 else "[WARN] Staffing card failed")
 
 
 if __name__ == "__main__":
