@@ -3376,6 +3376,8 @@ var currentRole = '_combined';
 var editMode = false;
 var edits = {};
 var oncallEdits = {};
+var categoryEdits = {};
+var notesEdits = {};
 var selectedCell = null;
 
 // ============ PASSWORD ============
@@ -3405,7 +3407,15 @@ function init(){
     var lsKey = '_gzu_edits_' + (SCHEDULE_DATA.month||'default');
     var saved = localStorage.getItem(lsKey);
     if(saved){
-        try { var allEdits = JSON.parse(saved); edits = allEdits[currentRole] || {}; oncallEdits = allEdits['_oncall'] || {}; } catch(e){}
+        try {
+            var allEdits = JSON.parse(saved);
+            oncallEdits = allEdits['_oncall'] || {};
+            categoryEdits = allEdits['_cat'] || {};
+            notesEdits = allEdits['_notes'] || {};
+            if(currentRole !== '_combined'){
+                edits = allEdits[currentRole] || {};
+            }
+        } catch(e){}
     }
     document.getElementById('hdMonth').textContent = SCHEDULE_DATA.month || '';
     loadMonthSelector();
@@ -3470,7 +3480,7 @@ function switchRole(){
     var lsKey = '_gzu_edits_' + (SCHEDULE_DATA.month||'default');
     var saved = localStorage.getItem(lsKey);
     if(saved){
-        try { var allEdits = JSON.parse(saved); edits = allEdits[currentRole] || {}; oncallEdits = allEdits['_oncall'] || {}; } catch(e){}
+        try { var allEdits = JSON.parse(saved); edits = allEdits[currentRole] || {}; oncallEdits = allEdits['_oncall'] || {}; categoryEdits = allEdits['_cat'] || {}; notesEdits = allEdits['_notes'] || {}; } catch(e){}
     } else { edits = {}; }
     var tabEls = document.querySelectorAll('.tab');
     for(var i=0; i<tabEls.length; i++){
@@ -3515,11 +3525,15 @@ function renderCombinedRoster(){
     for(var di=0; di<dates.length; di++){ var wd = rd.weekdays ? rd.weekdays[di] : (di % 7); header += '<th class="date-col">' + dates[di].slice(3) + '<br><small>' + wk[wd] + '</small></th>'; }
 
     function buildRoleRows(roleName, skipBackup){
-        var saved = currentRole;
+        var savedRole = currentRole;
+        var savedEdits = edits;
+        var savedOncall = oncallEdits;
         currentRole = roleName;
         var lsKey = '_gzu_edits_' + (SCHEDULE_DATA.month||'default');
         var s = localStorage.getItem(lsKey);
-        if(s){ try { var ae = JSON.parse(s); edits = ae[roleName] || {}; oncallEdits = ae['_oncall'] || {}; } catch(e){} } else { edits = {}; }
+        var roleE = {};
+        if(s){ try { var ae = JSON.parse(s); roleE = ae[roleName] || {}; oncallEdits = ae['_oncall'] || {}; } catch(e){} }
+        edits = roleE;
         var rows = '';
         var staff = SCHEDULE_DATA.roles[roleName].staff;
         for(var si=0; si<staff.length; si++){
@@ -3529,7 +3543,9 @@ function renderCombinedRoster(){
             if(!skipBackup && !isBackup) continue;
             rows += buildStaffRow(p, dates);
         }
-        currentRole = saved;
+        currentRole = savedRole;
+        edits = savedEdits;
+        oncallEdits = savedOncall;
         return rows;
     }
 
@@ -3581,7 +3597,8 @@ function buildStaffRow(p, dates){
     for(var di=0; di<dates.length; di++){
         var ds = dates[di];
         var shiftVal = p.schedule[ds] || '';
-        var catVal = p.category[ds] || '';
+        // Check category override first
+        var catVal = (categoryEdits[p.internal_name] && categoryEdits[p.internal_name][ds] !== undefined) ? categoryEdits[p.internal_name][ds] : (p.category[ds] || '');
         var isOncall = p.is_oncall && p.is_oncall[ds];
         var hasEdit = edits[p.internal_name] && edits[p.internal_name][ds] !== undefined;
         var displayShift = hasEdit ? edits[p.internal_name][ds] : shiftVal;
@@ -3623,7 +3640,9 @@ function buildStaffRow(p, dates){
             showOncall = oncallEdits[p.internal_name][ds];
         }
         if(showOncall){ text += ' 📞'; extraClass += ' cell-oncall'; }
-        if(p.notes && p.notes[ds]){ text += ' [' + p.notes[ds] + ']'; }
+        // Floor notes: check override first
+        var noteVal = (notesEdits[p.internal_name] && notesEdits[p.internal_name][ds] !== undefined) ? notesEdits[p.internal_name][ds] : ((p.notes && p.notes[ds]) || '');
+        if(noteVal){ text += ' [' + noteVal + ']'; }
         var onclick = editMode ? ('onclick="openEditPopup(\'' + p.internal_name + '\',\'' + ds + '\')"') : ('onclick="showDayDetail(\'' + ds + '\')"');
         html += '<td class="shift-cell date-col' + extraClass + '" style="background:' + bg + '" ' + onclick + ' title="' + ds + ': ' + (displayShift||'休息') + ' [' + (catVal||'-') + ']">' + text + '</td>';
     }
@@ -3823,8 +3842,8 @@ function getEffectiveRole(){
     return currentRole === '_combined' ? '放射医生' : currentRole;
 }
 
-function getRoleAllowedShifts(){
-    var role = getEffectiveRole();
+function getRoleAllowedShifts(roleOverride){
+    var role = roleOverride || getEffectiveRole();
     var rd = SCHEDULE_DATA.roles[role];
     var shifts = (rd.allowed_shifts||[]).slice();  // role-specific shifts
     // Add universal options applicable to all roles
@@ -3890,7 +3909,7 @@ function openEditPopup(personName, dateStr){
     var h = '<h3>✏️ ' + person.name + ' — ' + dateStr + '</h3>';
     h += '<p style="font-size:11px;color:#666;margin-bottom:8px">当前班次：<b>' + (currentShift||'休息') + '</b></p>';
     h += '<div class="btn-row">';
-    var allowedShifts = getRoleAllowedShifts();
+    var allowedShifts = getRoleAllowedShifts(popupRole);
     for(var i=0; i<allowedShifts.length; i++){
         var s = allowedShifts[i];
         var sel = s === currentShift ? ' sel' : '';
@@ -3902,6 +3921,29 @@ function openEditPopup(personName, dateStr){
     h += '<div style="margin-top:12px;padding-top:10px;border-top:1px solid #eee">';
     h += '<label style="font-size:12px;cursor:pointer"><input type="checkbox" id="chkOncall" onchange="toggleOncall()" ' + (isOncall ? 'checked' : '') + '> 📞 OnCall</label>';
     h += '</div>';
+    // Category selector
+    h += '<div style="margin-top:8px">';
+    h += '<label style="font-size:11px;color:#666">分类标记</label>';
+    var catOptions = ['','80%','20%','备班','L/N'];
+    var curCat = (categoryEdits[personName]&&categoryEdits[personName][dateStr]!==undefined) ? categoryEdits[personName][dateStr] : (person.category[dateStr]||'');
+    h += '<select id="selCat" onchange="changeCategory()" style="margin-left:8px;padding:4px 8px;border:1px solid #ddd;border-radius:4px;font-size:12px">';
+    for(var ci=0; ci<catOptions.length; ci++){
+        var cv = catOptions[ci];
+        h += '<option value="' + cv + '"' + (cv===curCat?' selected':'') + '>' + (cv||'(无)') + '</option>';
+    }
+    h += '</select></div>';
+    // Floor notes (for B超 doctors)
+    if(popupRole === 'B超医生' && !person.is_backup && (''+person.name).indexOf('备班') < 0){
+        var curNote = (notesEdits[personName]&&notesEdits[personName][dateStr]!==undefined) ? notesEdits[personName][dateStr] : (person.notes&&person.notes[dateStr])||'';
+        h += '<div style="margin-top:4px">';
+        h += '<label style="font-size:11px;color:#666">楼层备注</label>';
+        h += '<select id="selNote" onchange="changeNote()" style="margin-left:8px;padding:4px 8px;border:1px solid #ddd;border-radius:4px;font-size:12px">';
+        var noteOpts = ['','4','9','B1'];
+        for(var ni=0; ni<noteOpts.length; ni++){
+            h += '<option value="' + noteOpts[ni] + '"' + (noteOpts[ni]===curNote?' selected':'') + '>' + (noteOpts[ni]||'(无)') + '</option>';
+        }
+        h += '</select></div>';
+    }
     h += '<button class="btn-save-changes" onclick="applyEdit()">确认修改</button>';
     document.getElementById('popup').innerHTML = h;
     openOverlay();
@@ -3911,13 +3953,8 @@ function toggleOncall(){
     var checked = document.getElementById('chkOncall').checked;
     if(!oncallEdits[selectedCell.name]) oncallEdits[selectedCell.name] = {};
     oncallEdits[selectedCell.name][selectedCell.ds] = checked;
-    // Save to localStorage
-    var lsKey = '_gzu_edits_' + (SCHEDULE_DATA.month||'default');
-    var allEdits = {};
-    try { allEdits = JSON.parse(localStorage.getItem(lsKey)||'{}'); } catch(e){}
-    allEdits['_oncall'] = oncallEdits;
-    localStorage.setItem(lsKey, JSON.stringify(allEdits));
-    renderRoster();
+    saveAllEdits();
+    renderAll();
 }
 
 function selectShift(shift){
@@ -3931,21 +3968,45 @@ function selectShift(shift){
     }
     if(!edits[selectedCell.name]) edits[selectedCell.name] = {};
     edits[selectedCell.name][selectedCell.ds] = shift;
-    // Auto-save to localStorage so edits survive page reload
+    saveAllEdits();
+    renderAll();
+    closePopup();
+}
+
+function changeCategory(){
+    var val = document.getElementById('selCat').value;
+    if(!categoryEdits[selectedCell.name]) categoryEdits[selectedCell.name] = {};
+    categoryEdits[selectedCell.name][selectedCell.ds] = val;
+    saveAllEdits();
+    renderAll();
+}
+function changeNote(){
+    var val = document.getElementById('selNote').value;
+    if(!notesEdits[selectedCell.name]) notesEdits[selectedCell.name] = {};
+    notesEdits[selectedCell.name][selectedCell.ds] = val;
+    saveAllEdits();
+    renderAll();
+}
+function saveAllEdits(){
     var lsKey = '_gzu_edits_' + (SCHEDULE_DATA.month||'default');
     var allEdits = {};
     try { allEdits = JSON.parse(localStorage.getItem(lsKey)||'{}'); } catch(e){}
-    var saveRole = resolveRole(selectedCell.name);
-    allEdits[saveRole] = edits;
-    allEdits['_oncall'] = oncallEdits;
+    // Save current role's edits (deep clone to avoid cross-role pollution)
+    var saveRole = selectedCell ? resolveRole(selectedCell.name) : currentRole;
+    if(currentRole !== '_combined' && currentRole in SCHEDULE_DATA.roles){
+        allEdits[currentRole] = JSON.parse(JSON.stringify(edits));
+    } else if(selectedCell){
+        allEdits[saveRole] = JSON.parse(JSON.stringify(edits));
+    }
+    allEdits['_oncall'] = JSON.parse(JSON.stringify(oncallEdits));
+    allEdits['_cat'] = JSON.parse(JSON.stringify(categoryEdits));
+    allEdits['_notes'] = JSON.parse(JSON.stringify(notesEdits));
     localStorage.setItem(lsKey, JSON.stringify(allEdits));
-    renderRoster();
-    closePopup();
 }
 
 function applyEdit(){
     closePopup();
-    renderRoster();
+    renderAll();
 }
 
 function openOverlay(){
