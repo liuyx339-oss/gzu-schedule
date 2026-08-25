@@ -405,6 +405,26 @@ LEAVE_NAME_MAP = {
 }
 
 
+def _manual_sept_leaves():
+    """
+    9月一次性放射技师请假约束 (仅2026-09生效，不影响其他月份)。
+    返回: {person: {date_str: set of blocked_hours}}，全天请假用 set(range(24))。
+    """
+    leaves = defaultdict(dict)
+    FULL_DAY = set(range(24))
+    manual = {
+        "Liu Shuting": ["09月06日", "09月07日"],
+        "Ma Linlin": ["09月11日", "09月12日", "09月13日", "09月14日", "09月15日"],
+        "Zheng Xiaochun": ["09月15日", "09月16日", "09月17日"],
+        "Yi Hong": ["09月16日", "09月17日", "09月18日"],
+        "Yang Yongjun": ["09月30日"],
+    }
+    for person, dates in manual.items():
+        for ds in dates:
+            leaves[person][ds] = set(FULL_DAY)
+    return dict(leaves)
+
+
 def load_leaves_from_feishu():
     """
     从飞书请假库 (K9FdbW1mpaQE9gsWpX8c40Kvnub) 加载请假记录。
@@ -716,11 +736,12 @@ def _smooth_peak_hc(hourly_hc, date_strs):
 # 4. L/N 预分配 (Phase 2)
 # ==========================================
 
-def pre_allocate_ln(hourly_hc, date_strs, staff, all_dates):
+def pre_allocate_ln(hourly_hc, date_strs, staff, all_dates, leave_dates=None):
     """
     Phase 2: L/N (24H班) 预分配。
     每位全职放射医生/技师每月2个L/N，均匀间隔分布。
     L/N 属于独立类别，不计入 80%/20%/备班 分层。
+    leave_dates: {person: set(date_strs)} 请假日期，L/N预分配时跳过这些日期。
     返回: (ln_schedule, ln_hours, ln_skip_dates)
     """
     print("\n" + "="*60)
@@ -740,7 +761,8 @@ def pre_allocate_ln(hourly_hc, date_strs, staff, all_dates):
 
         _, ln_code = _get_night_shifts(role)
         assignments = _distribute_ln_shifts(fulltime, date_strs, ln_per_person,
-                                            all_dates=all_dates, weekends_only=(role == '放射技师'))
+                                            all_dates=all_dates, weekends_only=(role == '放射技师'),
+                                            leave_dates=leave_dates)
         for person, dates in assignments.items():
             for ds in dates:
                 ln_schedule[person][ds] = ln_code
@@ -761,8 +783,8 @@ def pre_allocate_ln(hourly_hc, date_strs, staff, all_dates):
 
 
 def _distribute_ln_shifts(fulltime_staff, date_strs, count_per_person=2,
-                         all_dates=None, weekends_only=False):
-    """均匀间隔分配L/N班次。若weekends_only,仅分配到周六日(5,6)。"""
+                         all_dates=None, weekends_only=False, leave_dates=None):
+    """均匀间隔分配L/N班次。若weekends_only,仅分配到周六日(5,6)。跳过请假日期。"""
     n_people = len(fulltime_staff)
     if n_people == 0:
         return {}
@@ -773,16 +795,29 @@ def _distribute_ln_shifts(fulltime_staff, date_strs, count_per_person=2,
         candidates = [i for i, d in enumerate(all_dates) if d.weekday() in (5, 6)]
     if not candidates:
         return {}
+    leave_dates = leave_dates or {}
     n_days = len(candidates)
     assignments = defaultdict(list)
     spacing = n_days / total_ln if total_ln > 0 else n_days
+    # 记录每个候选日期索引已被哪个person占用，用于请假日跳过
+    assigned_day_indices = set()
     for i in range(total_ln):
         person = fulltime_staff[i % n_people]
+        person_leave = leave_dates.get(person, set())
         idx_in_candidates = int(i * spacing)
+        # 向后搜索：跳过请假日期和已被占用的日期
+        while idx_in_candidates < n_days:
+            day_idx = candidates[idx_in_candidates]
+            ds = date_strs[day_idx]
+            if ds in person_leave or day_idx in assigned_day_indices:
+                idx_in_candidates += 1
+                continue
+            break
         if idx_in_candidates < n_days:
             day_idx = candidates[idx_in_candidates]
             ds = date_strs[day_idx]
             assignments[person].append(ds)
+            assigned_day_indices.add(day_idx)
     return dict(assignments)
 
 
@@ -3609,10 +3644,8 @@ function buildStaffRow(p, dates){
         if(displayShift){
             if(catVal === '备班') extraClass += ' cat-backup';
             else if(catVal === 'L/N') extraClass += ' cat-ln';
-            else if(catVal === '20%') extraClass += ' cat-20';
             var badge = '';
-            if(catVal === '20%') badge = ' <sup style="background:#1565C0;color:#fff;padding:2px 4px;border-radius:3px;font-size:10px;font-weight:bold">20%</sup>';
-            else if(catVal === '备班') badge = ' <sup style="background:#F44336;color:#fff;padding:1px 3px;border-radius:2px;font-size:8px">B</sup>';
+            if(catVal === '备班') badge = ' <sup style="background:#F44336;color:#fff;padding:1px 3px;border-radius:2px;font-size:8px">B</sup>';
             else if(catVal === 'L/N') badge = ' <sup style="background:#FF9800;color:#fff;padding:1px 3px;border-radius:2px;font-size:8px">LN</sup>';
             text = '<b>' + displayName + '</b>' + badge;
         }
@@ -4366,13 +4399,18 @@ def main():
     # --- Phase 1: 数据预处理 ---
     hourly_hc, date_strs, all_dates = load_and_preprocess_demand(data_path, month_year)
 
-    # --- Phase 2: L/N 预分配 ---
-    ln_schedule, ln_hours, ln_skip_dates = pre_allocate_ln(
-        hourly_hc, date_strs, staff, all_dates)
-
-    # --- 加载请假数据 ---
+    # --- 加载请假数据 (提前到L/N预分配之前, 确保L/N也避开请假日) ---
     print(f"\n📅 加载请假数据...")
     leaves_raw = load_leaves_from_feishu()
+    # 合并9月一次性手动请假 (仅2026-09)
+    if month_str == "2026-09":
+        manual_leaves = _manual_sept_leaves()
+        if leaves_raw:
+            for person, blocks in manual_leaves.items():
+                leaves_raw.setdefault(person, {}).update(blocks)
+        else:
+            leaves_raw = manual_leaves
+        print(f"   📌 已注入9月手动请假: {len(manual_leaves)} 人")
     leave_constraints = _apply_leave_to_staff(staff, leaves_raw or {}, date_strs) if leaves_raw else {}
     if leave_constraints:
         print(f"   ✅ 请假约束已应用: {len(leave_constraints)} 人")
@@ -4381,6 +4419,10 @@ def main():
     if leaves_raw:
         for person, date_blocks in leaves_raw.items():
             pto_dates[person] = set(date_blocks.keys())
+
+    # --- Phase 2: L/N 预分配 ---
+    ln_schedule, ln_hours, ln_skip_dates = pre_allocate_ln(
+        hourly_hc, date_strs, staff, all_dates, leave_dates=pto_dates)
 
     # --- Phase 3a: Stage 1 — 80%工时池 (先放射医生+放射技师) ---
     stage1_schedule, stage1_hours = solve_stage1_80pct(
