@@ -1,33 +1,33 @@
 {
-  "target_date": "2026-09-02",
+  "target_date": "2026-09-03",
   "categories": {
     "ob_ultrasound": {
       "label": "OB超声",
-      "bot_tech_minutes": 580,
-      "bot_doc_minutes": 290,
+      "bot_tech_minutes": 620,
+      "bot_doc_minutes": 310,
       "forecast_tech_minutes": 0.0,
       "forecast_doc_minutes": 0.0,
-      "bot_persons": 29,
+      "bot_persons": 31,
       "tech_diff_pct": -100.0,
       "doc_diff_pct": -100.0
     },
     "hc_ultrasound": {
       "label": "体检超声",
-      "bot_tech_minutes": 540,
-      "bot_doc_minutes": 270,
+      "bot_tech_minutes": 100,
+      "bot_doc_minutes": 50,
       "forecast_tech_minutes": 0.0,
       "forecast_doc_minutes": 0.0,
-      "bot_persons": 27,
+      "bot_persons": 5,
       "tech_diff_pct": -100.0,
       "doc_diff_pct": -100.0
     },
     "hc_radiology": {
       "label": "体检放射",
-      "bot_tech_minutes": 435,
-      "bot_doc_minutes": 265,
+      "bot_tech_minutes": 150,
+      "bot_doc_minutes": 95,
       "forecast_tech_minutes": 0.0,
       "forecast_doc_minutes": 0.0,
-      "bot_persons": 32,
+      "bot_persons": 9,
       "tech_diff_pct": -100.0,
       "doc_diff_pct": -100.0
     }
